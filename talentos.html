@@ -358,6 +358,87 @@ const ATRIBUTOS = [
 
 const STATUS = { vida: { atual: 0, max: 0 }, mana: { atual: 0, max: 0 }, sanidade: { atual: 100, max: 100 } };
 
+// ── Controle para não disparar toast na carga inicial ────
+let _statusCarregado = false;
+
+// ── Toast de mudança de status em tempo real ─────────────
+function notificarMudancaStatus(tipo, anterior, novo) {
+    if (!_statusCarregado) return;
+    if (anterior === novo || isNaN(anterior) || isNaN(novo)) return;
+
+    const diff  = novo - anterior;
+    const sinal = diff > 0 ? '+' : '';
+
+    const CONFIG = {
+        vida: { emoji: '❤️', label: 'HP Máximo',   cor: '#e07b39', corBg: 'rgba(224,123,57,0.12)', corBorda: 'rgba(224,123,57,0.5)'  },
+        mana: { emoji: '💧', label: 'Mana Máxima', cor: '#00bfff', corBg: 'rgba(0,191,255,0.10)',  corBorda: 'rgba(0,191,255,0.45)'  },
+    };
+    const c = CONFIG[tipo];
+    if (!c) return;
+
+    // Remove toast anterior do mesmo tipo
+    const toastAntigo = document.getElementById(`_toast_status_${tipo}`);
+    if (toastAntigo) {
+        clearTimeout(toastAntigo._timer);
+        toastAntigo.remove();
+    }
+
+    const corDiff = diff > 0 ? '#4CAF50' : '#e74c3c';
+
+    const toast = document.createElement('div');
+    toast.id = `_toast_status_${tipo}`;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(14px);
+        background: ${c.corBg};
+        border: 1px solid ${c.corBorda};
+        border-left: 4px solid ${c.cor};
+        border-radius: 10px;
+        padding: 12px 18px 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.80);
+        z-index: 9990;
+        min-width: 230px;
+        max-width: 320px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.22s ease, transform 0.22s ease;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    `;
+    toast.innerHTML = `
+        <span style="font-size:26px;line-height:1;flex-shrink:0">${c.emoji}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <span style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:.6px">${c.label} alterado</span>
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+                <span style="font-size:14px;font-weight:bold;color:#aaa;text-decoration:line-through;opacity:.7">${anterior}</span>
+                <span style="font-size:11px;color:#555">→</span>
+                <span style="font-size:18px;font-weight:bold;color:${c.cor}">${novo}</span>
+                <span style="font-size:12px;font-weight:bold;color:${corDiff};background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 5px">${sinal}${diff}</span>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.style.opacity   = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+    });
+
+    toast._timer = setTimeout(() => {
+        toast.style.opacity   = '0';
+        toast.style.transform = 'translateX(-50%) translateY(8px)';
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 280);
+    }, 3200);
+}
+
 async function carregarStatus() {
     let d = await carregarStatusNuvem();
     if (!d) { try { d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}'); } catch(e) {} }
@@ -381,9 +462,20 @@ async function carregarStatus() {
     const defTotal = defBase + (buffs.defesa || 0);
     const intTotal = intBase + (buffs.inteligencia || 0);
 
-    STATUS.vida.max     = 50 + (defTotal * 50) || 100;
-    STATUS.mana.max     = (intTotal * 10) || 10;
+    const novaVidaMax = 50 + (defTotal * 50) || 100;
+    const novaManaMax = (intTotal * 10) || 10;
+
+    const vidaAnterior = STATUS.vida.max;
+    const manaAnterior = STATUS.mana.max;
+
+    STATUS.vida.max     = novaVidaMax;
+    STATUS.mana.max     = novaManaMax;
     STATUS.sanidade.max = 100;
+
+    // Notifica mudanças em tempo real (só após carga inicial)
+    notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
+    notificarMudancaStatus('mana', manaAnterior, novaManaMax);
+
     renderizarStatus();
 }
 
@@ -623,7 +715,65 @@ function removerTalento(id) {
     setTimeout(() => { card.remove(); atualizarBuffs(); atualizarTagsRaca(); }, 200);
 }
 
-function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); }
+function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); recalcularStatusComToast(); }
+
+// Recalcula vida/mana máx com os buffs actuais dos cards
+// e exibe o toast se houver mudança — sem recarregar da rede.
+async function recalcularStatusComToast() {
+    let d = null;
+    try {
+        d = await carregarStatusNuvem();
+        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+    } catch(e) {}
+    if (!d) return;
+
+    const defBase = parseInt(d.defBase ?? 0);
+    const intBase = parseInt(d.intBase ?? 0);
+    const bases   = {
+        forca: d.forcaBase || 0, velocidade: d.velBase || 0,
+        inteligencia: intBase,   defesa: defBase,
+        pontaria: d.pontBase || 0, carisma: d.carBase || 0,
+        furtividade: d.furtBase || 0
+    };
+
+    // Calcula buffs diretamente dos cards visíveis (sem nova chamada à rede)
+    const buffsLocais = {};
+    ATRIBUTOS.forEach(a => buffsLocais[a.key] = 0);
+    document.querySelectorAll('.talento-card').forEach(card => {
+        const id    = card.dataset.id;
+        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
+        if (!ativo) return;
+        ATRIBUTOS.forEach(a => {
+            const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
+            if (!valStr) return;
+            const baseVal = parseInt(bases[a.key] ?? 0);
+            if (valStr.includes('%')) {
+                const pct = parseFloat(valStr.replace('%', ''));
+                if (!isNaN(pct)) buffsLocais[a.key] += Math.round((pct / 100) * baseVal);
+            } else {
+                const num = parseInt(valStr);
+                if (!isNaN(num)) buffsLocais[a.key] += num;
+            }
+        });
+    });
+
+    const defTotal = defBase + (buffsLocais.defesa || 0);
+    const intTotal = intBase + (buffsLocais.inteligencia || 0);
+
+    const novaVidaMax = 50 + (defTotal * 50) || 100;
+    const novaManaMax = (intTotal * 10) || 10;
+
+    const vidaAnterior = STATUS.vida.max;
+    const manaAnterior = STATUS.mana.max;
+
+    STATUS.vida.max = novaVidaMax;
+    STATUS.mana.max = novaManaMax;
+
+    notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
+    notificarMudancaStatus('mana', manaAnterior, novaManaMax);
+
+    renderizarStatus();
+}
 
 function coletarTalentos() {
     return Array.from(document.querySelectorAll('.talento-card')).map(card => {
@@ -804,6 +954,8 @@ function filtrarTalentos() {
     await carregarStatus();      // 3º: vida/mana máx já consideram buffs ativos
     gerarBotoesBuff();
     atualizarTagsRaca();
+    // Só dispara toasts APÓS a carga completa da página
+    _statusCarregado = true;
 })();
 </script>
 </body>

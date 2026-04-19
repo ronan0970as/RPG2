@@ -243,8 +243,103 @@ async function calcularStatus() {
 
     const vidaMaxEl = document.getElementById('vida-maxima');
     const manaMaxEl = document.getElementById('mana-maxima');
-    if (vidaMaxEl) vidaMaxEl.textContent = vidaMax;
-    if (manaMaxEl) manaMaxEl.textContent = manaMax;
+
+    if (vidaMaxEl) {
+        const vidaAnterior = parseInt(vidaMaxEl.textContent) || 0;
+        vidaMaxEl.textContent = vidaMax;
+        notificarMudancaStatus('vida', vidaAnterior, vidaMax);
+    }
+    if (manaMaxEl) {
+        const manaAnterior = parseInt(manaMaxEl.textContent) || 0;
+        manaMaxEl.textContent = manaMax;
+        notificarMudancaStatus('mana', manaAnterior, manaMax);
+    }
+}
+
+// ── Toast de mudança de status em tempo real ──────────────
+// Guarda os valores iniciais carregados para não disparar
+// toast logo ao renderizar a página pela primeira vez.
+let _statusCarregado = false;
+
+function notificarMudancaStatus(tipo, anterior, novo) {
+    // Não notifica na carga inicial da página
+    if (!_statusCarregado) return;
+    // Não notifica se o valor não mudou
+    if (anterior === novo) return;
+
+    const diff  = novo - anterior;
+    const sinal = diff > 0 ? '+' : '';
+
+    const CONFIG = {
+        vida: { emoji: '❤️', label: 'HP Máximo',    cor: '#e07b39', corBg: 'rgba(224,123,57,0.12)',  corBorda: 'rgba(224,123,57,0.5)'  },
+        mana: { emoji: '💧', label: 'Mana Máxima',  cor: '#00bfff', corBg: 'rgba(0,191,255,0.10)',   corBorda: 'rgba(0,191,255,0.45)'  },
+    };
+    const c = CONFIG[tipo];
+    if (!c) return;
+
+    // Remove toast anterior do mesmo tipo se ainda estiver visível
+    const toastAntigo = document.getElementById(`_toast_status_${tipo}`);
+    if (toastAntigo) {
+        clearTimeout(toastAntigo._timer);
+        toastAntigo.remove();
+    }
+
+    const corDiff = diff > 0 ? '#4CAF50' : '#e74c3c';
+
+    const toast = document.createElement('div');
+    toast.id = `_toast_status_${tipo}`;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(12px);
+        background: ${c.corBg};
+        border: 1px solid ${c.corBorda};
+        border-left: 4px solid ${c.cor};
+        border-radius: 10px;
+        padding: 12px 18px 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.75);
+        z-index: 9990;
+        min-width: 230px;
+        max-width: 320px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.22s ease, transform 0.22s ease;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    `;
+    toast.innerHTML = `
+        <span style="font-size:26px;line-height:1;flex-shrink:0">${c.emoji}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <span style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:.6px">${c.label} alterado</span>
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+                <span style="font-size:14px;font-weight:bold;color:#aaa;text-decoration:line-through;opacity:.7">${anterior}</span>
+                <span style="font-size:11px;color:#555">→</span>
+                <span style="font-size:18px;font-weight:bold;color:${c.cor}">${novo}</span>
+                <span style="font-size:12px;font-weight:bold;color:${corDiff};background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 5px">${sinal}${diff}</span>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Anima entrada
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.style.opacity   = '1';
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+    });
+
+    // Anima saída após 3s
+    toast._timer = setTimeout(() => {
+        toast.style.opacity   = '0';
+        toast.style.transform = 'translateX(-50%) translateY(8px)';
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 280);
+    }, 3000);
 }
 
 function modificarStatus(tipo) {
@@ -467,6 +562,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarFotoCard();
     await carregarDadosFicha();
     await calcularStatus();
+    // Só dispara toasts APÓS o carregamento inicial
+    _statusCarregado = true;
 
     if (document.getElementById('lista-itens')) {
         atualizarPreview();
