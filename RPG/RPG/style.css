@@ -1,0 +1,531 @@
+/* ─── CONFIGURAÇÕES GERAIS ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background-color: #0f0f0f;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    min-height: 100vh;
+    /* Evita zoom indesejado em inputs no iOS */
+    -webkit-text-size-adjust: 100%;
+}
+
+.rpg-window {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-top: 3px solid #c8aa6e;
+    border-radius: 8px;
+    padding: 16px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.8);
+}
+
+/* ─── NAVEGAÇÃO ─── */
+nav {
+    margin-bottom: 14px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 900px;
+}
+
+nav a {
+    color: #888;
+    text-decoration: none;
+    font-weight: bold;
+    border: 1px solid #333;
+    padding: 10px 12px;
+    background: #111;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    text-align: center;
+    flex: 1;
+    min-width: 100px;
+    font-size: 13px;
+    /* Área de toque mínima para mobile */
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+nav a:hover, nav a.active {
+    background: rgba(200, 170, 110, 0.1);
+    color: #c8aa6e;
+    border-color: #c8aa6e;
+}
+
+/* ─── GRID DE COLUNAS (index.html) ─── */
+.grid-container {
+    display: grid;
+    grid-template-columns: 180px 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+/* ─── CARD DE FOTO DO PERSONAGEM ─── */
+.char-card-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.char-foto-card {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-top: 3px solid #c8aa6e;
+    border-radius: 8px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 10px 14px;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+    position: sticky;
+    top: 20px;
+}
+
+.char-foto-wrap {
+    width: 140px;
+    height: 185px;
+    border-radius: 6px;
+    border: 2px solid #2a2a2a;
+    background: linear-gradient(135deg, #1e2328, #2a2a3a);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+    flex-shrink: 0;
+}
+.char-foto-card:hover .char-foto-wrap { border-color: #c8aa6e; }
+
+.char-foto-placeholder {
+    font-size: 52px;
+    color: #c8aa6e;
+    opacity: 0.5;
+}
+
+.char-foto-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.char-foto-nome {
+    font-size: 13px;
+    font-weight: bold;
+    color: #f0e6d2;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.char-foto-classe {
+    font-size: 11px;
+    color: #888;
+    text-align: center;
+    margin-top: -4px;
+}
+
+.char-foto-btn {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    color: #888;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: 0.2s;
+    width: 100%;
+    text-align: center;
+    margin-top: 2px;
+}
+.char-foto-btn:hover { background: rgba(200,170,110,0.1); border-color: #c8aa6e; color: #c8aa6e; }
+
+/* ─── CABEÇALHOS E SEÇÕES ─── */
+h2 {
+    color: #c8aa6e;
+    border-bottom: 2px solid #2a2a2a;
+    padding-bottom: 5px;
+    font-size: 16px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 14px;
+}
+
+.section { margin-bottom: 14px; }
+
+label {
+    display: inline-block;
+    width: 110px;
+    color: #888;
+    font-weight: bold;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+/* Evita zoom automático no iOS (inputs < 16px disparam zoom) */
+input, textarea, select {
+    background-color: #111;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 16px; /* mínimo 16px para não dar zoom no iOS */
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+}
+input:focus, textarea:focus { border-color: #c8aa6e; }
+
+/* Tamanhos de input específicos para Status — deixa o flex controlar */
+input[type="number"] {
+    width: 64px;
+    min-width: 48px;
+    text-align: center;
+    padding: 8px 4px;
+    flex-shrink: 0;
+}
+.mod-input {
+    width: 72px;
+    min-width: 56px;
+    flex-shrink: 0;
+}
+
+textarea { height: 100px; resize: vertical; }
+
+.highlight { color: #c8aa6e; font-weight: bold; }
+.total-stat { color: #4CAF50; font-weight: bold; margin-left: 5px; white-space: nowrap; }
+.total-stat .buff-part { color: #c8aa6e; font-size: 11px; }
+
+/* ─── BARRA DE STATUS ─── */
+.status-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.status-bar label {
+    width: auto;
+    min-width: 90px;
+    flex-shrink: 0;
+}
+
+.calc-btn {
+    background-color: #2a2a2a;
+    color: #888;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: 0.2s;
+    white-space: nowrap;
+    min-height: 40px;
+    font-size: 13px;
+}
+.calc-btn:hover { background-color: rgba(200, 170, 110, 0.1); border-color: #c8aa6e; color: #c8aa6e; }
+
+/* ─── LINHA DE ATRIBUTO ─── */
+.attr-row {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.attr-row label {
+    width: 110px;
+    flex-shrink: 0;
+}
+.attr-row span { margin: 0 2px; color: #888; }
+
+/* ─── BOTÕES ─── */
+.save-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 14px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 15px;
+    width: 100%;
+    margin-top: 15px;
+    min-height: 48px;
+}
+.save-btn:hover { background-color: #45a049; }
+
+.btn-remover-item {
+    background: transparent;
+    color: #ff4d4d;
+    border: 1px solid #ff4d4d;
+    padding: 10px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    align-self: center;
+    transition: 0.2s;
+    min-height: 44px;
+}
+.btn-remover-item:hover { background: rgba(255, 77, 77, 0.1); }
+
+/* ─── FORMULÁRIO DE ITENS ─── */
+.item-form {
+    background: #111;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px dashed #333;
+    margin-bottom: 20px;
+}
+
+.upload-area {
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #2a2a2a;
+}
+
+.file-input {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #888;
+    cursor: pointer;
+    font-size: 14px;
+}
+.file-input::file-selector-button {
+    background: #2a2a2a;
+    color: #888;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-right: 10px;
+    transition: 0.2s;
+    font-size: 14px;
+}
+.file-input::file-selector-button:hover { color: #c8aa6e; border-color: #c8aa6e; }
+
+.crop-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #1a1a1a;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #2a2a2a;
+}
+.crop-controls label { font-size: 13px; color: #c8aa6e; width: 100%; }
+.crop-controls input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+    height: 32px; /* mais fácil de arrastar com dedo */
+    accent-color: #c8aa6e;
+}
+
+/* ─── CARTÕES DO INVENTÁRIO ─── */
+.grid-itens {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.item-card {
+    display: flex;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 15px;
+    gap: 15px;
+    align-items: stretch;
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.item-card:hover { border-color: #c8aa6e; }
+
+.preview-card {
+    border: 1px dashed #4CAF50;
+    opacity: 0.9;
+}
+
+.item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: hidden;
+    min-width: 0;
+    width: 100%;
+}
+
+.item-info h3 {
+    margin: 0 0 5px 0;
+    color: #c8aa6e;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #ccc;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.item-img-container {
+    width: 110px;
+    height: 110px;
+    border-radius: 6px;
+    border: 2px solid #2a2a2a;
+    background-color: #0f0f0f;
+    flex-shrink: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+.item-card:hover .item-img-container { border-color: #c8aa6e; }
+
+.item-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ─── WIDGET DE USUÁRIO LOGADO (auth) ─── */
+.auth-usuario {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.auth-nome {
+    font-size: 12px;
+    color: #c8aa6e;
+    font-weight: bold;
+    white-space: nowrap;
+}
+.auth-logout-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    font-family: inherit;
+    transition: 0.2s;
+    white-space: nowrap;
+    min-height: 40px;
+}
+.auth-logout-btn:hover { border-color: #e74c3c; color: #e74c3c; background: rgba(231,76,60,0.08); }
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVIDADE MOBILE — max-width: 600px
+   (reduzido de 750px p/ não afetar tablets desnecessariamente)
+════════════════════════════════════════════════════════════ */
+@media (max-width: 750px) {
+
+    body { padding: 8px; }
+
+    .rpg-window { padding: 12px; }
+
+    /* Nav vira grade 2×2 em telas muito pequenas */
+    nav { gap: 5px; }
+    nav a { min-width: 44%; font-size: 12px; padding: 10px 6px; }
+
+    /* Grid do index.html — empilha tudo */
+    .grid-container { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Card de foto vira barra horizontal */
+    .char-card-col { flex-direction: row; width: 100%; }
+    .char-foto-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        position: static;
+        flex: 1;
+    }
+    .char-foto-wrap { width: 72px; height: 90px; flex-shrink: 0; }
+    .char-foto-placeholder { font-size: 28px; }
+    .char-foto-nome { font-size: 12px; }
+    .char-foto-btn { font-size: 11px; padding: 6px 8px; }
+
+    /* Labels mais curtas em mobile */
+    label { width: 90px; font-size: 12px; }
+
+    /* Inputs numéricos um pouco menores */
+    input[type="number"] { width: 56px; }
+    .mod-input { width: 60px; }
+
+    /* Status bars: quebra em linha se não couber */
+    .status-bar { gap: 5px; }
+    .status-bar label { min-width: 80px; }
+
+    /* Atributos: label e inputs ficam lado a lado, quebra se precisar */
+    .attr-row { gap: 4px; }
+    .attr-row label { width: 90px; }
+    .attr-row input[type="number"] { width: 52px; }
+    .attr-row .mod-input { width: 56px; }
+    .attr-row .total-stat { font-size: 13px; }
+
+    /* Inventário: empilha verticalmente */
+    .item-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .item-img-container {
+        width: 100%;
+        max-width: 220px;
+        height: 180px;
+    }
+    .btn-remover-item { width: 100%; }
+}
+
+/* Telas muito pequenas (320px — iPhone SE antigo) */
+@media (max-width: 380px) {
+    nav a { min-width: 100%; }
+    label { width: 80px; font-size: 11px; }
+    input[type="number"] { width: 48px; }
+    .mod-input { width: 50px; }
+}
