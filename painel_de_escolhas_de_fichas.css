@@ -1,0 +1,394 @@
+/* ─── RESET & BASE ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background-color: #0f0f0f;
+    color: #fff;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    -webkit-text-size-adjust: 100%;
+}
+
+/* ─── TOPO / TOOLBAR ─── */
+.painel-topo {
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.painel-acoes {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.btn-acao {
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #3a3a3a;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+    transition: background 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+}
+.btn-acao:hover { background: #3a3a3a; border-color: #c8aa6e; color: #c8aa6e; }
+.btn-acao.secundario { background: transparent; }
+
+.painel-filtros-busca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+#inputBusca {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 16px; /* evita zoom iOS */
+    width: 200px;
+    outline: none;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    min-height: 44px;
+    -webkit-appearance: none;
+}
+#inputBusca:focus { border-color: #c8aa6e; }
+
+.filtros {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-filtro {
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #888;
+    padding: 8px 13px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: 0.2s;
+    font-family: inherit;
+    min-height: 40px;
+}
+.btn-filtro:hover, .btn-filtro.active {
+    border-color: #c8aa6e;
+    color: #c8aa6e;
+    background: rgba(200,170,110,0.08);
+}
+
+/* ─── GRID DE CARDS ─── */
+.grid-personagens {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+    padding: 16px;
+}
+
+/* ─── CARD DE PERSONAGEM ─── */
+.card-personagem {
+    position: relative;
+    background: #1a1a1a;
+    border: 2px solid #222;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    aspect-ratio: 2/3;
+    user-select: none;
+    /* Área de toque mínima */
+    min-height: 150px;
+}
+
+.card-personagem:hover {
+    border-color: #c8aa6e;
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.card-personagem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: brightness(0.85);
+    transition: filter 0.25s, transform 0.25s;
+}
+.card-personagem:hover img {
+    filter: brightness(1);
+    transform: scale(1.04);
+}
+
+.card-sem-img {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    background: linear-gradient(135deg, #1e2328, #2a2a3a);
+    color: #c8aa6e;
+}
+
+/* ─── OVERLAY DE NOME ─── */
+.nome-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.92));
+    padding: 28px 10px 10px;
+    pointer-events: none;
+}
+
+.nome-overlay .card-nome {
+    display: block;
+    color: #f0e6d2;
+    font-weight: bold;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nome-overlay .card-classe {
+    display: block;
+    color: #888;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+/* ─── BADGE DE OPÇÕES (3 pontos) ─── */
+.btn-opcoes {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid #333;
+    color: #ccc;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Sempre visível em mobile (sem hover) */
+    opacity: 1;
+    transition: opacity 0.2s;
+    z-index: 2;
+}
+/* Em desktop, aparece só no hover */
+@media (hover: hover) {
+    .btn-opcoes { opacity: 0; }
+    .card-personagem:hover .btn-opcoes { opacity: 1; }
+}
+.btn-opcoes:hover { background: rgba(200,170,110,0.2); border-color: #c8aa6e; color: #c8aa6e; }
+
+/* ─── MENU DE CONTEXTO ─── */
+.ctx-menu {
+    position: fixed;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 6px 0;
+    z-index: 999;
+    display: none;
+    min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+}
+.ctx-menu.visivel { display: block; }
+
+.ctx-menu button {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #ddd;
+    padding: 12px 16px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    transition: background 0.15s;
+    min-height: 44px;
+}
+.ctx-menu button:hover { background: rgba(255,255,255,0.06); }
+.ctx-menu button.danger { color: #e74c3c; }
+.ctx-menu button.danger:hover { background: rgba(231,76,60,0.12); }
+
+/* ─── ESTADO VAZIO ─── */
+.estado-vazio {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #444;
+    text-align: center;
+    gap: 12px;
+}
+.estado-vazio .icone-vazio { font-size: 52px; }
+.estado-vazio p { font-size: 15px; }
+.estado-vazio small { font-size: 12px; color: #333; }
+
+/* ─── MODAL ─── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: flex-end; /* bottom sheet em mobile */
+    justify-content: center;
+    z-index: 200;
+    padding: 0;
+}
+.modal-overlay.visivel { display: flex; }
+
+.modal-box {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px 12px 0 0; /* bottom sheet */
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 92vh;
+    overflow-y: auto;
+    /* Drag indicator visual */
+    border-top: 3px solid #c8aa6e;
+}
+
+.modal-box h2 {
+    color: #c8aa6e;
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 10px;
+}
+
+.modal-box label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: bold;
+}
+
+.modal-box input[type="text"],
+.modal-box select {
+    background: #111;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px; /* evita zoom iOS */
+    font-family: inherit;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 48px;
+    -webkit-appearance: none;
+}
+.modal-box input[type="text"]:focus,
+.modal-box select:focus { border-color: #c8aa6e; }
+
+.modal-box select option { background: #1a1a1a; }
+
+.file-input {
+    background: transparent;
+    border: 1px dashed #333;
+    color: #888;
+    padding: 10px;
+    border-radius: 6px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 14px;
+}
+.file-input::file-selector-button {
+    background: #2a2a2a;
+    color: #c8aa6e;
+    border: 1px solid #c8aa6e;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 13px;
+}
+
+.modal-botoes {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+.modal-botoes .btn-acao { flex: 1; justify-content: center; min-height: 48px; }
+
+/* ─── WIDGET DE USUÁRIO LOGADO (auth) ─── */
+.auth-usuario {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.auth-nome {
+    font-size: 12px;
+    color: #c8aa6e;
+    font-weight: bold;
+    white-space: nowrap;
+}
+/* auth-logout-btn movido para widget fixo no auth.js */
+
+/* ─── RESPONSIVO ─── */
+@media (max-width: 600px) {
+    .painel-topo { padding: 10px 12px; gap: 8px; }
+    .grid-personagens {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+    #inputBusca { width: 100%; }
+
+    /* Modal ocupa toda a largura em mobile */
+    .modal-overlay { align-items: flex-end; }
+    .modal-box { border-radius: 12px 12px 0 0; }
+
+    .filtros { gap: 4px; }
+    .btn-filtro { padding: 7px 10px; font-size: 11px; }
+}
+
+@media (max-width: 380px) {
+    .grid-personagens { grid-template-columns: repeat(2, 1fr); }
+    .painel-acoes { width: 100%; }
+    .btn-acao { flex: 1; justify-content: center; }
+}
