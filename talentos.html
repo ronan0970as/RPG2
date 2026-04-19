@@ -365,10 +365,24 @@ async function carregarStatus() {
     STATUS.vida.atual     = parseFloat(d.vidaAtual     ?? d.vida_atual     ?? 0);
     STATUS.mana.atual     = parseFloat(d.manaAtual     ?? d.mana_atual     ?? 0);
     STATUS.sanidade.atual = parseFloat(d.sanAtual      ?? d.sanidade_atual ?? 0);
+
+    // Bases vindas do index.html
     const defBase = parseInt(d.defBase ?? 0);
     const intBase = parseInt(d.intBase ?? 0);
-    STATUS.vida.max     = 50 + (defBase * 50) || 100;
-    STATUS.mana.max     = (intBase * 10) || 10;
+
+    // Inclui buffs dos talentos ativos no cálculo de vida/mana máximas
+    const bases = {
+        forca: d.forcaBase || 0, velocidade: d.velBase || 0,
+        inteligencia: intBase, defesa: defBase,
+        pontaria: d.pontBase || 0, carisma: d.carBase || 0,
+        furtividade: d.furtBase || 0
+    };
+    const buffs = await calcularBuffsTotais(bases);
+    const defTotal = defBase + (buffs.defesa || 0);
+    const intTotal = intBase + (buffs.inteligencia || 0);
+
+    STATUS.vida.max     = 50 + (defTotal * 50) || 100;
+    STATUS.mana.max     = (intTotal * 10) || 10;
     STATUS.sanidade.max = 100;
     renderizarStatus();
 }
@@ -384,12 +398,38 @@ function renderizarStatus() {
     });
 }
 
-function salvarStatus() {
+async function salvarStatus() {
+    const fichaId = getFichaId();
+
+    // 1) Salva snapshot rápido no localStorage (fallback)
     localStorage.setItem(k('rpg_status'), JSON.stringify({
         vidaAtual: STATUS.vida.atual, vidaMax: STATUS.vida.max,
         manaAtual: STATUS.mana.atual, manaMax: STATUS.mana.max,
         sanidadeAtual: STATUS.sanidade.atual, sanidadeMax: STATUS.sanidade.max
     }));
+
+    if (!fichaId || !window._supaClient) return;
+
+    // 2) Lê o registro 'status' já existente para não sobrescrever campos do index.html
+    const { data: existente } = await window._supaClient.from('fichas_dados')
+        .select('valor').eq('ficha_id', fichaId).eq('tipo', 'status').maybeSingle();
+
+    let base = {};
+    try { base = JSON.parse(existente?.valor || '{}'); } catch(e) {}
+
+    // 3) Atualiza apenas os campos de atual/max — preserva atributos e demais campos
+    const atualizado = {
+        ...base,
+        vidaAtual:     STATUS.vida.atual,
+        vidaMax:       STATUS.vida.max,
+        manaAtual:     STATUS.mana.atual,
+        manaMax:       STATUS.mana.max,
+        sanAtual:      STATUS.sanidade.atual,
+        sanidadeMax:   STATUS.sanidade.max,
+    };
+
+    await window._supaClient.from('fichas_dados')
+        .upsert({ ficha_id: fichaId, tipo: 'status', valor: JSON.stringify(atualizado) }, { onConflict: 'ficha_id,tipo' });
 }
 
 function aplicarCalculo(tipo, inputId, feedbackId) {
@@ -402,7 +442,8 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
     const diff = stat.atual - anterior;
     if (fbEl) { fbEl.style.color = diff >= 0 ? '#4CAF50' : '#e74c3c'; fbEl.textContent = `${diff >= 0 ? '+' : ''}${diff} → ${stat.atual}`; }
     inputEl.value = '';
-    renderizarStatus(); salvarStatus();
+    renderizarStatus();
+    salvarStatus(); // agora async — persiste na nuvem
     if (fbEl) setTimeout(() => { fbEl.textContent = ''; }, 2500);
 }
 
@@ -755,10 +796,12 @@ function filtrarTalentos() {
 }
 
 // ── Inicialização ─────────────────────────────────────────
+// Talentos PRIMEIRO: carregarStatus() usa calcularBuffsTotais()
+// que precisa dos talentos já salvos para calcular vida/mana máximas.
 (async () => {
-    await carregarStatus();
-    await carregarTalentos();
-    await renderizarAtributos();
+    await carregarTalentos();    // 1º: popula cards (e localStorage dos buffs)
+    await renderizarAtributos(); // 2º: chips de atributos com buffs visíveis
+    await carregarStatus();      // 3º: vida/mana máx já consideram buffs ativos
     gerarBotoesBuff();
     atualizarTagsRaca();
 })();
