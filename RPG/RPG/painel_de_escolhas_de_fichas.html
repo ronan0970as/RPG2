@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seleção de Fichas - RPG</title>
+    <link rel="stylesheet" href="painel_de_escolhas_de_fichas.css">
+    <style>
+        /* Campo "Outro" — animação de entrada */
+        #outro-classe-wrap {
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            animation: slideDown 0.2s ease;
+        }
+        #outro-classe-wrap.visivel {
+            display: flex;
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #outro-classe-wrap label {
+            font-size: 11px;
+            color: #c8aa6e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+        }
+        #outro-classe-input {
+            background: #111;
+            border: 1px solid #c8aa6e;
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-family: inherit;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            -webkit-appearance: none;
+        }
+        #outro-classe-input:focus {
+            border-color: #e8c97e;
+            box-shadow: 0 0 0 2px rgba(200,170,110,0.15);
+        }
+        #outro-classe-input::placeholder {
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="painel-topo">
+    <div class="painel-acoes">
+        <button class="btn-acao" onclick="abrirModalCriar()">＋ Criar Ficha</button>
+        <button class="btn-acao secundario" onclick="importarFicha()">⬆ Importar</button>
+    </div>
+
+    <div class="painel-filtros-busca">
+        <input type="text" id="inputBusca" placeholder="🔍  Pesquisar ficha..." oninput="filtrar()">
+        <div class="filtros">
+            <button class="btn-filtro active" onclick="filtrarCategoria('todos')">Todos</button>
+            <button class="btn-filtro" onclick="filtrarCategoria('Guerreiro')">Guerreiros</button>
+            <button class="btn-filtro" onclick="filtrarCategoria('Mago')">Magos</button>
+            <button class="btn-filtro" onclick="filtrarCategoria('Assassino')">Assassinos</button>
+            <button class="btn-filtro" onclick="filtrarCategoria('Suporte')">Suportes</button>
+        </div>
+    </div>
+</div>
+
+<main class="grid-personagens" id="gridPersonagens">
+    <div class="estado-vazio">
+        <div class="icone-vazio">⏳</div>
+        <p>Carregando fichas...</p>
+    </div>
+</main>
+
+<!-- Modal criar nova ficha -->
+<div class="modal-overlay" id="modalCriar" onclick="fecharModalSeFora(event)">
+    <div class="modal-box">
+        <h2>Nova Ficha</h2>
+
+        <label>Nome do Personagem</label>
+        <input type="text" id="novo-nome" placeholder="Ex: Arthur, o Rei">
+
+        <label>Classe</label>
+        <select id="nova-classe" onchange="toggleOutroClasse()">
+            <option value="Guerreiro">⚔️ Guerreiro</option>
+            <option value="Mago">🔮 Mago</option>
+            <option value="Assassino">🗡️ Assassino</option>
+            <option value="Suporte">🛡️ Suporte</option>
+            <option value="__outro__">✏️ Outro...</option>
+        </select>
+
+        <!-- Campo que aparece ao escolher "Outro" -->
+        <div id="outro-classe-wrap">
+            <label>Digite o nome da classe</label>
+            <input type="text" id="outro-classe-input" placeholder="Ex: Paladino, Druida, Necromante...">
+        </div>
+
+        <label>Imagem (URL ou deixe em branco)</label>
+        <input type="text" id="nova-img" placeholder="https://...">
+
+        <label>Ou carregue uma imagem local:</label>
+        <input type="file" id="nova-img-file" accept="image/*" onchange="preCarregarImagem(event)" class="file-input">
+
+        <div class="modal-botoes">
+            <button class="btn-acao" onclick="criarFicha()">Criar</button>
+            <button class="btn-acao secundario" onclick="fecharModal()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Menu de contexto -->
+<div class="ctx-menu" id="ctxMenu">
+    <button onclick="abrirFichaAtual()">📂 Abrir Ficha</button>
+    <button onclick="editarFichaAtual()">✏️ Renomear</button>
+    <button class="danger" onclick="excluirFichaAtual()">🗑 Excluir</button>
+</div>
+
+<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script>
+    exigirLogin().then(() => {
+        document.addEventListener('DOMContentLoaded', injetarUsuarioNav);
+    });
+</script>
+<script src="painel_de_escolhas_de_fichas.js"></script>
+<script>
+    // Mostra/oculta o campo de texto ao escolher "Outro..."
+    function toggleOutroClasse() {
+        const sel   = document.getElementById('nova-classe');
+        const wrap  = document.getElementById('outro-classe-wrap');
+        const input = document.getElementById('outro-classe-input');
+        const isOutro = sel.value === '__outro__';
+
+        wrap.classList.toggle('visivel', isOutro);
+
+        if (isOutro) {
+            // Foca automaticamente para o usuário já começar a digitar
+            setTimeout(() => input.focus(), 50);
+        } else {
+            input.value = '';
+        }
+    }
+
+    // Sobrescreve criarFicha para capturar o valor de "Outro"
+    const _criarFichaOriginal = criarFicha;
+    criarFicha = async function () {
+        const sel    = document.getElementById('nova-classe');
+        const outro  = document.getElementById('outro-classe-input');
+
+        if (sel.value === '__outro__') {
+            const nomeClasse = outro.value.trim();
+            if (!nomeClasse) {
+                outro.focus();
+                outro.style.borderColor = '#e74c3c';
+                setTimeout(() => outro.style.borderColor = '#c8aa6e', 1500);
+                return;
+            }
+            // Injeta como opção real temporária para que o JS original pegue o valor
+            sel.value = nomeClasse;
+            if (!sel.querySelector(`option[value="${nomeClasse}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = nomeClasse;
+                opt.textContent = nomeClasse;
+                opt.selected = true;
+                sel.appendChild(opt);
+            }
+        }
+
+        await _criarFichaOriginal();
+    };
+</script>
+</body>
+</html>
