@@ -13,9 +13,7 @@
             gap: 4px;
             animation: slideDown 0.2s ease;
         }
-        #outro-classe-wrap.visivel {
-            display: flex;
-        }
+        #outro-classe-wrap.visivel { display: flex; }
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-6px); }
             to   { opacity: 1; transform: translateY(0); }
@@ -44,11 +42,9 @@
             border-color: #e8c97e;
             box-shadow: 0 0 0 2px rgba(200,170,110,0.15);
         }
-        #outro-classe-input::placeholder {
-            color: #555;
-        }
+        #outro-classe-input::placeholder { color: #555; }
 
-        /* ── Seletor de gênero no modal ── */
+        /* Seletor de gênero no modal */
         .genero-btn-modal {
             flex: 1;
             min-width: 90px;
@@ -78,7 +74,6 @@
             box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
         }
 
-        /* ── Badge de gênero no card ── */
         .card-genero {
             font-size: 11px;
             opacity: 0.75;
@@ -88,24 +83,126 @@
 </head>
 <body>
 
-<div class="painel-topo">
-    <div class="painel-acoes">
-        <button class="btn-acao" onclick="abrirModalCriar()">＋ Criar Ficha</button>
-        <button class="btn-acao secundario" onclick="importarFicha()">⬆ Importar</button>
+<!-- ════════════════════════════════════════════════════════
+     OVERLAY DA SIDEBAR
+════════════════════════════════════════════════════════ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="fecharSidebar()"></div>
+
+<!-- ════════════════════════════════════════════════════════
+     SIDEBAR LATERAL
+════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+
+    <!-- Cabeçalho da sidebar -->
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <span class="sidebar-logo-icone">⚔️</span>
+            <span class="sidebar-logo-titulo">Ficha RPG</span>
+        </div>
+        <button class="sidebar-fechar" onclick="fecharSidebar()" title="Fechar menu">✕</button>
     </div>
 
-    <div class="painel-filtros-busca">
-        <input type="text" id="inputBusca" placeholder="🔍  Pesquisar ficha..." oninput="filtrar()">
-        <div class="filtros">
-            <button class="btn-filtro active" onclick="filtrarCategoria('todos')">Todos</button>
-            <button class="btn-filtro" onclick="filtrarCategoria('Guerreiro')">Guerreiros</button>
-            <button class="btn-filtro" onclick="filtrarCategoria('Mago')">Magos</button>
-            <button class="btn-filtro" onclick="filtrarCategoria('Assassino')">Assassinos</button>
-            <button class="btn-filtro" onclick="filtrarCategoria('Suporte')">Suportes</button>
+    <!-- Usuário logado -->
+    <div class="sidebar-usuario" id="sidebar-usuario-area">
+        <div class="sidebar-avatar">👤</div>
+        <div class="sidebar-user-info">
+            <div class="sidebar-user-nome" id="sidebar-user-nome">—</div>
+            <div class="sidebar-user-sub">Conta conectada</div>
         </div>
+    </div>
+
+    <!-- Navegação -->
+    <nav class="sidebar-nav">
+        <div class="sidebar-secao-titulo">Navegação</div>
+
+        <a class="sidebar-link ativo" href="painel_de_escolhas_de_fichas.html">
+            <span class="sidebar-link-icone">🗂️</span>
+            Minhas Fichas
+        </a>
+
+        <div class="sidebar-separador"></div>
+        <div class="sidebar-secao-titulo">Ficha Atual</div>
+
+        <a class="sidebar-link" href="index.html">
+            <span class="sidebar-link-icone">📊</span>
+            Status do Personagem
+        </a>
+        <a class="sidebar-link" href="talentos.html">
+            <span class="sidebar-link-icone">✨</span>
+            Talentos
+        </a>
+        <a class="sidebar-link" href="itens.html">
+            <span class="sidebar-link-icone">🎒</span>
+            Inventário
+        </a>
+    </nav>
+
+    <!-- Rodapé com botão de logout -->
+    <div class="sidebar-footer">
+        <button class="sidebar-btn-logout" onclick="fecharSidebar(); abrirModalLogout();">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sair da conta
+        </button>
+    </div>
+</aside>
+
+<!-- ════════════════════════════════════════════════════════
+     TOPO — BARRA PRINCIPAL
+════════════════════════════════════════════════════════ -->
+<header class="painel-topo">
+
+    <!-- Hambúrguer -->
+    <button class="btn-menu-hamburguer" id="btnHamburguer" onclick="abrirSidebar()" title="Menu" aria-label="Abrir menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Título -->
+    <span class="painel-topo-titulo">⚔️ Fichas RPG</span>
+
+    <div class="painel-topo-spacer"></div>
+
+    <!-- Ações à direita -->
+    <div class="painel-acoes">
+        <button class="btn-acao" onclick="abrirModalCriar()">
+            ＋ <span class="btn-acao-label">Criar Ficha</span>
+        </button>
+        <button class="btn-acao secundario" onclick="importarFicha()">
+            ⬆ <span class="btn-acao-label">Importar</span>
+        </button>
+
+        <!-- Botão de usuário (visível em desktop, clica para abrir sidebar) -->
+        <button class="btn-usuario-topo" id="btnUsuarioTopo" onclick="abrirSidebar()" title="Menu do usuário">
+            <div class="avatar-mini">👤</div>
+            <span id="topo-user-nome">...</span>
+        </button>
+    </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════
+     BUSCA E FILTROS (linha separada)
+════════════════════════════════════════════════════════ -->
+<div class="painel-filtros-busca">
+    <input type="text" id="inputBusca" placeholder="🔍  Pesquisar ficha..." oninput="filtrar()">
+    <div class="filtros">
+        <button class="btn-filtro active" onclick="filtrarCategoria('todos')">Todos</button>
+        <button class="btn-filtro" onclick="filtrarCategoria('Guerreiro')">Guerreiros</button>
+        <button class="btn-filtro" onclick="filtrarCategoria('Mago')">Magos</button>
+        <button class="btn-filtro" onclick="filtrarCategoria('Assassino')">Assassinos</button>
+        <button class="btn-filtro" onclick="filtrarCategoria('Suporte')">Suportes</button>
     </div>
 </div>
 
+<!-- ════════════════════════════════════════════════════════
+     GRID DE PERSONAGENS
+════════════════════════════════════════════════════════ -->
 <main class="grid-personagens" id="gridPersonagens">
     <div class="estado-vazio">
         <div class="icone-vazio">⏳</div>
@@ -113,7 +210,9 @@
     </div>
 </main>
 
-<!-- Modal criar nova ficha -->
+<!-- ════════════════════════════════════════════════════════
+     MODAL — CRIAR NOVA FICHA
+════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modalCriar" onclick="fecharModalSeFora(event)">
     <div class="modal-box">
         <h2>Nova Ficha</h2>
@@ -163,45 +262,75 @@
     <button class="danger" onclick="excluirFichaAtual()">🗑 Excluir</button>
 </div>
 
-<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>
-    exigirLogin().then(() => {
-        document.addEventListener('DOMContentLoaded', injetarUsuarioNav);
-    });
-</script>
-<script src="painel_de_escolhas_de_fichas.js"></script>
-<script>
-    // Seletor de gênero no modal
-    function selecionarGeneroModal(btn) {
-        document.querySelectorAll('#modal-genero-selector .genero-btn-modal').forEach(b => b.classList.remove('ativo'));
-        btn.classList.toggle('ativo', true);
+    // ── Sidebar ───────────────────────────────────────────────
+    function abrirSidebar() {
+        document.getElementById('sidebar').classList.add('aberta');
+        document.getElementById('sidebarOverlay').classList.add('visivel');
+        document.body.style.overflow = 'hidden';
+    }
+    function fecharSidebar() {
+        document.getElementById('sidebar').classList.remove('aberta');
+        document.getElementById('sidebarOverlay').classList.remove('visivel');
+        document.body.style.overflow = '';
+    }
+    // Fecha com ESC
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSidebar(); });
+
+    // ── Preenche nome do usuário na sidebar e no topo ─────────
+    function preencherUsuarioUI() {
+        const sessao = typeof getSessao === 'function' ? getSessao() : null;
+        if (!sessao) return;
+        const primeiroNome = sessao.nome ? sessao.nome.split(' ')[0] : sessao.email;
+        const elSidebar = document.getElementById('sidebar-user-nome');
+        const elTopo    = document.getElementById('topo-user-nome');
+        if (elSidebar) elSidebar.textContent = sessao.nome || sessao.email;
+        if (elTopo)    elTopo.textContent    = primeiroNome;
     }
 
-    // Mostra/oculta o campo de texto ao escolher "Outro..."
+    // ── Garante que o widget fixo do auth.js NÃO seja injetado ─
+    // (Substituímos pela sidebar — sobrescreve a função do auth.js)
+    window.injetarUsuarioNav = function() {
+        preencherUsuarioUI();
+        // Não injeta o widget flutuante nesta página
+    };
+
+    // ── Inicialização ─────────────────────────────────────────
+    exigirLogin().then(() => {
+        preencherUsuarioUI();
+    });
+</script>
+
+<script src="painel_de_escolhas_de_fichas.js"></script>
+
+<script>
+    // ── Gênero no modal ───────────────────────────────────────
+    function selecionarGeneroModal(btn) {
+        document.querySelectorAll('#modal-genero-selector .genero-btn-modal').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+    }
+
+    // ── Campo "Outro" na classe ───────────────────────────────
     function toggleOutroClasse() {
         const sel   = document.getElementById('nova-classe');
         const wrap  = document.getElementById('outro-classe-wrap');
         const input = document.getElementById('outro-classe-input');
         const isOutro = sel.value === '__outro__';
-
         wrap.classList.toggle('visivel', isOutro);
-
-        if (isOutro) {
-            // Foca automaticamente para o usuário já começar a digitar
-            setTimeout(() => input.focus(), 50);
-        } else {
-            input.value = '';
-        }
+        if (isOutro) setTimeout(() => input.focus(), 50);
+        else input.value = '';
     }
 
-    // Sobrescreve criarFicha para capturar o valor de "Outro"
+    // ── Intercepta criarFicha para tratar "Outro" ─────────────
     const _criarFichaOriginal = criarFicha;
     criarFicha = async function () {
-        const sel    = document.getElementById('nova-classe');
-        const outro  = document.getElementById('outro-classe-input');
-
+        const sel   = document.getElementById('nova-classe');
+        const outro = document.getElementById('outro-classe-input');
         if (sel.value === '__outro__') {
             const nomeClasse = outro.value.trim();
             if (!nomeClasse) {
@@ -210,7 +339,6 @@
                 setTimeout(() => outro.style.borderColor = '#c8aa6e', 1500);
                 return;
             }
-            // Injeta como opção real temporária para que o JS original pegue o valor
             sel.value = nomeClasse;
             if (!sel.querySelector(`option[value="${nomeClasse}"]`)) {
                 const opt = document.createElement('option');
@@ -220,7 +348,6 @@
                 sel.appendChild(opt);
             }
         }
-
         await _criarFichaOriginal();
     };
 </script>
