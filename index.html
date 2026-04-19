@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Ficha RPG - Status</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* ── Ajustes específicos da página de status ── */
+
+        /* Info básica: cada campo ocupa linha inteira */
+        .section > div {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .section > div label {
+            flex-shrink: 0;
+        }
+        .section > div input {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        /* Barra de status: layout flexível */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .status-bar label {
+            min-width: 80px;
+            width: auto;
+        }
+        .status-bar .highlight {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .status-bar .mod-input { flex: 1; min-width: 50px; }
+        .status-bar .calc-btn  { flex-shrink: 0; }
+
+        /* Seletor de gênero */
+        .genero-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .genero-btn {
+            background: #111;
+            border: 1px solid #333;
+            color: #666;
+            padding: 8px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            font-family: inherit;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            min-height: 40px;
+            white-space: nowrap;
+        }
+        .genero-btn:hover {
+            border-color: #c8aa6e;
+            color: #c8aa6e;
+            background: rgba(200,170,110,0.07);
+        }
+        .genero-btn.ativo {
+            background: rgba(200,170,110,0.15);
+            border-color: #c8aa6e;
+            color: #c8aa6e;
+            box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
+        }
+
+        /* Linha de atributo */
+        .attr-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            background: #111;
+            border-radius: 5px;
+            border: 1px solid #1e1e1e;
+            flex-wrap: wrap;
+        }
+        .attr-row label { min-width: 90px; width: auto; flex-shrink: 0; }
+        .attr-row > span { color: #555; flex-shrink: 0; }
+        .attr-row input[type="number"] { width: 56px; flex-shrink: 0; }
+        .attr-row .mod-input { flex: 1; min-width: 50px; }
+        .attr-row .total-stat { flex-shrink: 0; font-size: 14px; }
+
+        @media (max-width: 400px) {
+            .attr-row label { width: 100%; margin-bottom: 2px; }
+            .attr-row { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="painel_de_escolhas_de_fichas.html">◀ Fichas</a>
+    <a href="index.html" class="active">Status</a>
+    <a href="talentos.html">Talentos</a>
+    <a href="itens.html">Inventário</a>
+</nav>
+
+<div class="rpg-window">
+    <div class="grid-container">
+
+        <!-- Card de foto do personagem -->
+        <div class="char-card-col">
+            <div class="char-foto-card">
+                <div class="char-foto-wrap" id="char-foto-wrap">
+                    <div class="char-foto-placeholder" id="char-foto-placeholder">⚔️</div>
+                    <img id="char-foto-img" src="" alt="" style="display:none;">
+                </div>
+                <div class="char-foto-nome" id="char-foto-nome">—</div>
+                <div class="char-foto-classe" id="char-foto-classe">—</div>
+                <label class="char-foto-btn" title="Trocar foto">
+                    📷 Trocar Foto
+                    <input type="file" id="char-foto-file" accept="image/*" style="display:none;" onchange="trocarFotoPersonagem(event)">
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <h2>Info Básica</h2>
+            <div class="section">
+                <div><label>Jogador:</label> <input type="text" id="jogador" autocomplete="off"></div>
+                <div><label>Personagem:</label> <input type="text" id="personagem" autocomplete="off" oninput="atualizarNomeCard()"></div>
+                <div><label>Idade:</label> <input type="number" id="idade" inputmode="numeric"></div>
+                <div><label>Nível (Lv):</label> <input type="number" id="nivel" value="0" inputmode="numeric" oninput="calcularStatus()"></div>
+                <div><label>Raça:</label> <input type="text" id="raca" autocomplete="off"></div>
+                <div style="align-items:flex-start;">
+                    <label style="padding-top:4px;">Gênero:</label>
+                    <div class="genero-selector">
+                        <button type="button" class="genero-btn" data-genero="Masculino" onclick="selecionarGenero(this)" title="Masculino">♂ Masculino</button>
+                        <button type="button" class="genero-btn" data-genero="Feminino"  onclick="selecionarGenero(this)" title="Feminino">♀ Feminino</button>
+                        <button type="button" class="genero-btn" data-genero="Outro"     onclick="selecionarGenero(this)" title="Outro">⚧ Outro</button>
+                    </div>
+                </div>
+                <div><label>Classe:</label> <input type="text" id="classe" placeholder="Ex: Guerreiro, Mago..." autocomplete="off" oninput="atualizarNomeCard()"></div>
+            </div>
+
+            <h2>Status Atuais</h2>
+            <div class="section">
+                <div class="status-bar">
+                    <label>❤️ Vida (HP):</label>
+                    <input type="number" id="vida-atual" value="0" style="font-weight:bold;color:#ff8c00;" inputmode="numeric">
+                    <span class="highlight"> / <span id="vida-maxima">100</span></span>
+                    <input type="text" id="vida-mod" class="mod-input" placeholder="+20, -10%">
+                    <button class="calc-btn" onclick="modificarStatus('vida')">✓</button>
+                </div>
+                <div class="status-bar">
+                    <label>💧 Mana (MP):</label>
+                    <input type="number" id="mana-atual" value="0" style="font-weight:bold;color:#00bfff;" inputmode="numeric">
+                    <span class="highlight"> / <span id="mana-maxima">10</span></span>
+                    <input type="text" id="mana-mod" class="mod-input" placeholder="+/-/%">
+                    <button class="calc-btn" onclick="modificarStatus('mana')">✓</button>
+                </div>
+                <div class="status-bar">
+                    <label>🧠 Sanidade:</label>
+                    <input type="number" id="sanidade-atual" value="0" style="font-weight:bold;color:#b0c4de;" inputmode="numeric">
+                    <span class="highlight"> / 100</span>
+                    <input type="text" id="sanidade-mod" class="mod-input" placeholder="+/-/%">
+                    <button class="calc-btn" onclick="modificarStatus('sanidade')">✓</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2>Atributos (Base + Bônus = Total)</h2>
+            <div class="section">
+                <div class="attr-row">
+                    <label>⚔️ Força:</label>
+                    <input type="number" id="forca-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="forca-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="forca-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>💨 Velocidade:</label>
+                    <input type="number" id="vel-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="vel-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="vel-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>🧠 Inteligência:</label>
+                    <input type="number" id="int-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="int-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="int-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>🛡️ Defesa:</label>
+                    <input type="number" id="defesa-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="defesa-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="defesa-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>🏹 Pontaria:</label>
+                    <input type="number" id="pont-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="pont-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="pont-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>🗣️ Carisma:</label>
+                    <input type="number" id="car-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="car-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="car-total">= 0</span>
+                </div>
+                <div class="attr-row">
+                    <label>🌑 Furtividade:</label>
+                    <input type="number" id="furt-base" value="0" inputmode="numeric" oninput="calcularStatus()">
+                    <span>+</span>
+                    <input type="text" id="furt-bonus" class="mod-input" value="0" placeholder="+/-/%" oninput="calcularStatus()">
+                    <span class="total-stat" id="furt-total">= 0</span>
+                </div>
+            </div>
+
+            <h2>Efeitos de Habilidades Ativos</h2>
+            <div class="section">
+                <textarea id="habilidades-ativas"
+                    placeholder="Ex: Força Extra (+1 Força a cada 50 Mana)."
+                    style="height:60px;"></textarea>
+            </div>
+
+            <button class="save-btn" onclick="salvarFicha()">💾 Salvar Ficha</button>
+        </div>
+    </div>
+</div>
+
+<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
+<script src="java.js"></script>
+<script>
+    function selecionarGenero(btn) {
+        document.querySelectorAll('.genero-btn').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+    }
+</script>
+</body>
+</html>
