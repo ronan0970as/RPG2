@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Ficha RPG - Inventário e Lore</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Sliders mais fáceis de arrastar com dedo */
+        .crop-controls input[type="range"] {
+            height: 36px;
+            accent-color: #c8aa6e;
+            cursor: pointer;
+        }
+        /* Input de arquivo mobile-friendly */
+        .file-input {
+            display: block;
+            width: 100%;
+            padding: 10px 0;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="painel_de_escolhas_de_fichas.html">◀ Fichas</a>
+    <a href="index.html">Status</a>
+    <a href="talentos.html">Talentos</a>
+    <a href="itens.html" class="active">Inventário</a>
+</nav>
+
+<div class="rpg-window">
+    <h2>Adicionar Nova Entrada</h2>
+    <div class="section item-form">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <input type="text" id="item-nome" placeholder="Título do Item, Arma ou Anotação" oninput="atualizarPreview()" autocomplete="off">
+
+            <textarea id="item-descricao" rows="5" placeholder="Escreva aqui (Máximo recomendado de 6 linhas)..." oninput="atualizarPreview()" style="font-size:15px;"></textarea>
+
+            <div class="upload-area">
+                <label style="width: 100%; color: #ffd700; font-size: 13px; margin-bottom: 8px; display: block;">Adicionar Imagem:</label>
+                <input type="file" id="item-file" accept="image/*" onchange="carregarImagemLocal(event)" class="file-input">
+                <p style="margin: 8px 0 4px; font-size: 12px; color: #a9cce3;">OU cole um Link (URL):</p>
+                <input type="text" id="item-imagem" placeholder="https://link-da-imagem.com/foto.jpg" oninput="atualizarPreview()">
+            </div>
+
+            <div class="crop-controls">
+                <label>🔍 Zoom:</label>
+                <input type="range" id="crop-zoom" min="1" max="3" step="0.1" value="1" oninput="atualizarPreview()">
+                <label>↔️ Posição Horizontal:</label>
+                <input type="range" id="crop-x" min="0" max="100" value="50" oninput="atualizarPreview()">
+                <label>↕️ Posição Vertical:</label>
+                <input type="range" id="crop-y" min="0" max="100" value="50" oninput="atualizarPreview()">
+            </div>
+
+            <h3 style="color: #4b7cad; font-size: 14px; margin-top: 4px;">Pré-visualização:</h3>
+            <div id="item-preview" class="item-card preview-card">
+                <div class="item-info">
+                    <h3 id="prev-nome">Título...</h3>
+                    <p id="prev-desc">O texto aparecerá aqui...</p>
+                </div>
+                <div class="item-img-container">
+                    <img id="prev-img" src="https://via.placeholder.com/120?text=Foto" alt="Preview">
+                </div>
+            </div>
+
+            <button class="save-btn" onclick="adicionarItem()" style="margin-top:4px;">➕ Adicionar à Lista</button>
+        </div>
+    </div>
+
+    <h2>Seu Inventário</h2>
+    <div id="lista-itens" class="grid-itens"></div>
+</div>
+
+<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth.js"></script>
+<script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
+<script src="java.js"></script>
+</body>
+</html>
