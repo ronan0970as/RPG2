@@ -597,40 +597,57 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  PARSER DE BUFFS DINÂMICOS — lê a descrição do talento
+//  PARSER DE BUFFS DINÂMICOS — v2 (talentos.html)
+//  Detecta qualquer forma de escrita de buff na descrição.
 // ════════════════════════════════════════════════════════════
 const _BUFF_ALIAS = {
-    forca:       ['força','forca','force','dano físico','dano fisico','ataque'],
-    velocidade:  ['velocidade','vel','speed','agilidade'],
-    inteligencia:['inteligência','inteligencia','intel','magia','poder mágico','poder magico'],
-    defesa:      ['defesa','def','armadura','resistência','resistencia'],
-    pontaria:    ['pontaria','pont','precisão','precisao','mira'],
-    carisma:     ['carisma','car','persuasão','persuasao','liderança','lideranca'],
-    furtividade: ['furtividade','furt','furtivo','stealth','sombra']
+    forca:        ['forca','força','dano fisico','dano físico','ataque fisico','ataque físico'],
+    velocidade:   ['velocidade','agilidade','vel '],
+    inteligencia: ['inteligencia','inteligência','intel','magia','poder magico','poder mágico'],
+    defesa:       ['defesa','armadura','resistencia','resistência','def '],
+    pontaria:     ['pontaria','precisao','precisão','mira','pont '],
+    carisma:      ['carisma','persuasao','persuasão','lideranca','liderança','car '],
+    furtividade:  ['furtividade','furtivo','stealth','sombra','furt ']
+};
+const _BUFF_EXATO = {
+    forca:        ['forca','força'],
+    velocidade:   ['velocidade'],
+    inteligencia: ['inteligencia','inteligência'],
+    defesa:       ['defesa'],
+    pontaria:     ['pontaria'],
+    carisma:      ['carisma'],
+    furtividade:  ['furtividade']
 };
 const _RECURSO_ALIAS = {
-    mana:     ['mana','mp','mana máxima','mana maxima','mana atual'],
-    vida:     ['vida','hp','vida máxima','vida maxima','vida atual'],
+    mana:     ['mana','mp'],
+    vida:     ['vida','hp'],
     sanidade: ['sanidade','san'],
-    nivel:    ['nível','nivel','level','lv','lvl']
+    nivel:    ['nivel','nível','level','lv','lvl']
 };
 
+function _norm(txt) {
+    return txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
 function _resolverAttr(txt) {
-    const t = txt.toLowerCase().trim();
+    const t = _norm(txt).trim();
+    for (const [key, exatos] of Object.entries(_BUFF_EXATO)) {
+        if (exatos.some(a => {
+            const re = new RegExp('(?:^|[\\s(,])' + _norm(a) + '(?:[\\s),!.:]|$)');
+            return re.test(t);
+        })) return key;
+    }
     for (const [key, aliases] of Object.entries(_BUFF_ALIAS)) {
-        if (aliases.some(a => t.includes(a))) return key;
+        if (aliases.some(a => t.includes(_norm(a)))) return key;
     }
     return null;
 }
 function _resolverRecurso(txt) {
-    const t = txt.toLowerCase().trim();
+    const t = _norm(txt).trim();
     for (const [key, aliases] of Object.entries(_RECURSO_ALIAS)) {
-        if (aliases.some(a => t.includes(a))) return key;
+        if (aliases.some(a => t.includes(_norm(a)))) return key;
     }
     return null;
 }
-
-// Obtém o valor atual do recurso lendo os chips de status do painel
 function _getRecursoValor(recurso, statusLocal) {
     if (recurso === 'mana')     return statusLocal?.manaMax  || STATUS.mana.max  || 0;
     if (recurso === 'vida')     return statusLocal?.vidaMax  || STATUS.vida.max  || 0;
@@ -642,48 +659,58 @@ function _getRecursoValor(recurso, statusLocal) {
 function parsearBuffsDinamicosLocal(descricao, bases, statusLocal) {
     if (!descricao) return {};
     const buffs = {};
-    const texto = descricao.toLowerCase();
+    const texto = _norm(descricao);
 
-    // "+N em tudo" / "+N em todos"
-    const tudo = texto.match(/\+\s*(\d+(?:\.\d+)?)\s+em\s+(tudo|todos)/);
-    if (tudo) {
-        const val = parseFloat(tudo[1]);
-        Object.keys(_BUFF_ALIAS).forEach(key => { buffs[key] = (buffs[key] || 0) + val; });
+    function add(key, val) {
+        if (!key || isNaN(val) || val === 0) return;
+        buffs[key] = (buffs[key] || 0) + val;
     }
 
-    // "+N de ATRIBUTO a cada X de RECURSO"
-    const rgxRecurso = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+a cada\s+(\d+(?:\.\d+)?)\s+de\s+([^(+\n,)]+)/g;
+    // PASSO 1 — "+N em tudo/todos"
+    const rgxTudo = /\+\s*(\d+(?:[.,]\d+)?)\s*(?:em\s+)?(?:tudo|todos)/g;
     let m;
+    while ((m = rgxTudo.exec(texto)) !== null) {
+        const val = parseFloat(m[1].replace(',','.'));
+        Object.keys(_BUFF_ALIAS).forEach(key => add(key, val));
+    }
+
+    // PASSO 2 — "+N de ATRIBUTO a cada X de RECURSO"
+    const rgxRecurso = /\+\s*(\d+(?:[.,]\d+)?)\s+(?:de\s+|em\s+)?([^(+\n,)]+?)\s+a cada\s+(\d+(?:[.,]\d+)?)\s+(?:de\s+)?([^(+\n,).!]+)/g;
     while ((m = rgxRecurso.exec(texto)) !== null) {
-        const bonusPorX  = parseFloat(m[1]);
+        const bonusPorX  = parseFloat(m[1].replace(',','.'));
         const attrKey    = _resolverAttr(m[2]);
-        const divisor    = parseFloat(m[3]);
+        const divisor    = parseFloat(m[3].replace(',','.'));
         const recursoKey = _resolverRecurso(m[4]);
         if (attrKey && divisor > 0 && recursoKey) {
-            const valorRecurso = _getRecursoValor(recursoKey, statusLocal);
-            buffs[attrKey] = (buffs[attrKey] || 0) + Math.floor(valorRecurso / divisor) * bonusPorX;
+            add(attrKey, Math.floor(_getRecursoValor(recursoKey, statusLocal) / divisor) * bonusPorX);
         }
     }
 
-    // "+N% de ATRIBUTO"
-    const rgxPct = /\+\s*(\d+(?:\.\d+)?)\s*%\s+de\s+([^(+\n,)]+)/g;
+    // PASSO 3 — "+N% ATRIBUTO" / "+N% de ATRIBUTO"
+    const rgxPct = /\+\s*(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+|em\s+)?([a-z ]{2,25})/g;
     while ((m = rgxPct.exec(texto)) !== null) {
-        const pct     = parseFloat(m[1]);
+        const pct     = parseFloat(m[1].replace(',','.'));
         const attrKey = _resolverAttr(m[2]);
-        if (attrKey) {
-            buffs[attrKey] = (buffs[attrKey] || 0) + Math.round((pct / 100) * (parseInt(bases[attrKey]) || 0));
-        }
+        if (attrKey) add(attrKey, Math.round((pct/100) * (parseInt(bases?.[attrKey]??0))));
     }
 
-    // "+N de ATRIBUTO por nível"
-    const rgxNivel = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+por\s+n[ií]vel/g;
+    // PASSO 4 — "+N de/em ATRIBUTO por nível"
+    const rgxNivel = /\+\s*(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([^(+\n,)]+?)\s+por\s+n[ií]vel/g;
     while ((m = rgxNivel.exec(texto)) !== null) {
-        const bonusPorNivel = parseFloat(m[1]);
+        const bonusPorNivel = parseFloat(m[1].replace(',','.'));
         const attrKey = _resolverAttr(m[2]);
-        if (attrKey) {
-            const nivel = statusLocal?.nivel || 0;
-            buffs[attrKey] = (buffs[attrKey] || 0) + (bonusPorNivel * nivel);
-        }
+        if (attrKey) add(attrKey, bonusPorNivel * (statusLocal?.nivel || 0));
+    }
+
+    // PASSO 5 — Formato simples: "+N ATRIBUTO" / "(+N Atributo)" / "+N em Força" / "+1Força"
+    const rgxSimples = /\+\s*(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z][a-z ]{0,24})/g;
+    while ((m = rgxSimples.exec(texto)) !== null) {
+        const fragmento = texto.slice(Math.max(0, m.index - 5), m.index + m[0].length + 30);
+        if (/a cada/.test(fragmento)) continue;
+        if (/por n[ií]vel/.test(fragmento)) continue;
+        if (/tudo|todos/.test(m[2])) continue;
+        const val = parseFloat(m[1].replace(',','.'));
+        add(_resolverAttr(m[2]), val);
     }
 
     return buffs;
