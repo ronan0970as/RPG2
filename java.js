@@ -194,6 +194,64 @@ function calcularBonusAttr(baseValue, inputId) {
     return parseInt(txt) || 0;
 }
 
+// ── Calcula buffs dinâmicos dos talentos (ex: +1 força a cada 50 mana) ──────
+async function calcularBuffsDinamicos(bases, manaMax) {
+    const resultado = { forca: 0, velocidade: 0, inteligencia: 0, defesa: 0, pontaria: 0, carisma: 0, furtividade: 0 };
+    try {
+        let talentos = await carregarDaNuvem('talentos');
+        if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+
+        talentos.forEach(t => {
+            if (!t.ativo) return;
+            const configs = t.buffDinamicoConfig;
+            if (!configs || !Array.isArray(configs)) return;
+
+            configs.forEach(bd => {
+                const attr = bd.atributo;
+                if (!attr || resultado[attr] === undefined) return;
+
+                switch (bd.tipo) {
+                    case 'mana_para_atributo': {
+                        const divisor = parseInt(bd.divisor) || 50;
+                        const valPor  = parseFloat(bd.valorPorDivisor) || 1;
+                        resultado[attr] += Math.floor(manaMax / divisor) * valPor;
+                        break;
+                    }
+                    case 'kills_para_atributo': {
+                        // Lê kills salvos; o campo é salvo como dado extra na ficha
+                        const kills = parseInt(localStorage.getItem(k('rpg_kills')) || '0');
+                        const kPor  = parseInt(bd.killsPorBuff) || 25;
+                        const vPor  = parseFloat(bd.valorPorDivisor) || 1;
+                        resultado[attr] += Math.floor(kills / kPor) * vPor;
+                        break;
+                    }
+                    case 'turnos_para_atributo': {
+                        // Lê turno atual salvo
+                        const turnosTotal = parseInt(localStorage.getItem(k('rpg_turno')) || '0');
+                        const tPor = parseInt(bd.turnosPorBuff) || 5;
+                        const vPor = parseFloat(bd.valorPorDivisor) || 1;
+                        const maxPct = bd.maxPorcentagem ? parseFloat(bd.maxPorcentagem) : Infinity;
+                        const crescimento = Math.floor(turnosTotal / tPor) * vPor;
+                        // Se for percentual crescente, calcular sobre a base
+                        if (bd.formula && bd.formula.includes('%')) {
+                            const pct = Math.min(crescimento, maxPct);
+                            resultado[attr] += Math.round((bases[attr] || 0) * (pct / 100));
+                        } else {
+                            resultado[attr] += crescimento;
+                        }
+                        break;
+                    }
+                    case 'multiplicador_mestre': {
+                        // Controlado manualmente pelo mestre via campo de buffs fixos — não calcula automaticamente
+                        break;
+                    }
+                }
+            });
+        });
+    } catch(e) { console.warn('Erro ao calcular buffs dinâmicos:', e); }
+    return resultado;
+}
+
 async function calcularStatus() {
     const bases = {
         defesa:       parseInt(document.getElementById('defesa-base')?.value) || 0,
@@ -219,7 +277,9 @@ async function calcularStatus() {
     const intTotal  = bases.inteligencia + intBonus   + buffs.inteligencia;
     const manaMax   = intTotal * 10;
     const vidaMax   = 50 + (defTotal * 50);
-    const bonusForcaMagica = Math.floor(manaMax / 50);
+
+    // ── Buffs dinâmicos dos talentos (ex: +1 força a cada 50 mana) ──
+    const buffsDinamicos = await calcularBuffsDinamicos(bases, manaMax);
 
     function renderTotal(elId, baseVal, buffManual, buffTalento, extra) {
         const el = document.getElementById(elId);
@@ -229,17 +289,17 @@ async function calcularStatus() {
         const partes = [];
         if (buffManual  !== 0) partes.push(`<span class="buff-part" style="color:#c8aa6e">${buffManual > 0 ? '+' : ''}${buffManual} manual</span>`);
         if (buffTalento !== 0) partes.push(`<span class="buff-part" style="color:#4CAF50">${buffTalento > 0 ? '+' : ''}${buffTalento} talento</span>`);
-        if (extra       !== undefined && extra !== 0) partes.push(`<span class="buff-part" style="color:#00bfff">${extra > 0 ? '+' : ''}${extra} bônus</span>`);
+        if (extra !== undefined && extra !== 0) partes.push(`<span class="buff-part" style="color:#00bfff">${extra > 0 ? '+' : ''}${extra} dinâmico</span>`);
         el.innerHTML = `<span>${txt}</span>${partes.length ? ' <small>(' + partes.join(', ') + ')</small>' : ''}`;
     }
 
-    renderTotal('forca-total',  bases.forca,        forcaBonus, buffs.forca,       bonusForcaMagica);
-    renderTotal('vel-total',    bases.velocidade,   velBonus,   buffs.velocidade);
-    renderTotal('int-total',    bases.inteligencia, intBonus,   buffs.inteligencia);
-    renderTotal('defesa-total', bases.defesa,       defBonus,   buffs.defesa);
-    renderTotal('pont-total',   bases.pontaria,     pontBonus,  buffs.pontaria);
-    renderTotal('car-total',    bases.carisma,      carBonus,   buffs.carisma);
-    renderTotal('furt-total',   bases.furtividade,  furtBonus,  buffs.furtividade);
+    renderTotal('forca-total',  bases.forca,        forcaBonus, buffs.forca,       buffsDinamicos.forca);
+    renderTotal('vel-total',    bases.velocidade,   velBonus,   buffs.velocidade,  buffsDinamicos.velocidade);
+    renderTotal('int-total',    bases.inteligencia, intBonus,   buffs.inteligencia,buffsDinamicos.inteligencia);
+    renderTotal('defesa-total', bases.defesa,       defBonus,   buffs.defesa,      buffsDinamicos.defesa);
+    renderTotal('pont-total',   bases.pontaria,     pontBonus,  buffs.pontaria,    buffsDinamicos.pontaria);
+    renderTotal('car-total',    bases.carisma,      carBonus,   buffs.carisma,     buffsDinamicos.carisma);
+    renderTotal('furt-total',   bases.furtividade,  furtBonus,  buffs.furtividade, buffsDinamicos.furtividade);
 
     const vidaMaxEl = document.getElementById('vida-maxima');
     const manaMaxEl = document.getElementById('mana-maxima');
