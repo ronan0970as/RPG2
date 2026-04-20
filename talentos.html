@@ -241,63 +241,6 @@
         .resultado-pesquisa { font-size: 11px; color: #555; text-align: right; white-space: nowrap; }
         .talento-card.oculto { display: none; }
 
-        /* ══ Botão IA e painel de buffs dinâmicos ══════════════ */
-        .btn-ia {
-            background: linear-gradient(135deg, rgba(138,43,226,0.2), rgba(0,191,255,0.15));
-            border: 1px solid rgba(138,43,226,0.5);
-            color: #b06aff;
-            padding: 6px 11px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            font-family: inherit;
-            transition: 0.2s;
-            min-height: 36px;
-            white-space: nowrap;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .btn-ia:hover { border-color: #b06aff; background: rgba(138,43,226,0.3); color: #d09fff; }
-        .btn-ia:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-ia.carregando { animation: ia-pulse 1s infinite; }
-        @keyframes ia-pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
-
-        .ia-resultado {
-            margin-top: 8px;
-            background: rgba(138,43,226,0.08);
-            border: 1px solid rgba(138,43,226,0.3);
-            border-radius: 6px;
-            padding: 10px 12px;
-            font-size: 12px;
-            display: none;
-        }
-        .ia-resultado.visivel { display: block; }
-        .ia-resultado .ia-titulo { color: #b06aff; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .ia-resultado .ia-buff-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
-        .ia-resultado .ia-buff-nome { color: #888; font-size: 11px; width: 90px; flex-shrink: 0; }
-        .ia-resultado .ia-buff-val { color: #4CAF50; font-weight: bold; font-size: 13px; }
-        .ia-resultado .ia-buff-tipo { color: #555; font-size: 10px; font-style: italic; }
-        .ia-resultado .ia-dinamico { background: rgba(0,191,255,0.08); border: 1px solid rgba(0,191,255,0.2); border-radius: 4px; padding: 4px 8px; margin-top: 4px; color: #00bfff; font-size: 11px; }
-        .ia-resultado .ia-erro { color: #e74c3c; font-size: 12px; }
-        .ia-resultado .ia-aplicar { background: #4CAF50; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; font-family: inherit; margin-top: 6px; transition: 0.2s; }
-        .ia-resultado .ia-aplicar:hover { background: #45a049; }
-
-        /* Badge de buff dinâmico no painel de buffs */
-        .buff-dinamico-badge {
-            margin-top: 6px;
-            background: rgba(0,191,255,0.07);
-            border: 1px solid rgba(0,191,255,0.2);
-            border-radius: 4px;
-            padding: 5px 8px;
-            font-size: 11px;
-            color: #00bfff;
-            line-height: 1.4;
-            display: none;
-        }
-        .buff-dinamico-badge.visivel { display: block; }
-
         /* ══ MOBILE ════════════════════════════════════════════ */
         @media (max-width: 650px) {
             .status-panel { flex-direction: column; gap: 8px; }
@@ -653,14 +596,122 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
     if (fbEl) setTimeout(() => { fbEl.textContent = ''; }, 2500);
 }
 
+// ════════════════════════════════════════════════════════════
+//  PARSER DE BUFFS DINÂMICOS — lê a descrição do talento
+// ════════════════════════════════════════════════════════════
+const _BUFF_ALIAS = {
+    forca:       ['força','forca','force','dano físico','dano fisico','ataque'],
+    velocidade:  ['velocidade','vel','speed','agilidade'],
+    inteligencia:['inteligência','inteligencia','intel','magia','poder mágico','poder magico'],
+    defesa:      ['defesa','def','armadura','resistência','resistencia'],
+    pontaria:    ['pontaria','pont','precisão','precisao','mira'],
+    carisma:     ['carisma','car','persuasão','persuasao','liderança','lideranca'],
+    furtividade: ['furtividade','furt','furtivo','stealth','sombra']
+};
+const _RECURSO_ALIAS = {
+    mana:     ['mana','mp','mana máxima','mana maxima','mana atual'],
+    vida:     ['vida','hp','vida máxima','vida maxima','vida atual'],
+    sanidade: ['sanidade','san'],
+    nivel:    ['nível','nivel','level','lv','lvl']
+};
+
+function _resolverAttr(txt) {
+    const t = txt.toLowerCase().trim();
+    for (const [key, aliases] of Object.entries(_BUFF_ALIAS)) {
+        if (aliases.some(a => t.includes(a))) return key;
+    }
+    return null;
+}
+function _resolverRecurso(txt) {
+    const t = txt.toLowerCase().trim();
+    for (const [key, aliases] of Object.entries(_RECURSO_ALIAS)) {
+        if (aliases.some(a => t.includes(a))) return key;
+    }
+    return null;
+}
+
+// Obtém o valor atual do recurso lendo os chips de status do painel
+function _getRecursoValor(recurso, statusLocal) {
+    if (recurso === 'mana')     return statusLocal?.manaMax  || STATUS.mana.max  || 0;
+    if (recurso === 'vida')     return statusLocal?.vidaMax  || STATUS.vida.max  || 0;
+    if (recurso === 'sanidade') return statusLocal?.sanidade || STATUS.sanidade.atual || 0;
+    if (recurso === 'nivel')    return statusLocal?.nivel    || 0;
+    return 0;
+}
+
+function parsearBuffsDinamicosLocal(descricao, bases, statusLocal) {
+    if (!descricao) return {};
+    const buffs = {};
+    const texto = descricao.toLowerCase();
+
+    // "+N em tudo" / "+N em todos"
+    const tudo = texto.match(/\+\s*(\d+(?:\.\d+)?)\s+em\s+(tudo|todos)/);
+    if (tudo) {
+        const val = parseFloat(tudo[1]);
+        Object.keys(_BUFF_ALIAS).forEach(key => { buffs[key] = (buffs[key] || 0) + val; });
+    }
+
+    // "+N de ATRIBUTO a cada X de RECURSO"
+    const rgxRecurso = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+a cada\s+(\d+(?:\.\d+)?)\s+de\s+([^(+\n,)]+)/g;
+    let m;
+    while ((m = rgxRecurso.exec(texto)) !== null) {
+        const bonusPorX  = parseFloat(m[1]);
+        const attrKey    = _resolverAttr(m[2]);
+        const divisor    = parseFloat(m[3]);
+        const recursoKey = _resolverRecurso(m[4]);
+        if (attrKey && divisor > 0 && recursoKey) {
+            const valorRecurso = _getRecursoValor(recursoKey, statusLocal);
+            buffs[attrKey] = (buffs[attrKey] || 0) + Math.floor(valorRecurso / divisor) * bonusPorX;
+        }
+    }
+
+    // "+N% de ATRIBUTO"
+    const rgxPct = /\+\s*(\d+(?:\.\d+)?)\s*%\s+de\s+([^(+\n,)]+)/g;
+    while ((m = rgxPct.exec(texto)) !== null) {
+        const pct     = parseFloat(m[1]);
+        const attrKey = _resolverAttr(m[2]);
+        if (attrKey) {
+            buffs[attrKey] = (buffs[attrKey] || 0) + Math.round((pct / 100) * (parseInt(bases[attrKey]) || 0));
+        }
+    }
+
+    // "+N de ATRIBUTO por nível"
+    const rgxNivel = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+por\s+n[ií]vel/g;
+    while ((m = rgxNivel.exec(texto)) !== null) {
+        const bonusPorNivel = parseFloat(m[1]);
+        const attrKey = _resolverAttr(m[2]);
+        if (attrKey) {
+            const nivel = statusLocal?.nivel || 0;
+            buffs[attrKey] = (buffs[attrKey] || 0) + (bonusPorNivel * nivel);
+        }
+    }
+
+    return buffs;
+}
+
 async function calcularBuffsTotais(bases) {
     const totais = {};
     ATRIBUTOS.forEach(a => totais[a.key] = 0);
+
+    // Busca dados de status para buffs dinâmicos (nível, mana max, etc.)
+    let statusLocal = {};
+    try {
+        let d = await carregarStatusNuvem();
+        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+        if (d) statusLocal = {
+            manaMax:  (parseInt(d.intBase || 0) * 10) || 10,
+            vidaMax:  50 + (parseInt(d.defBase || 0) * 50) || 100,
+            nivel:    parseInt(d.nivel || 0)
+        };
+    } catch(e) {}
+
     try {
         let talentos = await carregarTalentosNuvem();
         if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
         talentos.forEach(t => {
             if (!t.ativo) return;
+
+            // ── Buffs fixos dos campos do painel ───────────────
             ATRIBUTOS.forEach(a => {
                 const valStr = t.buffs?.[a.key] || '';
                 if (!valStr) return;
@@ -673,6 +724,12 @@ async function calcularBuffsTotais(bases) {
                     if (!isNaN(num)) totais[a.key] += num;
                 }
             });
+
+            // ── Buffs dinâmicos lidos da descrição ─────────────
+            const dinamicos = parsearBuffsDinamicosLocal(t.desc, bases, statusLocal);
+            Object.keys(totais).forEach(key => {
+                if (dinamicos[key]) totais[key] += dinamicos[key];
+            });
         });
     } catch(e) {}
     return totais;
@@ -680,6 +737,7 @@ async function calcularBuffsTotais(bases) {
 
 async function renderizarAtributos() {
     let bases = {};
+    let statusLocal = {};
     try {
         let d = await carregarStatusNuvem();
         if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
@@ -690,16 +748,73 @@ async function renderizarAtributos() {
                 pontaria: d.pontBase || 0, carisma: d.carBase || 0,
                 furtividade: d.furtBase || 0
             };
+            statusLocal = {
+                manaMax: (parseInt(d.intBase || 0) * 10) || 10,
+                vidaMax: 50 + (parseInt(d.defBase || 0) * 50) || 100,
+                nivel:   parseInt(d.nivel || 0)
+            };
         }
     } catch(e) {}
-    const buffs = await calcularBuffsTotais(bases);
+
+    // Buffs fixos dos campos do painel
+    const buffsFixos = {};
+    ATRIBUTOS.forEach(a => buffsFixos[a.key] = 0);
+
+    // Buffs dinâmicos da descrição dos talentos ativos
+    const buffsDin = {};
+    ATRIBUTOS.forEach(a => buffsDin[a.key] = 0);
+
+    document.querySelectorAll('.talento-card').forEach(card => {
+        const id    = card.dataset.id;
+        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
+        if (!ativo) return;
+
+        ATRIBUTOS.forEach(a => {
+            const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
+            if (!valStr) return;
+            const baseVal = parseInt(bases[a.key] ?? 0);
+            if (valStr.includes('%')) {
+                const pct = parseFloat(valStr.replace('%', ''));
+                if (!isNaN(pct)) buffsFixos[a.key] += Math.round((pct / 100) * baseVal);
+            } else {
+                const num = parseInt(valStr);
+                if (!isNaN(num)) buffsFixos[a.key] += num;
+            }
+        });
+
+        const desc = card.querySelector('.talento-desc')?.value || '';
+        const din  = parsearBuffsDinamicosLocal(desc, bases, statusLocal);
+        Object.keys(buffsDin).forEach(key => {
+            if (din[key]) buffsDin[key] += din[key];
+        });
+    });
+
     const container = document.getElementById('attr-resumo');
     if (!container) return;
     container.innerHTML = ATRIBUTOS.map(a => {
-        const base = parseInt(bases[a.key] ?? 0); const buff = buffs[a.key] || 0; const total = base + buff;
-        const buffTxt = buff > 0 ? `+${buff} buff` : buff < 0 ? `${buff} buff` : '';
-        const buffCor = buff > 0 ? '#ffd700' : buff < 0 ? '#e74c3c' : 'transparent';
-        return `<div class="attr-chip"><div class="a-nome">${a.label}</div><div class="a-val">${total}</div><div class="a-base" style="color:#5a82b5">base ${base}</div><div class="a-buff" style="color:${buffCor}">${buffTxt || '—'}</div></div>`;
+        const base     = parseInt(bases[a.key] ?? 0);
+        const fixo     = buffsFixos[a.key] || 0;
+        const din      = buffsDin[a.key]   || 0;
+        const total    = base + fixo + din;
+        const buffTotal = fixo + din;
+
+        let buffHtml = '';
+        if (fixo !== 0 || din !== 0) {
+            const parts = [];
+            if (fixo !== 0) parts.push(`<span style="color:#4CAF50;font-size:10px">${fixo > 0 ? '+' : ''}${fixo} fix</span>`);
+            if (din  !== 0) parts.push(`<span style="color:#00bfff;font-size:10px">${din  > 0 ? '+' : ''}${din} desc</span>`);
+            buffHtml = parts.join(' ');
+        } else {
+            buffHtml = '<span style="color:#555;font-size:10px">—</span>';
+        }
+
+        const totalCor = buffTotal > 0 ? '#4CAF50' : buffTotal < 0 ? '#e74c3c' : '#4CAF50';
+        return `<div class="attr-chip">
+            <div class="a-nome">${a.label}</div>
+            <div class="a-val" style="color:${totalCor}">${total}</div>
+            <div class="a-base" style="color:#5a82b5">base ${base}</div>
+            <div class="a-buff">${buffHtml}</div>
+        </div>`;
     }).join('');
 }
 
@@ -768,12 +883,8 @@ function adicionarTalento(dados = {}) {
                 <option value="Especial" ${(dados.tipo||'')        === 'Especial' ? 'selected' : ''}>Especial</option>
             </select>
 
-            <button class="btn-ia" id="btn-ia-${id}" onclick="analisarTalentoComIA(${id})" title="Analisar descrição com IA e extrair buffs automaticamente">🤖 IA</button>
             <button class="btn-remover" onclick="removerTalento(${id})" title="Remover talento">✕</button>
         </div>
-
-        <!-- Resultado da análise de IA -->
-        <div class="ia-resultado" id="ia-resultado-${id}"></div>
 
         <!-- Campo de raça vinculada ao talento/habilidade -->
         <div class="raca-row" id="raca-row-${id}">
@@ -802,7 +913,6 @@ function adicionarTalento(dados = {}) {
             <div class="buff-panel">
                 <div class="buff-panel-title">📊 Buff nos Atributos</div>
                 ${buffLinhas}
-                <div class="buff-dinamico-badge" id="buff-dinamico-${id}">${dados.buffDinamico ? dados.buffDinamico : ''}</div>
                 <div class="calc-secao">
                     <div class="buff-panel-title">⚡ Efeito no Status</div>
                     ${calcLinhas}
@@ -811,16 +921,6 @@ function adicionarTalento(dados = {}) {
         </div>`;
 
     document.getElementById('lista-talentos').appendChild(card);
-
-    // Restaura badge de buff dinâmico salvo
-    if (dados.buffDinamico) {
-        const bdEl = document.getElementById(`buff-dinamico-${id}`);
-        if (bdEl) {
-            bdEl.textContent = dados.buffDinamico;
-            bdEl.classList.add('visivel');
-            if (dados.buffDinamicoConfig) bdEl.dataset.config = JSON.stringify(dados.buffDinamicoConfig);
-        }
-    }
 
     // Preenche datalist com raças já usadas em outros cards
     atualizarDatalistsRaca();
@@ -871,6 +971,7 @@ async function recalcularStatusComToast() {
 
     const defBase = parseInt(d.defBase ?? 0);
     const intBase = parseInt(d.intBase ?? 0);
+    const nivel   = parseInt(d.nivel   ?? 0);
     const bases   = {
         forca: d.forcaBase || 0, velocidade: d.velBase || 0,
         inteligencia: intBase,   defesa: defBase,
@@ -881,10 +982,19 @@ async function recalcularStatusComToast() {
     // Calcula buffs diretamente dos cards visíveis (sem nova chamada à rede)
     const buffsLocais = {};
     ATRIBUTOS.forEach(a => buffsLocais[a.key] = 0);
+
+    const statusLocal = {
+        manaMax: (intBase * 10) || 10,
+        vidaMax: 50 + (defBase * 50) || 100,
+        nivel
+    };
+
     document.querySelectorAll('.talento-card').forEach(card => {
         const id    = card.dataset.id;
         const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
         if (!ativo) return;
+
+        // Buffs fixos dos campos
         ATRIBUTOS.forEach(a => {
             const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
             if (!valStr) return;
@@ -896,6 +1006,13 @@ async function recalcularStatusComToast() {
                 const num = parseInt(valStr);
                 if (!isNaN(num)) buffsLocais[a.key] += num;
             }
+        });
+
+        // Buffs dinâmicos da descrição
+        const desc = card.querySelector('.talento-desc')?.value || '';
+        const dinamicos = parsearBuffsDinamicosLocal(desc, bases, statusLocal);
+        Object.keys(buffsLocais).forEach(key => {
+            if (dinamicos[key]) buffsLocais[key] += dinamicos[key];
         });
     });
 
@@ -923,210 +1040,18 @@ function coletarTalentos() {
         const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on') ?? true;
         const buffs = {};
         ATRIBUTOS.forEach(a => { buffs[a.key] = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || ''; });
-
-        // Preserva buffs dinâmicos gerados pela IA
-        const bdEl    = document.getElementById(`buff-dinamico-${id}`);
-        const bdConf  = bdEl?.dataset.config ? JSON.parse(bdEl.dataset.config) : null;
-
         return {
             id,
             ativo,
             buffs,
-            nome:            card.querySelector('.talento-nome')?.value || '',
-            tipo:            document.getElementById(`tipo-${id}`)?.value || 'Passivo',
-            categoria:       document.getElementById(`cat-${id}`)?.value  || 'Talento',
-            raca:            document.getElementById(`raca-${id}`)?.value.trim() || '',
-            classe:          document.getElementById(`classe-${id}`)?.value.trim() || '',
-            desc:            card.querySelector('.talento-desc')?.value || '',
-            buffDinamico:    bdEl?.textContent.trim() || '',
-            buffDinamicoConfig: bdConf,
+            nome:      card.querySelector('.talento-nome')?.value || '',
+            tipo:      document.getElementById(`tipo-${id}`)?.value || 'Passivo',
+            categoria: document.getElementById(`cat-${id}`)?.value  || 'Talento',
+            raca:      document.getElementById(`raca-${id}`)?.value.trim() || '',
+            classe:    document.getElementById(`classe-${id}`)?.value.trim() || '',
+            desc:      card.querySelector('.talento-desc')?.value || '',
         };
     });
-}
-
-// ════════════════════════════════════════════════════════════
-//  ANÁLISE DE BUFFS COM IA (Claude API)
-// ════════════════════════════════════════════════════════════
-async function analisarTalentoComIA(id) {
-    const descEl = document.querySelector(`.talento-card[data-id="${id}"] .talento-desc`);
-    const nomeEl = document.querySelector(`.talento-card[data-id="${id}"] .talento-nome`);
-    const btnIA  = document.getElementById(`btn-ia-${id}`);
-    const resEl  = document.getElementById(`ia-resultado-${id}`);
-
-    const desc = descEl?.value?.trim();
-    const nome = nomeEl?.value?.trim() || 'Talento';
-
-    if (!desc) {
-        resEl.className = 'ia-resultado visivel';
-        resEl.innerHTML = `<div class="ia-erro">⚠️ Escreva uma descrição para o talento antes de analisar.</div>`;
-        return;
-    }
-
-    btnIA.disabled = true;
-    btnIA.classList.add('carregando');
-    btnIA.textContent = '⏳ Analisando...';
-    resEl.className = 'ia-resultado visivel';
-    resEl.innerHTML = `<div style="color:#888;font-size:12px;">🤖 Lendo a descrição e extraindo os buffs...</div>`;
-
-    const atributosLista = ATRIBUTOS.map(a => a.key).join(', ');
-
-    const prompt = `Você é um sistema de RPG. Analise a descrição do talento abaixo e extraia os buffs/bônus que ele fornece nos atributos.
-
-TALENTO: "${nome}"
-DESCRIÇÃO: "${desc}"
-
-ATRIBUTOS DISPONÍVEIS: ${atributosLista}
-
-Responda APENAS com JSON válido, sem explicações, sem markdown, sem backticks. Formato exato:
-{
-  "buffsFixos": {
-    "forca": "+2",
-    "defesa": "10%"
-  },
-  "buffsDinamicos": [
-    {
-      "atributo": "forca",
-      "formula": "mana/50",
-      "descricao": "+1 de força a cada 50 de mana máxima",
-      "tipo": "mana_para_atributo",
-      "divisor": 50,
-      "valorPorDivisor": 1
-    }
-  ],
-  "buffsCondicional": "+1 all",
-  "resumo": "Texto curto descrevendo os buffs identificados"
-}
-
-Regras:
-- buffsFixos: bônus estáticos que sempre se aplicam. Use "+N" para fixo ou "N%" para porcentagem.
-- buffsDinamicos: bônus que dependem de outro valor (ex: a cada X de mana, por kill, por turno). Inclua "tipo" que pode ser: "mana_para_atributo", "kills_para_atributo", "turnos_para_atributo", "percentual_crescente", "multiplicador_mestre".
-- buffsCondicional: se tiver "+1 all" ou bônus em todos, coloque aqui como string.
-- Se não houver um tipo de buff, use objeto vazio {} ou array vazio [].
-- Se a descrição menciona "o mestre define" ou "variável", coloque tipo "multiplicador_mestre".
-- Para Contador de Kills: tipo "kills_para_atributo", inclua campo "killsPorBuff" com o número de kills necessários.
-- Para buffs por turno: tipo "turnos_para_atributo", inclua "turnosPorBuff" e "maxPorcentagem" se houver máximo.`;
-
-    try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1000,
-                messages: [{ role: 'user', content: prompt }]
-            })
-        });
-
-        const data = await response.json();
-        const texto = data.content?.map(c => c.text || '').join('') || '';
-
-        let resultado;
-        try {
-            const clean = texto.replace(/```json|```/g, '').trim();
-            resultado = JSON.parse(clean);
-        } catch(e) {
-            throw new Error('Resposta inválida da IA: ' + texto.substring(0, 100));
-        }
-
-        renderizarResultadoIA(id, resultado);
-
-    } catch(err) {
-        resEl.className = 'ia-resultado visivel';
-        resEl.innerHTML = `<div class="ia-erro">❌ Erro ao analisar: ${err.message}</div>`;
-    } finally {
-        btnIA.disabled = false;
-        btnIA.classList.remove('carregando');
-        btnIA.innerHTML = '🤖 IA';
-    }
-}
-
-function renderizarResultadoIA(id, resultado) {
-    const resEl = document.getElementById(`ia-resultado-${id}`);
-    if (!resEl) return;
-
-    const { buffsFixos = {}, buffsDinamicos = [], buffsCondicional = '', resumo = '' } = resultado;
-
-    let html = `<div class="ia-titulo">🤖 Buffs identificados pela IA</div>`;
-
-    if (resumo) html += `<div style="color:#aaa;font-size:11px;margin-bottom:8px;font-style:italic;">${resumo}</div>`;
-
-    // Buffs fixos
-    const fixosEntries = Object.entries(buffsFixos).filter(([,v]) => v && v !== '0');
-    if (fixosEntries.length > 0) {
-        html += `<div style="color:#c8aa6e;font-size:10px;font-weight:bold;text-transform:uppercase;margin-bottom:4px;">Buffs Fixos:</div>`;
-        fixosEntries.forEach(([attr, val]) => {
-            const label = ATRIBUTOS.find(a => a.key === attr)?.label || attr;
-            html += `<div class="ia-buff-item"><span class="ia-buff-nome">${label}</span><span class="ia-buff-val">${val}</span></div>`;
-        });
-    }
-
-    // Buff +1 all
-    if (buffsCondicional) {
-        html += `<div class="ia-buff-item"><span class="ia-buff-nome">Todos</span><span class="ia-buff-val">${buffsCondicional}</span><span class="ia-buff-tipo">(todos os atributos)</span></div>`;
-    }
-
-    // Buffs dinâmicos
-    if (buffsDinamicos.length > 0) {
-        html += `<div style="color:#00bfff;font-size:10px;font-weight:bold;text-transform:uppercase;margin:8px 0 4px;">Buffs Dinâmicos:</div>`;
-        buffsDinamicos.forEach(bd => {
-            html += `<div class="ia-dinamico">🔄 ${bd.descricao || bd.formula}</div>`;
-        });
-    }
-
-    const temBuffs = fixosEntries.length > 0 || buffsDinamicos.length > 0 || buffsCondicional;
-
-    if (!temBuffs) {
-        html += `<div style="color:#666;font-size:11px;">Nenhum buff numérico identificado. A descrição pode ser narrativa ou condicional.</div>`;
-    }
-
-    if (temBuffs) {
-        html += `<button class="ia-aplicar" onclick="aplicarBuffsIA(${id}, ${JSON.stringify(JSON.stringify(resultado))})">✅ Aplicar buffs nos campos</button>`;
-    }
-
-    resEl.className = 'ia-resultado visivel';
-    resEl.innerHTML = html;
-}
-
-function aplicarBuffsIA(id, resultadoJson) {
-    const resultado = JSON.parse(resultadoJson);
-    const { buffsFixos = {}, buffsDinamicos = [], buffsCondicional = '' } = resultado;
-
-    // Aplica buffs fixos nos inputs
-    ATRIBUTOS.forEach(a => {
-        const inputEl = document.getElementById(`buff-${a.key}-${id}`);
-        if (!inputEl) return;
-
-        let valor = buffsFixos[a.key] || '';
-
-        // Se tem +1 all, soma ao valor existente
-        if (buffsCondicional && buffsCondicional.toLowerCase().includes('all')) {
-            const allNum = parseInt(buffsCondicional.replace(/[^0-9\-+]/g, '')) || 1;
-            const atual  = parseInt(inputEl.value) || 0;
-            valor = String(atual + allNum);
-        }
-
-        if (valor && valor !== '0') inputEl.value = valor;
-    });
-
-    // Armazena config de buffs dinâmicos no badge
-    const bdEl = document.getElementById(`buff-dinamico-${id}`);
-    if (bdEl && buffsDinamicos.length > 0) {
-        const textos = buffsDinamicos.map(bd => `🔄 ${bd.descricao}`).join(' | ');
-        bdEl.textContent = textos;
-        bdEl.dataset.config = JSON.stringify(buffsDinamicos);
-        bdEl.classList.add('visivel');
-    }
-
-    atualizarBuffs();
-
-    // Feedback
-    const resEl = document.getElementById(`ia-resultado-${id}`);
-    if (resEl) {
-        const aplicarBtn = resEl.querySelector('.ia-aplicar');
-        if (aplicarBtn) { aplicarBtn.textContent = '✅ Aplicado!'; aplicarBtn.disabled = true; }
-    }
-
-    salvarTalentos();
 }
 
 async function salvarTalentos() {

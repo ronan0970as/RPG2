@@ -182,6 +182,152 @@ async function lerBuffsDosTalentos(bases) {
     return buffs;
 }
 
+// ════════════════════════════════════════════════════════════
+//  PARSER DE BUFFS DINÂMICOS
+//  Lê a descrição do talento e calcula bônus automáticos
+//  baseados nos valores atuais do personagem.
+//
+//  Padrões reconhecidos na descrição:
+//   "+N de ATRIBUTO a cada X de RECURSO"
+//     ex: "+1 de força a cada 50 de mana"
+//   "+N em tudo"  /  "+N em todos"
+//     ex: "+1 em tudo"
+//   "+N% de ATRIBUTO"
+//     ex: "+10% de velocidade"
+//   "+N de ATRIBUTO por nível"
+//     ex: "+2 de defesa por nível"
+// ════════════════════════════════════════════════════════════
+const BUFF_ALIAS = {
+    forca:       ['força','forca','force','dano físico','dano fisico','ataque'],
+    velocidade:  ['velocidade','vel','speed','agilidade'],
+    inteligencia:['inteligência','inteligencia','intel','magia','poder mágico','poder magico'],
+    defesa:      ['defesa','def','armadura','resistência','resistencia'],
+    pontaria:    ['pontaria','pont','precisão','precisao','mira'],
+    carisma:     ['carisma','car','persuasão','persuasao','liderança','lideranca'],
+    furtividade: ['furtividade','furt','furtivo','stealth','sombra']
+};
+
+const RECURSO_ALIAS = {
+    mana:     ['mana','mp','mana máxima','mana maxima','mana atual'],
+    vida:     ['vida','hp','vida máxima','vida maxima','vida atual'],
+    sanidade: ['sanidade','san','sanidade máxima','sanidade maxima'],
+    nivel:    ['nível','nivel','level','lv','lvl']
+};
+
+function resolverAtributo(txt) {
+    const t = txt.toLowerCase().trim();
+    for (const [key, aliases] of Object.entries(BUFF_ALIAS)) {
+        if (aliases.some(a => t.includes(a))) return key;
+    }
+    return null;
+}
+
+function resolverRecurso(txt) {
+    const t = txt.toLowerCase().trim();
+    for (const [key, aliases] of Object.entries(RECURSO_ALIAS)) {
+        if (aliases.some(a => t.includes(a))) return key;
+    }
+    return null;
+}
+
+function getRecursoAtual(recurso) {
+    if (recurso === 'mana') {
+        const max = parseInt(document.getElementById('mana-maxima')?.textContent) || 0;
+        const cur = parseInt(document.getElementById('mana-atual')?.value) || max;
+        return max; // usa mana máxima para o cálculo de buff
+    }
+    if (recurso === 'vida') {
+        const max = parseInt(document.getElementById('vida-maxima')?.textContent) || 0;
+        return max;
+    }
+    if (recurso === 'sanidade') {
+        return parseInt(document.getElementById('sanidade-atual')?.value) || 0;
+    }
+    if (recurso === 'nivel') {
+        return parseInt(document.getElementById('nivel')?.value) || 0;
+    }
+    return 0;
+}
+
+function parsearBuffsDinamicos(descricao) {
+    if (!descricao) return {};
+    const buffs = {};
+    const texto = descricao.toLowerCase();
+
+    // ── Padrão: "+N em tudo" ou "+N em todos" ────────────────
+    // ex: "+1 em tudo"
+    const tudo = texto.match(/\+\s*(\d+(?:\.\d+)?)\s+em\s+(tudo|todos)/);
+    if (tudo) {
+        const val = parseFloat(tudo[1]);
+        Object.keys(BUFF_ALIAS).forEach(key => { buffs[key] = (buffs[key] || 0) + val; });
+    }
+
+    // ── Padrão: "+N de ATRIBUTO a cada X de RECURSO" ─────────
+    // ex: "+1 de força a cada 50 de mana"
+    const regexPorRecurso = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+a cada\s+(\d+(?:\.\d+)?)\s+de\s+([^(+\n,)]+)/g;
+    let m;
+    while ((m = regexPorRecurso.exec(texto)) !== null) {
+        const bonusPorX = parseFloat(m[1]);
+        const attrKey   = resolverAtributo(m[2]);
+        const divisor   = parseFloat(m[3]);
+        const recursoKey = resolverRecurso(m[4]);
+        if (attrKey && divisor > 0 && recursoKey) {
+            const valorRecurso = getRecursoAtual(recursoKey);
+            const bonus = Math.floor(valorRecurso / divisor) * bonusPorX;
+            buffs[attrKey] = (buffs[attrKey] || 0) + bonus;
+        }
+    }
+
+    // ── Padrão: "+N% de ATRIBUTO" ─────────────────────────────
+    // ex: "+10% de velocidade"  (apenas se não houver campo manual de buff)
+    const regexPct = /\+\s*(\d+(?:\.\d+)?)\s*%\s+de\s+([^(+\n,)]+)/g;
+    while ((m = regexPct.exec(texto)) !== null) {
+        const pct     = parseFloat(m[1]);
+        const attrKey = resolverAtributo(m[2]);
+        if (attrKey) {
+            // marca como percentual para ser calculado depois em calcularStatus
+            const chave = attrKey + '_pct';
+            buffs[chave] = (buffs[chave] || 0) + pct;
+        }
+    }
+
+    // ── Padrão: "+N de ATRIBUTO por nível" ───────────────────
+    // ex: "+2 de defesa por nível"
+    const regexNivel = /\+\s*(\d+(?:\.\d+)?)\s+de\s+([^(+\n,]+?)\s+por\s+n[ií]vel/g;
+    while ((m = regexNivel.exec(texto)) !== null) {
+        const bonusPorNivel = parseFloat(m[1]);
+        const attrKey = resolverAtributo(m[2]);
+        if (attrKey) {
+            const nivel = parseInt(document.getElementById('nivel')?.value) || 0;
+            buffs[attrKey] = (buffs[attrKey] || 0) + (bonusPorNivel * nivel);
+        }
+    }
+
+    return buffs;
+}
+
+// Retorna os buffs dinâmicos totais somando todos os talentos ativos
+async function lerBuffsDinamicosTalentos(bases) {
+    const buffs = { forca: 0, velocidade: 0, inteligencia: 0, defesa: 0, pontaria: 0, carisma: 0, furtividade: 0 };
+    try {
+        let talentos = await carregarDaNuvem('talentos');
+        if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+        talentos.forEach(t => {
+            if (!t.ativo) return;
+            const dinamicos = parsearBuffsDinamicos(t.desc);
+            Object.keys(buffs).forEach(key => {
+                if (dinamicos[key]) buffs[key] += dinamicos[key];
+                // Aplica percentuais dinâmicos sobre a base
+                const pctKey = key + '_pct';
+                if (dinamicos[pctKey]) {
+                    buffs[key] += Math.round((dinamicos[pctKey] / 100) * (parseInt(bases[key]) || 0));
+                }
+            });
+        });
+    } catch(e) {}
+    return buffs;
+}
+
 function calcularBonusAttr(baseValue, inputId) {
     const el = document.getElementById(inputId);
     if (!el) return 0;
@@ -192,64 +338,6 @@ function calcularBonusAttr(baseValue, inputId) {
         return Math.round(baseValue * (pct / 100));
     }
     return parseInt(txt) || 0;
-}
-
-// ── Calcula buffs dinâmicos dos talentos (ex: +1 força a cada 50 mana) ──────
-async function calcularBuffsDinamicos(bases, manaMax) {
-    const resultado = { forca: 0, velocidade: 0, inteligencia: 0, defesa: 0, pontaria: 0, carisma: 0, furtividade: 0 };
-    try {
-        let talentos = await carregarDaNuvem('talentos');
-        if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-
-        talentos.forEach(t => {
-            if (!t.ativo) return;
-            const configs = t.buffDinamicoConfig;
-            if (!configs || !Array.isArray(configs)) return;
-
-            configs.forEach(bd => {
-                const attr = bd.atributo;
-                if (!attr || resultado[attr] === undefined) return;
-
-                switch (bd.tipo) {
-                    case 'mana_para_atributo': {
-                        const divisor = parseInt(bd.divisor) || 50;
-                        const valPor  = parseFloat(bd.valorPorDivisor) || 1;
-                        resultado[attr] += Math.floor(manaMax / divisor) * valPor;
-                        break;
-                    }
-                    case 'kills_para_atributo': {
-                        // Lê kills salvos; o campo é salvo como dado extra na ficha
-                        const kills = parseInt(localStorage.getItem(k('rpg_kills')) || '0');
-                        const kPor  = parseInt(bd.killsPorBuff) || 25;
-                        const vPor  = parseFloat(bd.valorPorDivisor) || 1;
-                        resultado[attr] += Math.floor(kills / kPor) * vPor;
-                        break;
-                    }
-                    case 'turnos_para_atributo': {
-                        // Lê turno atual salvo
-                        const turnosTotal = parseInt(localStorage.getItem(k('rpg_turno')) || '0');
-                        const tPor = parseInt(bd.turnosPorBuff) || 5;
-                        const vPor = parseFloat(bd.valorPorDivisor) || 1;
-                        const maxPct = bd.maxPorcentagem ? parseFloat(bd.maxPorcentagem) : Infinity;
-                        const crescimento = Math.floor(turnosTotal / tPor) * vPor;
-                        // Se for percentual crescente, calcular sobre a base
-                        if (bd.formula && bd.formula.includes('%')) {
-                            const pct = Math.min(crescimento, maxPct);
-                            resultado[attr] += Math.round((bases[attr] || 0) * (pct / 100));
-                        } else {
-                            resultado[attr] += crescimento;
-                        }
-                        break;
-                    }
-                    case 'multiplicador_mestre': {
-                        // Controlado manualmente pelo mestre via campo de buffs fixos — não calcula automaticamente
-                        break;
-                    }
-                }
-            });
-        });
-    } catch(e) { console.warn('Erro ao calcular buffs dinâmicos:', e); }
-    return resultado;
 }
 
 async function calcularStatus() {
@@ -263,7 +351,11 @@ async function calcularStatus() {
         furtividade:  parseInt(document.getElementById('furt-base')?.value) || 0
     };
 
+    // Buffs fixos definidos nos campos do painel de talentos
     const buffs = await lerBuffsDosTalentos(bases);
+
+    // Buffs dinâmicos lidos automaticamente da descrição dos talentos ativos
+    const buffsDinamicos = await lerBuffsDinamicosTalentos(bases);
 
     const defBonus   = calcularBonusAttr(bases.defesa,       'defesa-bonus');
     const intBonus   = calcularBonusAttr(bases.inteligencia, 'int-bonus');
@@ -273,33 +365,30 @@ async function calcularStatus() {
     const carBonus   = calcularBonusAttr(bases.carisma,      'car-bonus');
     const furtBonus  = calcularBonusAttr(bases.furtividade,  'furt-bonus');
 
-    const defTotal  = bases.defesa       + defBonus   + buffs.defesa;
-    const intTotal  = bases.inteligencia + intBonus   + buffs.inteligencia;
+    const defTotal  = bases.defesa       + defBonus   + buffs.defesa       + buffsDinamicos.defesa;
+    const intTotal  = bases.inteligencia + intBonus   + buffs.inteligencia + buffsDinamicos.inteligencia;
     const manaMax   = intTotal * 10;
     const vidaMax   = 50 + (defTotal * 50);
 
-    // ── Buffs dinâmicos dos talentos (ex: +1 força a cada 50 mana) ──
-    const buffsDinamicos = await calcularBuffsDinamicos(bases, manaMax);
-
-    function renderTotal(elId, baseVal, buffManual, buffTalento, extra) {
+    function renderTotal(elId, baseVal, buffManual, buffTalento, buffDinamico) {
         const el = document.getElementById(elId);
         if (!el) return;
-        const total = baseVal + buffManual + buffTalento + (extra || 0);
+        const total = baseVal + buffManual + buffTalento + (buffDinamico || 0);
         let txt = `= ${total}`;
         const partes = [];
-        if (buffManual  !== 0) partes.push(`<span class="buff-part" style="color:#c8aa6e">${buffManual > 0 ? '+' : ''}${buffManual} manual</span>`);
-        if (buffTalento !== 0) partes.push(`<span class="buff-part" style="color:#4CAF50">${buffTalento > 0 ? '+' : ''}${buffTalento} talento</span>`);
-        if (extra !== undefined && extra !== 0) partes.push(`<span class="buff-part" style="color:#00bfff">${extra > 0 ? '+' : ''}${extra} dinâmico</span>`);
+        if (buffManual   !== 0) partes.push(`<span class="buff-part" style="color:#c8aa6e">${buffManual > 0 ? '+' : ''}${buffManual} manual</span>`);
+        if (buffTalento  !== 0) partes.push(`<span class="buff-part" style="color:#4CAF50">${buffTalento > 0 ? '+' : ''}${buffTalento} talento</span>`);
+        if (buffDinamico !== undefined && buffDinamico !== 0) partes.push(`<span class="buff-part" style="color:#00bfff">${buffDinamico > 0 ? '+' : ''}${buffDinamico} desc.</span>`);
         el.innerHTML = `<span>${txt}</span>${partes.length ? ' <small>(' + partes.join(', ') + ')</small>' : ''}`;
     }
 
-    renderTotal('forca-total',  bases.forca,        forcaBonus, buffs.forca,       buffsDinamicos.forca);
-    renderTotal('vel-total',    bases.velocidade,   velBonus,   buffs.velocidade,  buffsDinamicos.velocidade);
-    renderTotal('int-total',    bases.inteligencia, intBonus,   buffs.inteligencia,buffsDinamicos.inteligencia);
-    renderTotal('defesa-total', bases.defesa,       defBonus,   buffs.defesa,      buffsDinamicos.defesa);
-    renderTotal('pont-total',   bases.pontaria,     pontBonus,  buffs.pontaria,    buffsDinamicos.pontaria);
-    renderTotal('car-total',    bases.carisma,      carBonus,   buffs.carisma,     buffsDinamicos.carisma);
-    renderTotal('furt-total',   bases.furtividade,  furtBonus,  buffs.furtividade, buffsDinamicos.furtividade);
+    renderTotal('forca-total',  bases.forca,        forcaBonus, buffs.forca,        buffsDinamicos.forca);
+    renderTotal('vel-total',    bases.velocidade,   velBonus,   buffs.velocidade,   buffsDinamicos.velocidade);
+    renderTotal('int-total',    bases.inteligencia, intBonus,   buffs.inteligencia, buffsDinamicos.inteligencia);
+    renderTotal('defesa-total', bases.defesa,       defBonus,   buffs.defesa,       buffsDinamicos.defesa);
+    renderTotal('pont-total',   bases.pontaria,     pontBonus,  buffs.pontaria,     buffsDinamicos.pontaria);
+    renderTotal('car-total',    bases.carisma,      carBonus,   buffs.carisma,      buffsDinamicos.carisma);
+    renderTotal('furt-total',   bases.furtividade,  furtBonus,  buffs.furtividade,  buffsDinamicos.furtividade);
 
     const vidaMaxEl = document.getElementById('vida-maxima');
     const manaMaxEl = document.getElementById('mana-maxima');
