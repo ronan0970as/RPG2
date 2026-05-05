@@ -1,0 +1,10 @@
+{
+  "name": "rpg-2-m9ct",
+  "version": "1.0.0",
+  "description": "RPG Character Sheet Application",
+  "private": true,
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0"
+  }
+}

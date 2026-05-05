@@ -188,7 +188,7 @@
 
 <!-- ════════════════════════════════════════════════════════
      BUSCA E FILTROS (linha separada)
-════════════════════════════════════════════════════════ -->
+══════════════════════════���═════════════════════════════ -->
 <div class="painel-filtros-busca">
     <input type="text" id="inputBusca" placeholder="🔍  Pesquisar ficha..." oninput="filtrar()">
     <div class="filtros">
@@ -351,5 +351,11 @@
         await _criarFichaOriginal();
     };
 </script>
+
+<!-- Vercel Web Analytics -->
+<script>
+  window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
