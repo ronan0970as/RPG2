@@ -520,8 +520,9 @@ async function carregarStatus() {
     const defTotal = defBase + (buffs.defesa || 0);
     const intTotal = intBase + (buffs.inteligencia || 0);
 
-    const novaVidaMax = 50 + (defTotal * 50) || 100;
-    const novaManaMax = (intTotal * 10) || 10;
+    // Base + buffs de atributo + buffs diretos em vidaMax/manaMax da descrição
+    const novaVidaMax = (50 + (defTotal * 50) + (buffs.vidaMax || 0)) || 100;
+    const novaManaMax = ((intTotal * 10) + (buffs.manaMax || 0)) || 10;
 
     const vidaAnterior = STATUS.vida.max;
     const manaAnterior = STATUS.mana.max;
@@ -604,7 +605,8 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
 
 
 async function calcularBuffsTotais(bases) {
-    const totais = {};
+    // Inclui atributos E status (vidaMax, manaMax, sanidadeMax) nos totais
+    const totais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
     ATRIBUTOS.forEach(a => totais[a.key] = 0);
 
     // Busca dados de status para buffs dinâmicos (nível, mana max, etc.)
@@ -613,9 +615,11 @@ async function calcularBuffsTotais(bases) {
         let d = await carregarStatusNuvem();
         if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
         if (d) statusLocal = {
-            manaMax:  (parseInt(d.intBase || 0) * 10) || 10,
-            vidaMax:  50 + (parseInt(d.defBase || 0) * 50) || 100,
-            nivel:    parseInt(d.nivel || 0)
+            manaMax:      (parseInt(d.intBase || 0) * 10) || 10,
+            vidaMax:      50 + (parseInt(d.defBase || 0) * 50) || 100,
+            nivel:        parseInt(d.nivel || 0),
+            // inclui atributos base para buffs condicionais por atributo
+            ...bases
         };
     } catch(e) {}
 
@@ -665,7 +669,12 @@ async function renderizarAtributos() {
             statusLocal = {
                 manaMax: (parseInt(d.intBase || 0) * 10) || 10,
                 vidaMax: 50 + (parseInt(d.defBase || 0) * 50) || 100,
-                nivel:   parseInt(d.nivel || 0)
+                nivel:   parseInt(d.nivel || 0),
+                // inclui atributos base para buffs condicionais por atributo
+                forca: d.forcaBase || 0, velocidade: d.velBase || 0,
+                inteligencia: d.intBase || 0, defesa: d.defBase || 0,
+                pontaria: d.pontBase || 0, carisma: d.carBase || 0,
+                furtividade: d.furtBase || 0
             };
         }
     } catch(e) {}
@@ -894,13 +903,14 @@ async function recalcularStatusComToast() {
     };
 
     // Calcula buffs diretamente dos cards visíveis (sem nova chamada à rede)
-    const buffsLocais = {};
+    const buffsLocais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
     ATRIBUTOS.forEach(a => buffsLocais[a.key] = 0);
 
     const statusLocal = {
         manaMax: (intBase * 10) || 10,
         vidaMax: 50 + (defBase * 50) || 100,
-        nivel
+        nivel,
+        ...bases
     };
 
     document.querySelectorAll('.talento-card').forEach(card => {
@@ -922,7 +932,7 @@ async function recalcularStatusComToast() {
             }
         });
 
-        // Buffs dinâmicos da descrição
+        // Buffs dinâmicos da descrição (inclui vidaMax/manaMax)
         const desc = card.querySelector('.talento-desc')?.value || '';
         const dinamicos = parsearBuffsDinamicos(desc, { bases, statusLocal });
         Object.keys(buffsLocais).forEach(key => {
@@ -933,8 +943,9 @@ async function recalcularStatusComToast() {
     const defTotal = defBase + (buffsLocais.defesa || 0);
     const intTotal = intBase + (buffsLocais.inteligencia || 0);
 
-    const novaVidaMax = 50 + (defTotal * 50) || 100;
-    const novaManaMax = (intTotal * 10) || 10;
+    // Base + buffs de atributo + buffs diretos em vidaMax/manaMax da descrição
+    const novaVidaMax = (50 + (defTotal * 50) + (buffsLocais.vidaMax || 0)) || 100;
+    const novaManaMax = ((intTotal * 10) + (buffsLocais.manaMax || 0)) || 10;
 
     const vidaAnterior = STATUS.vida.max;
     const manaAnterior = STATUS.mana.max;

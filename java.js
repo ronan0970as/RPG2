@@ -210,16 +210,32 @@ async function lerBuffsDosTalentos(bases) {
 
 // ─────────────────────────────────────────────────────────
 //  Agrega buffs dinâmicos de TODOS os talentos ativos
+//  Retorna atributos E vidaMax/manaMax/sanidadeMax da desc.
 // ─────────────────────────────────────────────────────────
 async function lerBuffsDinamicosTalentos(bases) {
-    const buffs = { forca: 0, velocidade: 0, inteligencia: 0, defesa: 0, pontaria: 0, carisma: 0, furtividade: 0 };
+    const buffs = {
+        forca: 0, velocidade: 0, inteligencia: 0, defesa: 0,
+        pontaria: 0, carisma: 0, furtividade: 0,
+        vidaMax: 0, manaMax: 0, sanidadeMax: 0
+    };
     try {
         let talentos = await carregarDaNuvem('talentos');
         if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+
+        // statusLocal com os valores atuais do DOM para os buffs condicionais
+        const nivel = parseInt(document.getElementById('nivel')?.value) || 0;
+        const manaMaxAtual = parseInt(document.getElementById('mana-maxima')?.textContent) || 0;
+        const vidaMaxAtual = parseInt(document.getElementById('vida-maxima')?.textContent) || 0;
+        const sanidadeAtual = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
+
+        const statusLocal = {
+            nivel, manaMax: manaMaxAtual, vidaMax: vidaMaxAtual, sanidade: sanidadeAtual,
+            ...bases
+        };
+
         talentos.forEach(t => {
             if (!t.ativo) return;
-            // Usa o parser unificado de buffs.js com bases e acesso ao DOM
-            const din = parsearBuffsDinamicos(t.desc, { bases });
+            const din = parsearBuffsDinamicos(t.desc, { bases, statusLocal });
             Object.keys(buffs).forEach(key => {
                 if (din[key]) buffs[key] += din[key];
             });
@@ -267,8 +283,10 @@ async function calcularStatus() {
 
     const defTotal  = bases.defesa       + defBonus   + buffs.defesa       + buffsDinamicos.defesa;
     const intTotal  = bases.inteligencia + intBonus   + buffs.inteligencia + buffsDinamicos.inteligencia;
-    const manaMax   = intTotal * 10;
-    const vidaMax   = 50 + (defTotal * 50);
+    // Base: mana = int*10, vida = 50 + defesa*50
+    // Mais: buffs diretos em vidaMax/manaMax vindos das descrições dos talentos
+    const manaMax   = (intTotal * 10) + (buffsDinamicos.manaMax || 0);
+    const vidaMax   = 50 + (defTotal * 50) + (buffsDinamicos.vidaMax || 0);
 
     function renderTotal(elId, baseVal, buffManual, buffTalento, buffDinamico) {
         const el = document.getElementById(elId);
