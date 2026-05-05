@@ -77,6 +77,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
+<script src="buffs.js"></script>
 <script src="java.js"></script>
+<script>
+    // Avisa antes de sair se houver item sendo editado (campos preenchidos)
+    window.addEventListener('beforeunload', e => {
+        const nome = document.getElementById('item-nome')?.value.trim();
+        const desc = document.getElementById('item-descricao')?.value.trim();
+        if (nome || desc) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+</script>
 </body>
 </html>

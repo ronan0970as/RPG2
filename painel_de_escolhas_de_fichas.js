@@ -184,7 +184,9 @@ async function criarFicha() {
     if (!nome) { alert('Digite um nome para a ficha!'); return; }
 
     const imgUrl  = imgPreCarregada || document.getElementById('nova-img').value.trim();
-    const classe  = document.getElementById('nova-classe').value;
+    // Sanitiza: ignora valor de placeholder interno do select
+    const classeRaw = document.getElementById('nova-classe').value;
+    const classe = (!classeRaw || classeRaw === '__outro__') ? '' : classeRaw;
     const genero  = document.querySelector('#modal-genero-selector .genero-btn.ativo')?.dataset.genero || '';
 
     fecharModal();

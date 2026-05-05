@@ -3,14 +3,34 @@
 //  Dados salvos no Supabase (tabela: fichas_dados)
 // ════════════════════════════════════════════════════════════
 
+// ── Debounce — evita múltiplas escritas ao Supabase em sequência ──
+function debounce(fn, ms) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
 // ── ID da ficha ativa ──────────────────────────────────────
 function getFichaId() {
     return localStorage.getItem('rpg_ficha_ativa') || null;
 }
 
+// ── Proteção: redireciona para o painel se não houver ficha ativa ──
+function protegerFichaAtiva() {
+    if (!getFichaId()) {
+        window.location.replace('painel_de_escolhas_de_fichas.html');
+        return false;
+    }
+    return true;
+}
+
 // ── Chave local de cache (para performance) ────────────────
 function k(chave) {
-    return getFichaId() + '_' + chave;
+    const id = getFichaId();
+    if (!id) return '__sem_ficha__' + chave; // nunca usa null como prefixo
+    return id + '_' + chave;
 }
 
 // ── Supabase helpers ───────────────────────────────────────
@@ -182,252 +202,11 @@ async function lerBuffsDosTalentos(bases) {
     return buffs;
 }
 
-// ════════════════════════════════════════════════════════════
-//  PARSER DE BUFFS DINÂMICOS — v2
-//
-//  Detecta QUALQUER forma de escrita de buff na descrição.
-//  Exemplos suportados (todos com ou sem parênteses):
-//
-//   Formato simples:
-//     +1 Força       +1Força      (+1 Força)    (+1 em Força)
-//     +1 Velocidade  +1Velocidade
-//     +1 Inteligência / +1 Inteligencia
-//     +1 Defesa      +1 Pontaria  +1 Carisma  +1 Furtividade
-//     +1 em todos    +1 em tudo   +1 em tudo!
-//
-//   Formato "de ... em ...":
-//     +1 de força     +1 em força    +1 de Velocidade
-//
-//   Formato condicional (por recurso):
-//     +1 de força a cada 50 de mana
-//     +1 de força a cada 50 mana
-//
-//   Formato percentual:
-//     +10% Velocidade    +10% de Velocidade    +10% em Velocidade
-//
-//   Formato por nível:
-//     +2 de Defesa por nível    +2 Defesa por nível
-//
-//  Funciona com acentos, sem acentos, maiúsculas e minúsculas.
-// ════════════════════════════════════════════════════════════
-
-// ════════════════════════════════════════════════════════════
-//  PARSER DE BUFFS DINÂMICOS — v3
-//
-//  Detecta QUALQUER forma de escrever um buff na descrição.
-//
-//  ── Formato simples (qualquer variação):
-//     +1 Força     +1Força     (+1 Força)    (+1 em Força)
-//     +1 de Força  +1 em Força
-//     +1 Velocidade / Inteligência / Defesa / Pontaria / Carisma / Furtividade
-//     +1 em todos  /  +1 em tudo
-//
-//  ── Formato condicional  (+N a cada X de STATUS):
-//     +1 de força a cada 50 de mana
-//     +1 de força a cada 50 mana
-//     +1 de força a cada 50 de vida
-//     +1 de força a cada 50 de sanidade
-//     +1 de todos a cada 50 de mana   ← aplica em todos
-//     (+1 a cada 50 de mana)          ← sem atributo = força (padrão)
-//
-//  ── Formato percentual:
-//     +10% Velocidade   +10% de Força   +10% em Defesa
-//
-//  ── Formato por nível:
-//     +2 de Defesa por nível
-//
-//  Funciona com/sem acento, maiúsculas/minúsculas, com/sem parênteses.
-// ════════════════════════════════════════════════════════════
-
-// ── Normaliza: remove acentos + minúsculas ────────────────
-function _norm(txt) {
-    return String(txt).toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-// ── Tabela de atributos ───────────────────────────────────
-const BUFF_ALIAS = {
-    forca:        ['forca','dano fisico','ataque fisico','dano'],
-    velocidade:   ['velocidade','agilidade'],
-    inteligencia: ['inteligencia','intel','magia','poder magico'],
-    defesa:       ['defesa','armadura','resistencia'],
-    pontaria:     ['pontaria','precisao','mira'],
-    carisma:      ['carisma','persuasao','lideranca'],
-    furtividade:  ['furtividade','furtivo','stealth','sombra']
-};
-
-// ── Tabela de recursos (para "a cada X de RECURSO") ───────
-const RECURSO_ALIAS = {
-    mana:     ['mana','mp'],
-    vida:     ['vida','hp'],
-    sanidade: ['sanidade','san'],
-    nivel:    ['nivel','level','lv','lvl']
-};
-
-// Resolve nome de atributo → chave interna
-function resolverAtributo(txt) {
-    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
-    if (!t) return null;
-
-    // Testa palavra EXATA primeiro (evita "def" bater em "defesa" errado)
-    const exatos = {
-        forca: 'forca', velocidade: 'velocidade',
-        inteligencia: 'inteligencia', defesa: 'defesa',
-        pontaria: 'pontaria', carisma: 'carisma', furtividade: 'furtividade'
-    };
-    for (const [key, alias] of Object.entries(exatos)) {
-        // palavra isolada: cercada por início/fim ou não-letra
-        const re = new RegExp('(?:^|\\W)' + alias + '(?:\\W|$)');
-        if (re.test(t)) return key;
-    }
-
-    // Substring nos aliases
-    for (const [key, aliases] of Object.entries(BUFF_ALIAS)) {
-        if (aliases.some(a => t.includes(a))) return key;
-    }
-    return null;
-}
-
-// Resolve nome de recurso → chave interna
-function resolverRecurso(txt) {
-    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
-    for (const [key, aliases] of Object.entries(RECURSO_ALIAS)) {
-        if (aliases.some(a => {
-            const re = new RegExp('(?:^|\\W)' + a + '(?:\\W|$)');
-            return re.test(t) || t === a;
-        })) return key;
-    }
-    return null;
-}
-
-// Lê o valor ATUAL do recurso no DOM (index.html)
-function getRecursoAtual(recurso) {
-    switch (recurso) {
-        case 'mana':
-            // Tenta mana-maxima (span) primeiro, fallback mana-atual
-            return parseInt(document.getElementById('mana-maxima')?.textContent)
-                || parseInt(document.getElementById('mana-atual')?.value)
-                || 0;
-        case 'vida':
-            return parseInt(document.getElementById('vida-maxima')?.textContent)
-                || parseInt(document.getElementById('vida-atual')?.value)
-                || 0;
-        case 'sanidade':
-            return parseInt(document.getElementById('sanidade-atual')?.value) || 0;
-        case 'nivel':
-            return parseInt(document.getElementById('nivel')?.value) || 0;
-        default:
-            return 0;
-    }
-}
-
 // ─────────────────────────────────────────────────────────
-//  parsearBuffsDinamicos(descricao)
-//  Retorna { forca: N, velocidade: N, ... }
+//  parsearBuffsDinamicos e resolverAtributo/Recurso agora
+//  vivem em buffs.js — aqui apenas wrappamos para manter
+//  compatibilidade com lerBuffsDinamicosTalentos().
 // ─────────────────────────────────────────────────────────
-function parsearBuffsDinamicos(descricao) {
-    if (!descricao) return {};
-
-    const buffs  = {};
-    const texto  = _norm(descricao);
-    const ATTRS  = Object.keys(BUFF_ALIAS);
-
-    function add(key, val) {
-        if (!key || isNaN(val) || val === 0) return;
-        buffs[key] = (buffs[key] || 0) + val;
-    }
-    function addTodos(val) {
-        ATTRS.forEach(k => add(k, val));
-    }
-
-    // ── Bloco de trabalho: divide o texto em "tokens de buff"
-    // Cada token começa num "+" e vai até o próximo "+" ou fim
-    // Isso evita que uma regex longa engula texto demais.
-    const tokens = [];
-    // Captura tudo que começa com + (dentro ou fora de parênteses)
-    const rgxToken = /\(\s*\+([^)]+)\)|\+([^\n+]+)/g;
-    let mt;
-    while ((mt = rgxToken.exec(texto)) !== null) {
-        tokens.push((mt[1] || mt[2]).trim());
-    }
-
-    for (const token of tokens) {
-
-        // ── 1. "+N em tudo / todos" ───────────────────────
-        if (/^(\d+(?:[.,]\d+)?)\s*(?:em\s+)?(?:tudo|todos)/.test(token)) {
-            const val = parseFloat(token.replace(',', '.'));
-            addTodos(val);
-            continue;
-        }
-
-        // ── 2. "N [de/em] ATRIBUTO a cada X [de] RECURSO" ─
-        //    Suporta atributo omitido: "N a cada X de mana" → forca (default)
-        //    Suporta "todos/tudo" como atributo
-        const rgxACada = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]*?)\s*a cada\s+(\d+(?:[.,]\d+)?)\s*(?:de\s+)?([a-z]+)/;
-        const mAC = rgxACada.exec(token);
-        if (mAC) {
-            const bonusPorX  = parseFloat(mAC[1].replace(',', '.'));
-            const attrTxt    = mAC[2].trim();
-            const divisor    = parseFloat(mAC[3].replace(',', '.'));
-            const recursoTxt = mAC[4].trim();
-            const recursoKey = resolverRecurso(recursoTxt);
-
-            if (divisor > 0 && recursoKey) {
-                const valorRecurso = getRecursoAtual(recursoKey);
-                const bonus = Math.floor(valorRecurso / divisor) * bonusPorX;
-
-                if (!attrTxt || /^(tudo|todos)$/.test(attrTxt)) {
-                    // sem atributo especificado ou "todos" → aplica em todos
-                    addTodos(bonus);
-                } else {
-                    const attrKey = resolverAtributo(attrTxt);
-                    add(attrKey, bonus);
-                }
-            }
-            continue;
-        }
-
-        // ── 3. "N% [de/em] ATRIBUTO" ─────────────────────
-        const rgxPct = /^(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+|em\s+)?([a-z ]{2,30})/;
-        const mPct = rgxPct.exec(token);
-        if (mPct) {
-            const pct     = parseFloat(mPct[1].replace(',', '.'));
-            const attrKey = resolverAtributo(mPct[2]);
-            if (attrKey) {
-                const ck = attrKey + '_pct';
-                buffs[ck] = (buffs[ck] || 0) + pct;
-            }
-            continue;
-        }
-
-        // ── 4. "N [de/em] ATRIBUTO por nível" ────────────
-        const rgxNivel = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]{2,30}?)\s+por\s+n[ií]vel/;
-        const mNiv = rgxNivel.exec(token);
-        if (mNiv) {
-            const bonusPorNivel = parseFloat(mNiv[1].replace(',', '.'));
-            const attrKey = resolverAtributo(mNiv[2]);
-            if (attrKey) {
-                const nivel = parseInt(document.getElementById('nivel')?.value) || 0;
-                add(attrKey, bonusPorNivel * nivel);
-            }
-            continue;
-        }
-
-        // ── 5. Formato simples: "N [de/em] ATRIBUTO" ─────
-        //    ex: "1 Força", "1 em Velocidade", "1de Defesa"
-        const rgxSimples = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z][a-z ]{0,25})/;
-        const mS = rgxSimples.exec(token);
-        if (mS) {
-            const val = parseFloat(mS[1].replace(',', '.'));
-            const txt = mS[2].trim();
-            if (/^(tudo|todos)$/.test(txt)) { addTodos(val); continue; }
-            const attrKey = resolverAtributo(txt);
-            add(attrKey, val);
-        }
-    }
-
-    return buffs;
-}
 
 // ─────────────────────────────────────────────────────────
 //  Agrega buffs dinâmicos de TODOS os talentos ativos
@@ -439,12 +218,10 @@ async function lerBuffsDinamicosTalentos(bases) {
         if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
         talentos.forEach(t => {
             if (!t.ativo) return;
-            const din = parsearBuffsDinamicos(t.desc);
+            // Usa o parser unificado de buffs.js com bases e acesso ao DOM
+            const din = parsearBuffsDinamicos(t.desc, { bases });
             Object.keys(buffs).forEach(key => {
                 if (din[key]) buffs[key] += din[key];
-                // Percentuais: aplica sobre a base do atributo
-                const pctKey = key + '_pct';
-                if (din[pctKey]) buffs[key] += Math.round((din[pctKey] / 100) * (parseInt(bases[key]) || 0));
             });
         });
     } catch(e) { console.warn('lerBuffsDinamicosTalentos:', e); }
@@ -755,6 +532,32 @@ function atualizarPreview() {
     }
 }
 
+// ── Cache em memória do inventário (evita múltiplas chamadas ao Supabase) ──
+let _inventarioCache = null;
+
+async function _getInventario() {
+    if (_inventarioCache !== null) return _inventarioCache;
+    let inv = await carregarDaNuvem('inventario');
+    if (!inv) inv = JSON.parse(localStorage.getItem(k('rpg_inventario')) || '[]');
+    _inventarioCache = Array.isArray(inv) ? inv : [];
+    return _inventarioCache;
+}
+
+async function _salvarInventario(inventario) {
+    _inventarioCache = inventario;
+    localStorage.setItem(k('rpg_inventario'), JSON.stringify(inventario));
+    await salvarNuvem('inventario', inventario);
+}
+
+// Escapa HTML para evitar XSS ao inserir nome/descrição no innerHTML
+function _esc(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 async function adicionarItem() {
     const nome      = document.getElementById('item-nome').value;
     const descricao = document.getElementById('item-descricao').value;
@@ -765,12 +568,9 @@ async function adicionarItem() {
 
     if (!nome || !descricao) { alert('Preencha o nome e a descrição do item!'); return; }
 
-    let inventario = await carregarDaNuvem('inventario') || [];
+    const inventario = await _getInventario();
     inventario.push({ id: Date.now(), nome, descricao, imagem: imgUrl, zoom, posX, posY });
-
-    // Cache local + nuvem
-    localStorage.setItem(k('rpg_inventario'), JSON.stringify(inventario));
-    await salvarNuvem('inventario', inventario);
+    await _salvarInventario(inventario);
 
     document.getElementById('item-nome').value      = '';
     document.getElementById('item-descricao').value = '';
@@ -781,40 +581,44 @@ async function adicionarItem() {
     document.getElementById('crop-y').value         = '50';
 
     atualizarPreview();
-    renderizarInventario();
+    _renderizarInventarioLocal();
 }
 
+// Renderiza a partir do cache — sem nova chamada ao Supabase
+function _renderizarInventarioLocal() {
+    const listaConteiner = document.getElementById('lista-itens');
+    if (!listaConteiner) return;
+    const inventario = _inventarioCache || [];
+
+    // Monta o HTML completo de uma vez (sem acumulação com +=)
+    listaConteiner.innerHTML = inventario.map(item => `
+        <div class="item-card">
+            <div class="item-info">
+                <h3>${_esc(item.nome)}</h3>
+                <p>${_esc(item.descricao)}</p>
+            </div>
+            <div class="item-img-container">
+                <img src="${_esc(item.imagem)}" alt="${_esc(item.nome)}"
+                     style="transform:scale(${parseFloat(item.zoom)||1});object-position:${parseFloat(item.posX)||50}% ${parseFloat(item.posY)||50}%;">
+            </div>
+            <button class="btn-remover-item" onclick="removerItemInventario(${Number(item.id)})">Remover</button>
+        </div>`).join('');
+}
+
+// Carrega da nuvem UMA vez e depois só usa o cache
 async function renderizarInventario() {
     const listaConteiner = document.getElementById('lista-itens');
     if (!listaConteiner) return;
-
-    let inventario = await carregarDaNuvem('inventario');
-    if (!inventario) inventario = JSON.parse(localStorage.getItem(k('rpg_inventario')) || '[]');
-
-    listaConteiner.innerHTML = '';
-    inventario.forEach((item) => {
-        listaConteiner.innerHTML += `
-            <div class="item-card">
-                <div class="item-info">
-                    <h3>${item.nome}</h3>
-                    <p>${item.descricao}</p>
-                </div>
-                <div class="item-img-container">
-                    <img src="${item.imagem}" alt="${item.nome}"
-                         style="transform:scale(${item.zoom||1});object-position:${item.posX||50}% ${item.posY||50}%;">
-                </div>
-                <button class="btn-remover-item" onclick="removerItemInventario(${item.id})">Remover</button>
-            </div>`;
-    });
+    _inventarioCache = null; // força recarregar do Supabase ao abrir a página
+    await _getInventario();
+    _renderizarInventarioLocal();
 }
 
 async function removerItemInventario(id) {
     if (!confirm('Tem certeza que deseja remover este item?')) return;
-    let inventario = await carregarDaNuvem('inventario') || [];
-    inventario = inventario.filter(item => item.id !== id);
-    localStorage.setItem(k('rpg_inventario'), JSON.stringify(inventario));
-    await salvarNuvem('inventario', inventario);
-    renderizarInventario();
+    const inventario = (await _getInventario()).filter(item => item.id !== id);
+    await _salvarInventario(inventario);
+    _renderizarInventarioLocal(); // usa cache — sem nova chamada à rede
 }
 
 // ── Salvar talentos (chamado do talentos.html) ─────────────
@@ -831,11 +635,21 @@ async function carregarTalentosNuvem() {
 
 // ── Inicialização ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+    // Proteção: sem ficha ativa → volta ao painel
+    if (!protegerFichaAtiva()) return;
+
+    // Skeleton loader enquanto carrega dados
+    const rpgWindow = document.querySelector('.rpg-window');
+    if (rpgWindow) rpgWindow.style.opacity = '0.4';
+
     await carregarFotoCard();
     await carregarDadosFicha();
     await calcularStatus();
     // Só dispara toasts APÓS o carregamento inicial
     _statusCarregado = true;
+
+    if (rpgWindow) rpgWindow.style.transition = 'opacity 0.25s';
+    if (rpgWindow) rpgWindow.style.opacity = '1';
 
     if (document.getElementById('lista-itens')) {
         atualizarPreview();

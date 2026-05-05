@@ -243,15 +243,42 @@
     </div>
 </div>
 
-<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
+<script src="buffs.js"></script>
 <script src="java.js"></script>
 <script>
+    // ── Flag de alterações não salvas ──────────────────────
+    let _fichaAlterada = false;
+    function marcarAlterada() { _fichaAlterada = true; }
+
+    window.addEventListener('beforeunload', e => {
+        if (_fichaAlterada) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+    // Marca como salva após salvarFicha()
+    const _salvarFichaOriginal = salvarFicha;
+    salvarFicha = async function() {
+        await _salvarFichaOriginal();
+        _fichaAlterada = false;
+    };
+
+    // Monitora inputs para marcar alteração
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('input, textarea, select').forEach(el => {
+            el.addEventListener('input', marcarAlterada);
+            el.addEventListener('change', marcarAlterada);
+        });
+    });
+
     function selecionarGenero(btn) {
         document.querySelectorAll('.genero-btn').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
+        marcarAlterada();
     }
 </script>
 </body>

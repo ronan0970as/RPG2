@@ -368,6 +368,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
+<script src="buffs.js"></script>
 
 <script>
 // ── Helpers de ficha ──────────────────────────────────────
@@ -597,136 +598,9 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  PARSER DE BUFFS DINÂMICOS — v3 (talentos.html)
-//  Mesma lógica do java.js — tokeniza por bloco de "+"
+//  Parser de buffs dinâmicos — agora em buffs.js (arquivo externo)
+//  parsearBuffsDinamicos(desc, { bases, statusLocal }) está disponível globalmente.
 // ════════════════════════════════════════════════════════════
-function _norm(txt) {
-    return String(txt).toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-const _BUFF_ALIAS = {
-    forca:        ['forca','dano fisico','ataque fisico','dano'],
-    velocidade:   ['velocidade','agilidade'],
-    inteligencia: ['inteligencia','intel','magia','poder magico'],
-    defesa:       ['defesa','armadura','resistencia'],
-    pontaria:     ['pontaria','precisao','mira'],
-    carisma:      ['carisma','persuasao','lideranca'],
-    furtividade:  ['furtividade','furtivo','stealth','sombra']
-};
-
-const _RECURSO_ALIAS = {
-    mana:     ['mana','mp'],
-    vida:     ['vida','hp'],
-    sanidade: ['sanidade','san'],
-    nivel:    ['nivel','level','lv','lvl']
-};
-
-function _resolverAttr(txt) {
-    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
-    if (!t) return null;
-    const exatos = {
-        forca:'forca', velocidade:'velocidade', inteligencia:'inteligencia',
-        defesa:'defesa', pontaria:'pontaria', carisma:'carisma', furtividade:'furtividade'
-    };
-    for (const [key, alias] of Object.entries(exatos)) {
-        if (new RegExp('(?:^|\\W)' + alias + '(?:\\W|$)').test(t)) return key;
-    }
-    for (const [key, aliases] of Object.entries(_BUFF_ALIAS)) {
-        if (aliases.some(a => t.includes(a))) return key;
-    }
-    return null;
-}
-
-function _resolverRecurso(txt) {
-    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
-    for (const [key, aliases] of Object.entries(_RECURSO_ALIAS)) {
-        if (aliases.some(a => new RegExp('(?:^|\\W)' + a + '(?:\\W|$)').test(t) || t === a)) return key;
-    }
-    return null;
-}
-
-function _getRecursoValor(recurso, statusLocal) {
-    switch (recurso) {
-        case 'mana':     return statusLocal?.manaMax  || STATUS?.mana?.max  || 0;
-        case 'vida':     return statusLocal?.vidaMax  || STATUS?.vida?.max  || 0;
-        case 'sanidade': return statusLocal?.sanidade || STATUS?.sanidade?.atual || 0;
-        case 'nivel':    return statusLocal?.nivel    || 0;
-        default:         return 0;
-    }
-}
-
-function parsearBuffsDinamicosLocal(descricao, bases, statusLocal) {
-    if (!descricao) return {};
-
-    const buffs = {};
-    const texto = _norm(descricao);
-    const ATTRS = Object.keys(_BUFF_ALIAS);
-
-    function add(key, val) {
-        if (!key || isNaN(val) || val === 0) return;
-        buffs[key] = (buffs[key] || 0) + val;
-    }
-    function addTodos(val) { ATTRS.forEach(k => add(k, val)); }
-
-    // Tokeniza: cada bloco entre parênteses com + ou após um +
-    const tokens = [];
-    const rgxToken = /\(\s*\+([^)]+)\)|\+([^\n+]+)/g;
-    let mt;
-    while ((mt = rgxToken.exec(texto)) !== null) {
-        tokens.push((mt[1] || mt[2]).trim());
-    }
-
-    for (const token of tokens) {
-
-        // 1. "+N em tudo/todos"
-        if (/^(\d+(?:[.,]\d+)?)\s*(?:em\s+)?(?:tudo|todos)/.test(token)) {
-            addTodos(parseFloat(token.replace(',','.')));
-            continue;
-        }
-
-        // 2. "N [de/em] ATRIBUTO a cada X [de] RECURSO"
-        const mAC = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]*)\s*a cada\s+(\d+(?:[.,]\d+)?)\s*(?:de\s+)?([a-z]+)/.exec(token);
-        if (mAC) {
-            const bonusPorX  = parseFloat(mAC[1].replace(',','.'));
-            const attrTxt    = mAC[2].trim();
-            const divisor    = parseFloat(mAC[3].replace(',','.'));
-            const recursoKey = _resolverRecurso(mAC[4]);
-            if (divisor > 0 && recursoKey) {
-                const bonus = Math.floor(_getRecursoValor(recursoKey, statusLocal) / divisor) * bonusPorX;
-                if (!attrTxt || /^(tudo|todos)$/.test(attrTxt)) addTodos(bonus);
-                else add(_resolverAttr(attrTxt), bonus);
-            }
-            continue;
-        }
-
-        // 3. "N% [de/em] ATRIBUTO"
-        const mPct = /^(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+|em\s+)?([a-z ]{2,30})/.exec(token);
-        if (mPct) {
-            const key = _resolverAttr(mPct[2]);
-            if (key) add(key, Math.round((parseFloat(mPct[1].replace(',','.'))/100) * (parseInt(bases?.[key]??0))));
-            continue;
-        }
-
-        // 4. "N [de/em] ATRIBUTO por nível"
-        const mNiv = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]{2,30}?)\s+por\s+n[ií]vel/.exec(token);
-        if (mNiv) {
-            const key = _resolverAttr(mNiv[2]);
-            if (key) add(key, parseFloat(mNiv[1].replace(',','.')) * (statusLocal?.nivel||0));
-            continue;
-        }
-
-        // 5. Formato simples: "N [de/em] ATRIBUTO"
-        const mS = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z][a-z ]{0,25})/.exec(token);
-        if (mS) {
-            const val = parseFloat(mS[1].replace(',','.'));
-            const txt = mS[2].trim();
-            if (/^(tudo|todos)$/.test(txt)) { addTodos(val); continue; }
-            add(_resolverAttr(txt), val);
-        }
-    }
-    return buffs;
-}
 
 
 async function calcularBuffsTotais(bases) {
@@ -766,7 +640,7 @@ async function calcularBuffsTotais(bases) {
             });
 
             // ── Buffs dinâmicos lidos da descrição ─────────────
-            const dinamicos = parsearBuffsDinamicosLocal(t.desc, bases, statusLocal);
+            const dinamicos = parsearBuffsDinamicos(t.desc, { bases, statusLocal });
             Object.keys(totais).forEach(key => {
                 if (dinamicos[key]) totais[key] += dinamicos[key];
             });
@@ -823,7 +697,7 @@ async function renderizarAtributos() {
         });
 
         const desc = card.querySelector('.talento-desc')?.value || '';
-        const din  = parsearBuffsDinamicosLocal(desc, bases, statusLocal);
+        const din  = parsearBuffsDinamicos(desc, { bases, statusLocal });
         Object.keys(buffsDin).forEach(key => {
             if (din[key]) buffsDin[key] += din[key];
         });
@@ -1050,7 +924,7 @@ async function recalcularStatusComToast() {
 
         // Buffs dinâmicos da descrição
         const desc = card.querySelector('.talento-desc')?.value || '';
-        const dinamicos = parsearBuffsDinamicosLocal(desc, bases, statusLocal);
+        const dinamicos = parsearBuffsDinamicos(desc, { bases, statusLocal });
         Object.keys(buffsLocais).forEach(key => {
             if (dinamicos[key]) buffsLocais[key] += dinamicos[key];
         });
@@ -1094,10 +968,35 @@ function coletarTalentos() {
     });
 }
 
-async function salvarTalentos() {
+// ── Confirmação ao sair com alterações não salvas ─────────
+let _talentosAlterados = false;
+function _marcarTalentosAlterados() { _talentosAlterados = true; }
+
+window.addEventListener('beforeunload', e => {
+    if (_talentosAlterados) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+// ── Debounce local ────────────────────────────────────────
+function _debounce(fn, ms) {
+    let t;
+    return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+}
+
+async function _salvarTalentosImediato() {
     const talentos = coletarTalentos();
     await salvarNuvemTalentos(talentos);
+    _talentosAlterados = false;
 }
+// Versão com debounce — usada nos oninput dos campos
+const salvarTalentos = _debounce(function() {
+    _talentosAlterados = true;
+    _salvarTalentosImediato();
+}, 800);
+
+async function salvar() { await _salvarTalentosImediato(); mostrarToast('💾 Talentos salvos!'); }
 
 async function carregarTalentos() {
     let dados = await carregarTalentosNuvem();
@@ -1105,8 +1004,6 @@ async function carregarTalentos() {
     if (dados.length === 0) adicionarTalento();
     else dados.forEach(d => adicionarTalento(d));
 }
-
-async function salvar() { await salvarTalentos(); mostrarToast('💾 Talentos salvos!'); }
 function mostrarToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
 
 // ════════════════════════════════════════════════════════════
@@ -1307,6 +1204,16 @@ function filtrarTalentos() {
 // Talentos PRIMEIRO: carregarStatus() usa calcularBuffsTotais()
 // que precisa dos talentos já salvos para calcular vida/mana máximas.
 (async () => {
+    // Proteção: sem ficha ativa → volta ao painel
+    if (!getFichaId()) {
+        window.location.replace('painel_de_escolhas_de_fichas.html');
+        return;
+    }
+
+    // Loading skeleton
+    const rpgWindow = document.querySelector('.rpg-window');
+    if (rpgWindow) rpgWindow.style.opacity = '0.4';
+
     await carregarTalentos();    // 1º: popula cards (e localStorage dos buffs)
     await renderizarAtributos(); // 2º: chips de atributos com buffs visíveis
     await carregarStatus();      // 3º: vida/mana máx já consideram buffs ativos
@@ -1315,6 +1222,8 @@ function filtrarTalentos() {
     atualizarTagsClasse();
     // Só dispara toasts APÓS a carga completa da página
     _statusCarregado = true;
+
+    if (rpgWindow) { rpgWindow.style.transition = 'opacity 0.25s'; rpgWindow.style.opacity = '1'; }
 })();
 </script>
 </body>

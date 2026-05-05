@@ -44,10 +44,14 @@ async function sincronizarSessao() {
 
 // ── Proteção de página ────────────────────────────────────
 async function exigirLogin() {
+    // Esconde o conteúdo imediatamente para evitar flash antes do redirect
+    document.documentElement.style.visibility = 'hidden';
     const logado = await sincronizarSessao();
     if (!logado) {
         window.location.replace(AUTH_PAGE);
+        return; // mantém escondido durante o redirect
     }
+    document.documentElement.style.visibility = '';
 }
 
 // ── Cadastro ──────────────────────────────────────────────
