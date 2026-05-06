@@ -265,17 +265,7 @@
 </nav>
 
 <div class="rpg-window">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
-        <h2 style="margin:0;border:none;padding:0;">⚔️ Status Atual</h2>
-        <button id="btn-atualizar-status" onclick="atualizarStatusManual()" style="
-            background:transparent;border:1px solid #333;color:#888;
-            padding:7px 12px;border-radius:5px;cursor:pointer;
-            font-size:12px;font-weight:bold;font-family:inherit;
-            transition:0.2s;display:flex;align-items:center;gap:5px;
-        " title="Recarrega os valores do index.html (use se acabou de mudar atributos lá)">
-            <span id="icone-atualizar">↻</span> Atualizar Status
-        </button>
-    </div>
+    <h2>⚔️ Status Atual</h2>
     <div class="status-panel">
         <div class="status-pill">
             <span class="s-label">❤️ VIDA</span>
@@ -515,35 +505,12 @@ async function carregarStatus() {
     STATUS.mana.atual     = parseFloat(d.manaAtual     ?? d.mana_atual     ?? 0);
     STATUS.sanidade.atual = parseFloat(d.sanAtual      ?? d.sanidade_atual ?? 0);
 
-    // Bases vindas do index.html
-    const defBase = parseInt(d.defBase ?? 0);
-    const intBase = parseInt(d.intBase ?? 0);
+    // bases já inclui os bônus manuais do campo de texto (ex: +1 manual em Defesa)
+    const bases = montarBasesComBonus(d);
+    const defBase = bases.defesa;
+    const intBase = bases.inteligencia;
 
-    // Inclui buffs dos talentos ativos no cálculo de vida/mana máximas
-    const bases = {
-        forca: d.forcaBase || 0, velocidade: d.velBase || 0,
-        inteligencia: intBase, defesa: defBase,
-        pontaria: d.pontBase || 0, carisma: d.carBase || 0,
-        furtividade: d.furtBase || 0
-    };
-    // Passa os dados já carregados para evitar uma 2ª requisição redundante
     const buffs = await calcularBuffsTotais(bases, d);
-
-    // Buffs do campo "Habilidades Ativas" salvo no status
-    const habilidades = d.habilidades || '';
-    if (habilidades.trim()) {
-        const statusLocalHab = {
-            manaMax: (intBase * 10) || 10,
-            vidaMax: 50 + (defBase * 50) || 100,
-            nivel: parseInt(d.nivel || 0),
-            ...bases
-        };
-        const dinHab = parsearBuffsDinamicos(habilidades, { bases, statusLocal: statusLocalHab });
-        Object.keys(buffs).forEach(key => {
-            if (dinHab[key]) buffs[key] = (buffs[key] || 0) + dinHab[key];
-        });
-    }
-
     const defTotal = defBase + (buffs.defesa || 0);
     const intTotal = intBase + (buffs.inteligencia || 0);
 
@@ -631,26 +598,61 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
 // ════════════════════════════════════════════════════════════
 
 
-async function calcularBuffsTotais(bases, dadosStatus = null) {
+
+// ── Calcula bônus manual do campo de texto (igual ao java.js) ─────────
+// Suporta: número fixo (+5, -3, 5) e percentual (+10%, -5%)
+function calcularBonusManual(base, texto) {
+    if (!texto || texto === '0') return 0;
+    const t = String(texto).trim();
+    if (t.includes('%')) {
+        const pct = parseFloat(t.replace('%', ''));
+        return isNaN(pct) ? 0 : Math.round((pct / 100) * base);
+    }
+    const n = parseInt(t);
+    return isNaN(n) ? 0 : n;
+}
+
+// ── Monta o objeto "bases" incluindo bônus manuais do index.html ──────
+// Retorna atributos já somados: base + bônus manual do campo de texto
+function montarBasesComBonus(d) {
+    if (!d) return { forca:0, velocidade:0, inteligencia:0, defesa:0, pontaria:0, carisma:0, furtividade:0 };
+    const forca        = parseInt(d.forcaBase || 0);
+    const velocidade   = parseInt(d.velBase   || 0);
+    const inteligencia = parseInt(d.intBase   || 0);
+    const defesa       = parseInt(d.defBase   || 0);
+    const pontaria     = parseInt(d.pontBase  || 0);
+    const carisma      = parseInt(d.carBase   || 0);
+    const furtividade  = parseInt(d.furtBase  || 0);
+    return {
+        forca:        forca        + calcularBonusManual(forca,        d.forcaBonus || '0'),
+        velocidade:   velocidade   + calcularBonusManual(velocidade,   d.velBonus   || '0'),
+        inteligencia: inteligencia + calcularBonusManual(inteligencia, d.intBonus   || '0'),
+        defesa:       defesa       + calcularBonusManual(defesa,       d.defBonus   || '0'),
+        pontaria:     pontaria     + calcularBonusManual(pontaria,     d.pontBonus  || '0'),
+        carisma:      carisma      + calcularBonusManual(carisma,      d.carBonus   || '0'),
+        furtividade:  furtividade  + calcularBonusManual(furtividade,  d.furtBonus  || '0'),
+    };
+}
+
+async function calcularBuffsTotais(bases) {
     // Inclui atributos E status (vidaMax, manaMax, sanidadeMax) nos totais
     const totais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
     ATRIBUTOS.forEach(a => totais[a.key] = 0);
 
-    // Usa dados já carregados se disponíveis (evita double-fetch)
+    // Busca dados de status para buffs dinâmicos (nível, mana max, etc.)
     let statusLocal = {};
     try {
-        let d = dadosStatus;
-        if (!d) {
-            d = await carregarStatusNuvem();
-            if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+        let d = await carregarStatusNuvem();
+        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+        if (d) {
+            const basesLocal = montarBasesComBonus(d);
+            statusLocal = {
+                manaMax: (basesLocal.inteligencia * 10) || 10,
+                vidaMax: 50 + (basesLocal.defesa * 50) || 100,
+                nivel:   parseInt(d.nivel || 0),
+                ...basesLocal
+            };
         }
-        if (d) statusLocal = {
-            manaMax:      (parseInt(d.intBase || 0) * 10) || 10,
-            vidaMax:      50 + (parseInt(d.defBase || 0) * 50) || 100,
-            nivel:        parseInt(d.nivel || 0),
-            // inclui atributos base para buffs condicionais por atributo
-            ...bases
-        };
     } catch(e) {}
 
     try {
@@ -686,21 +688,15 @@ async function calcularBuffsTotais(bases, dadosStatus = null) {
 async function renderizarAtributos() {
     let bases = {};
     let statusLocal = {};
-    let dadosStatus = null;
     try {
         let d = await carregarStatusNuvem();
         if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        dadosStatus = d;
         if (d) {
-            bases = {
-                forca: d.forcaBase || 0, velocidade: d.velBase || 0,
-                inteligencia: d.intBase || 0, defesa: d.defBase || 0,
-                pontaria: d.pontBase || 0, carisma: d.carBase || 0,
-                furtividade: d.furtBase || 0
-            };
+            // bases inclui bônus manuais do campo de texto
+            bases = montarBasesComBonus(d);
             statusLocal = {
-                manaMax: (parseInt(d.intBase || 0) * 10) || 10,
-                vidaMax: 50 + (parseInt(d.defBase || 0) * 50) || 100,
+                manaMax: (bases.inteligencia * 10) || 10,
+                vidaMax: 50 + (bases.defesa * 50) || 100,
                 nivel:   parseInt(d.nivel || 0),
                 ...bases
             };
@@ -711,8 +707,8 @@ async function renderizarAtributos() {
     const buffsFixos = {};
     ATRIBUTOS.forEach(a => buffsFixos[a.key] = 0);
 
-    // Buffs dinâmicos: descrição dos talentos + habilidades-ativas salvas
-    const buffsDin = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
+    // Buffs dinâmicos da descrição dos talentos ativos
+    const buffsDin = {};
     ATRIBUTOS.forEach(a => buffsDin[a.key] = 0);
 
     document.querySelectorAll('.talento-card').forEach(card => {
@@ -740,20 +736,9 @@ async function renderizarAtributos() {
         });
     });
 
-    // Habilidades Ativas do campo da aba Status
-    const habilidades = dadosStatus?.habilidades || '';
-    if (habilidades.trim()) {
-        const dinHab = parsearBuffsDinamicos(habilidades, { bases, statusLocal });
-        Object.keys(buffsDin).forEach(key => {
-            if (dinHab[key]) buffsDin[key] += dinHab[key];
-        });
-    }
-
     const container = document.getElementById('attr-resumo');
     if (!container) return;
-
-    // Chips de atributos
-    const chipsAtributos = ATRIBUTOS.map(a => {
+    container.innerHTML = ATRIBUTOS.map(a => {
         const base     = parseInt(bases[a.key] ?? 0);
         const fixo     = buffsFixos[a.key] || 0;
         const din      = buffsDin[a.key]   || 0;
@@ -778,40 +763,6 @@ async function renderizarAtributos() {
             <div class="a-buff">${buffHtml}</div>
         </div>`;
     }).join('');
-
-    // MELHORIA: chips de status máximo (vida/mana/sanidade) derivados dos buffs
-    const defBase2 = parseInt(bases.defesa || 0);
-    const intBase2 = parseInt(bases.inteligencia || 0);
-    const defTotalChip = defBase2 + (buffsFixos.defesa || 0) + (buffsDin.defesa || 0);
-    const intTotalChip = intBase2 + (buffsFixos.inteligencia || 0) + (buffsDin.inteligencia || 0);
-    const vidaMaxCalc = 50 + (defTotalChip * 50) + (buffsDin.vidaMax || 0);
-    const manaMaxCalc = (intTotalChip * 10) + (buffsDin.manaMax || 0);
-    const sanMaxCalc  = 100 + (buffsDin.sanidadeMax || 0);
-
-    const temBonusVida = (buffsDin.vidaMax || 0) !== 0;
-    const temBonusMana = (buffsDin.manaMax || 0) !== 0;
-
-    const chipsStatus = `
-        <div class="attr-chip" style="border-color:rgba(224,123,57,0.3)">
-            <div class="a-nome">❤️ Vida Máx</div>
-            <div class="a-val" style="color:#e07b39;font-size:16px">${vidaMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">def×50+50</div>
-            <div class="a-buff">${temBonusVida ? `<span style="color:#00bfff;font-size:10px">+${buffsDin.vidaMax} desc</span>` : '<span style="color:#555;font-size:10px">—</span>'}</div>
-        </div>
-        <div class="attr-chip" style="border-color:rgba(0,191,255,0.3)">
-            <div class="a-nome">💧 Mana Máx</div>
-            <div class="a-val" style="color:#00bfff;font-size:16px">${manaMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">int×10</div>
-            <div class="a-buff">${temBonusMana ? `<span style="color:#00bfff;font-size:10px">+${buffsDin.manaMax} desc</span>` : '<span style="color:#555;font-size:10px">—</span>'}</div>
-        </div>
-        <div class="attr-chip" style="border-color:rgba(176,196,222,0.3)">
-            <div class="a-nome">🧠 San Máx</div>
-            <div class="a-val" style="color:#b0c4de;font-size:16px">${sanMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">base 100</div>
-            <div class="a-buff"><span style="color:#555;font-size:10px">—</span></div>
-        </div>`;
-
-    container.innerHTML = chipsAtributos + chipsStatus;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -905,7 +856,7 @@ function adicionarTalento(dados = {}) {
         </div>
 
         <div class="talento-body">
-            <textarea class="talento-desc" placeholder="Descreva o efeito, condições de uso, custo, narrativa..." oninput="atualizarBuffs()">${dados.desc || ''}</textarea>
+            <textarea class="talento-desc" placeholder="Descreva o efeito, condições de uso, custo, narrativa..." oninput="salvarTalentos()">${dados.desc || ''}</textarea>
             <div class="buff-panel">
                 <div class="buff-panel-title">📊 Buff nos Atributos</div>
                 ${buffLinhas}
@@ -953,24 +904,7 @@ function removerTalento(id) {
     setTimeout(() => { card.remove(); atualizarBuffs(); atualizarTagsRaca(); atualizarTagsClasse(); }, 200);
 }
 
-// Debounce para recalcularStatusComToast — evita múltiplas chamadas ao Supabase
-const _recalcularDebounced = _debounce(recalcularStatusComToast, 400);
-
-function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); _recalcularDebounced(); }
-
-// MELHORIA: botão manual de atualização — recarrega da rede e atualiza tudo
-async function atualizarStatusManual() {
-    const btn  = document.getElementById('btn-atualizar-status');
-    const icon = document.getElementById('icone-atualizar');
-    if (btn) { btn.disabled = true; if (icon) icon.textContent = '⏳'; }
-    try {
-        await renderizarAtributos();
-        await carregarStatus();
-    } finally {
-        if (btn) { btn.disabled = false; if (icon) icon.textContent = '↻'; }
-        mostrarToast('✅ Status atualizado!');
-    }
-}
+function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); recalcularStatusComToast(); }
 
 // Recalcula vida/mana máx com os buffs actuais dos cards
 // e exibe o toast se houver mudança — sem recarregar da rede.
@@ -982,15 +916,11 @@ async function recalcularStatusComToast() {
     } catch(e) {}
     if (!d) return;
 
-    const defBase = parseInt(d.defBase ?? 0);
-    const intBase = parseInt(d.intBase ?? 0);
-    const nivel   = parseInt(d.nivel   ?? 0);
-    const bases   = {
-        forca: d.forcaBase || 0, velocidade: d.velBase || 0,
-        inteligencia: intBase,   defesa: defBase,
-        pontaria: d.pontBase || 0, carisma: d.carBase || 0,
-        furtividade: d.furtBase || 0
-    };
+    const nivel   = parseInt(d.nivel ?? 0);
+    // bases inclui bônus manuais do campo de texto (ex: +1 manual em Defesa)
+    const bases   = montarBasesComBonus(d);
+    const defBase = bases.defesa;
+    const intBase = bases.inteligencia;
 
     // Calcula buffs diretamente dos cards visíveis (sem nova chamada à rede)
     const buffsLocais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
@@ -1000,7 +930,7 @@ async function recalcularStatusComToast() {
         manaMax: (intBase * 10) || 10,
         vidaMax: 50 + (defBase * 50) || 100,
         nivel,
-        ...bases
+        ...bases  // já inclui bônus manuais via montarBasesComBonus
     };
 
     document.querySelectorAll('.talento-card').forEach(card => {
@@ -1029,15 +959,6 @@ async function recalcularStatusComToast() {
             if (dinamicos[key]) buffsLocais[key] += dinamicos[key];
         });
     });
-
-    // Habilidades Ativas do campo da aba Status
-    const habilidades = d.habilidades || '';
-    if (habilidades.trim()) {
-        const dinHab = parsearBuffsDinamicos(habilidades, { bases, statusLocal });
-        Object.keys(buffsLocais).forEach(key => {
-            if (dinHab[key]) buffsLocais[key] += dinHab[key];
-        });
-    }
 
     const defTotal = defBase + (buffsLocais.defesa || 0);
     const intTotal = intBase + (buffsLocais.inteligencia || 0);
