@@ -240,6 +240,17 @@ async function lerBuffsDinamicosTalentos(bases) {
                 if (din[key]) buffs[key] += din[key];
             });
         });
+
+        // ── Habilidades Ativas (campo da aba Status) ─────────
+        // Trata o textarea "Efeitos de Habilidades Ativos" como
+        // uma fonte extra de buffs dinâmicos, sempre ativa.
+        const habilidades = document.getElementById('habilidades-ativas')?.value || '';
+        if (habilidades.trim()) {
+            const dinHab = parsearBuffsDinamicos(habilidades, { bases, statusLocal });
+            Object.keys(buffs).forEach(key => {
+                if (dinHab[key]) buffs[key] += dinHab[key];
+            });
+        }
     } catch(e) { console.warn('lerBuffsDinamicosTalentos:', e); }
     return buffs;
 }
