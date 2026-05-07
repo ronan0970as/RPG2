@@ -92,7 +92,12 @@ function resolverStatusDestino(txt) {
     if (!t) return null;
     for (const [key, aliases] of Object.entries(STATUS_DEST_ALIAS)) {
         const sorted = [...aliases].sort((a, b) => b.length - a.length);
-        if (sorted.some(a => t.includes(a))) return key;
+        if (sorted.some(a => {
+            // Word boundary: alias deve ser palavra isolada ou estar no início/fim
+            // Evita "vida" dentro de "furtividade", "sanidade" dentro de "velocidade" etc.
+            const re = new RegExp('(?:^|\\s)' + a.replace(/\s+/g,'\\s+') + '(?:\\s|$)');
+            return re.test(t) || t === a;
+        })) return key;
     }
     return null;
 }
