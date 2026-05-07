@@ -136,6 +136,22 @@ function construirStatusBase(bases, nivel, sanidade) {
     sanidade = sanidade || 0;
     const def = bases.defesa       || 0;
     const int = bases.inteligencia || 0;
+
+    const vidaMaxCalc = 50 + (def * 50);
+    const manaMaxCalc = int * 10;
+
+    // Le valor ATUAL do DOM para condicionais "a cada X de vida/mana"
+    // Permite que buffs reajam conforme vida/mana atual do personagem muda
+    const vidaAtualDOM = parseInt(typeof document !== 'undefined' && document.getElementById && document.getElementById('vida-atual') ? document.getElementById('vida-atual').value : '0') || 0;
+    const manaAtualDOM = parseInt(typeof document !== 'undefined' && document.getElementById && document.getElementById('mana-atual') ? document.getElementById('mana-atual').value : '0') || 0;
+
+    // Em talentos.html os valores ficam em STATUS
+    const vidaStatusAtual = (typeof STATUS !== 'undefined' && STATUS.vida) ? (STATUS.vida.atual || 0) : 0;
+    const manaStatusAtual = (typeof STATUS !== 'undefined' && STATUS.mana) ? (STATUS.mana.atual || 0) : 0;
+
+    const vidaFonte = vidaAtualDOM || vidaStatusAtual || vidaMaxCalc;
+    const manaFonte = manaAtualDOM || manaStatusAtual || manaMaxCalc;
+
     return {
         nivel,
         sanidade,
@@ -146,12 +162,13 @@ function construirStatusBase(bases, nivel, sanidade) {
         pontaria:     bases.pontaria     || 0,
         carisma:      bases.carisma      || 0,
         furtividade:  bases.furtividade  || 0,
-        // vida e mana calculadas APENAS das bases — sem buffs de talentos
-        vidaMax:  50 + (def * 50),
-        manaMax:  int * 10,
+        // maximos fixos das bases - sem buffs de talentos (evita loop)
+        vidaMax:     vidaMaxCalc,
+        manaMax:     manaMaxCalc,
         sanidadeMax: 100,
-        vida: 50 + (def * 50),
-        mana: int * 10,
+        // atuais: reagem conforme o personagem perde/ganha vida e mana
+        vida: vidaFonte,
+        mana: manaFonte,
     };
 }
 

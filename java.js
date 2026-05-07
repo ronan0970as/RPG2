@@ -405,6 +405,8 @@ function modificarStatus(tipo) {
 
     atualEl.value = Math.min(Math.max(Math.round(atual), 0), maxVal);
     modEl.value   = '';
+    // Recalcula buffs dos talentos com novo valor de vida/mana atual
+    calcularStatus();
 }
 
 // ── Card de foto do personagem ────────────────────────────

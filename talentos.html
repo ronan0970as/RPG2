@@ -501,33 +501,27 @@ async function carregarStatus() {
     let d = await carregarStatusNuvem();
     if (!d) { try { d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}'); } catch(e) {} }
     if (!d) return;
+
     STATUS.vida.atual     = parseFloat(d.vidaAtual     ?? d.vida_atual     ?? 0);
     STATUS.mana.atual     = parseFloat(d.manaAtual     ?? d.mana_atual     ?? 0);
     STATUS.sanidade.atual = parseFloat(d.sanAtual      ?? d.sanidade_atual ?? 0);
 
-    // bases já inclui os bônus manuais do campo de texto (ex: +1 manual em Defesa)
     const bases = montarBasesComBonus(d);
-    const defBase = bases.defesa;
-    const intBase = bases.inteligencia;
+    const nivel  = parseInt(d.nivel || 0);
+    const sanidade = STATUS.sanidade.atual;
 
-    const buffs = await calcularBuffsTotais(bases, d);
-    const defTotal = defBase + (buffs.defesa || 0);
-    const intTotal = intBase + (buffs.inteligencia || 0);
-
-    // Base + buffs de atributo + buffs diretos em vidaMax/manaMax da descrição
-    const novaVidaMax = (50 + (defTotal * 50) + (buffs.vidaMax || 0)) || 100;
-    const novaManaMax = ((intTotal * 10) + (buffs.manaMax || 0)) || 10;
+    const buffs = await calcularBuffsTotais(bases);
+    const sf    = construirStatusAtual(bases, buffs, nivel, sanidade);
 
     const vidaAnterior = STATUS.vida.max;
     const manaAnterior = STATUS.mana.max;
 
-    STATUS.vida.max     = novaVidaMax;
-    STATUS.mana.max     = novaManaMax;
-    STATUS.sanidade.max = 100;
+    STATUS.vida.max     = sf.vidaMax  || 100;
+    STATUS.mana.max     = sf.manaMax  || 10;
+    STATUS.sanidade.max = sf.sanidadeMax || 100;
 
-    // Notifica mudanças em tempo real (só após carga inicial)
-    notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
-    notificarMudancaStatus('mana', manaAnterior, novaManaMax);
+    notificarMudancaStatus('vida', vidaAnterior, STATUS.vida.max);
+    notificarMudancaStatus('mana', manaAnterior, STATUS.mana.max);
 
     renderizarStatus();
 }
@@ -590,6 +584,9 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
     renderizarStatus();
     salvarStatus(); // agora async — persiste na nuvem
     if (fbEl) setTimeout(() => { fbEl.textContent = ''; }, 2500);
+    // Recalcula buffs dos talentos com o novo valor de vida/mana atual
+    renderizarAtributos();
+    recalcularStatusComToast();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -613,24 +610,38 @@ function calcularBonusManual(base, texto) {
 }
 
 // ── Monta o objeto "bases" incluindo bônus manuais do index.html ──────
-// Retorna atributos já somados: base + bônus manual do campo de texto
+// Retorna atributos já somados: base + bônus manual
+// Expõe também _raw (só base) e _bonus (só o bônus manual)
 function montarBasesComBonus(d) {
-    if (!d) return { forca:0, velocidade:0, inteligencia:0, defesa:0, pontaria:0, carisma:0, furtividade:0 };
-    const forca        = parseInt(d.forcaBase || 0);
-    const velocidade   = parseInt(d.velBase   || 0);
-    const inteligencia = parseInt(d.intBase   || 0);
-    const defesa       = parseInt(d.defBase   || 0);
-    const pontaria     = parseInt(d.pontBase  || 0);
-    const carisma      = parseInt(d.carBase   || 0);
-    const furtividade  = parseInt(d.furtBase  || 0);
+    if (!d) return { forca:0, velocidade:0, inteligencia:0, defesa:0, pontaria:0, carisma:0, furtividade:0, _raw:{}, _bonus:{} };
+    const raw = {
+        forca:        parseInt(d.forcaBase || 0),
+        velocidade:   parseInt(d.velBase   || 0),
+        inteligencia: parseInt(d.intBase   || 0),
+        defesa:       parseInt(d.defBase   || 0),
+        pontaria:     parseInt(d.pontBase  || 0),
+        carisma:      parseInt(d.carBase   || 0),
+        furtividade:  parseInt(d.furtBase  || 0),
+    };
+    const bonus = {
+        forca:        calcularBonusManual(raw.forca,        d.forcaBonus || '0'),
+        velocidade:   calcularBonusManual(raw.velocidade,   d.velBonus   || '0'),
+        inteligencia: calcularBonusManual(raw.inteligencia, d.intBonus   || '0'),
+        defesa:       calcularBonusManual(raw.defesa,       d.defBonus   || '0'),
+        pontaria:     calcularBonusManual(raw.pontaria,     d.pontBonus  || '0'),
+        carisma:      calcularBonusManual(raw.carisma,      d.carBonus   || '0'),
+        furtividade:  calcularBonusManual(raw.furtividade,  d.furtBonus  || '0'),
+    };
     return {
-        forca:        forca        + calcularBonusManual(forca,        d.forcaBonus || '0'),
-        velocidade:   velocidade   + calcularBonusManual(velocidade,   d.velBonus   || '0'),
-        inteligencia: inteligencia + calcularBonusManual(inteligencia, d.intBonus   || '0'),
-        defesa:       defesa       + calcularBonusManual(defesa,       d.defBonus   || '0'),
-        pontaria:     pontaria     + calcularBonusManual(pontaria,     d.pontBonus  || '0'),
-        carisma:      carisma      + calcularBonusManual(carisma,      d.carBonus   || '0'),
-        furtividade:  furtividade  + calcularBonusManual(furtividade,  d.furtBonus  || '0'),
+        _raw:   raw,
+        _bonus: bonus,
+        forca:        raw.forca        + bonus.forca,
+        velocidade:   raw.velocidade   + bonus.velocidade,
+        inteligencia: raw.inteligencia + bonus.inteligencia,
+        defesa:       raw.defesa       + bonus.defesa,
+        pontaria:     raw.pontaria     + bonus.pontaria,
+        carisma:      raw.carisma      + bonus.carisma,
+        furtividade:  raw.furtividade  + bonus.furtividade,
     };
 }
 
@@ -676,24 +687,31 @@ async function renderizarAtributos() {
 
     // Multi-pass: resolve todas as dependências cruzadas
     const totais = acumularBuffsDeTalentos(talentosUI, bases, { nivel, sanidade });
-    const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
 
     const container = document.getElementById('attr-resumo');
     if (!container) return;
+
+    const raw   = bases._raw   || bases;
+    const bonus = bases._bonus || {};
+
     container.innerHTML = ATRIBUTOS.map(a => {
-        const base  = bases[a.key] || 0;
-        const buff  = totais[a.key] || 0;
-        const total = base + buff;
+        const baseRaw   = raw[a.key]   || 0;
+        const baseBon   = bonus[a.key] || 0;
+        const talento   = totais[a.key]|| 0;
+        const total     = baseRaw + baseBon + talento;
 
-        let buffHtml = buff !== 0
-            ? `<span style="color:${buff > 0 ? '#4CAF50' : '#e74c3c'};font-size:10px">${buff > 0 ? '+' : ''}${buff} talento</span>`
-            : '<span style="color:#555;font-size:10px">—</span>';
+        // Linha de detalhe: mostra cada parcela que não seja zero
+        const partes = [];
+        if (baseBon !== 0) partes.push(`<span style="color:#c8aa6e">${baseBon > 0 ? '+' : ''}${baseBon} bônus</span>`);
+        if (talento !== 0) partes.push(`<span style="color:#4CAF50">${talento > 0 ? '+' : ''}${talento} talento</span>`);
+        const detalhe = partes.length ? partes.join(' ') : '<span style="color:#555">—</span>';
 
+        const cor = total > baseRaw ? '#4CAF50' : total < baseRaw ? '#e74c3c' : '#4CAF50';
         return `<div class="attr-chip">
             <div class="a-nome">${a.label}</div>
-            <div class="a-val" style="color:${buff > 0 ? '#4CAF50' : buff < 0 ? '#e74c3c' : '#4CAF50'}">${total}</div>
-            <div class="a-base" style="color:#5a82b5">base ${base}</div>
-            <div class="a-buff">${buffHtml}</div>
+            <div class="a-val" style="color:${cor}">${total}</div>
+            <div class="a-base" style="color:#5a82b5">base ${baseRaw}</div>
+            <div class="a-buff">${detalhe}</div>
         </div>`;
     }).join('');
 }

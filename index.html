@@ -155,21 +155,21 @@
             <div class="section">
                 <div class="status-bar">
                     <label>❤️ Vida (HP):</label>
-                    <input type="number" id="vida-atual" value="0" style="font-weight:bold;color:#ff8c00;" inputmode="numeric">
+                    <input type="number" id="vida-atual" value="0" style="font-weight:bold;color:#ff8c00;" inputmode="numeric" oninput="calcularStatus()">
                     <span class="highlight"> / <span id="vida-maxima">100</span></span>
                     <input type="text" id="vida-mod" class="mod-input" placeholder="+20, -10%">
                     <button class="calc-btn" onclick="modificarStatus('vida')">✓</button>
                 </div>
                 <div class="status-bar">
                     <label>💧 Mana (MP):</label>
-                    <input type="number" id="mana-atual" value="0" style="font-weight:bold;color:#00bfff;" inputmode="numeric">
+                    <input type="number" id="mana-atual" value="0" style="font-weight:bold;color:#00bfff;" inputmode="numeric" oninput="calcularStatus()">
                     <span class="highlight"> / <span id="mana-maxima">10</span></span>
                     <input type="text" id="mana-mod" class="mod-input" placeholder="+/-/%">
                     <button class="calc-btn" onclick="modificarStatus('mana')">✓</button>
                 </div>
                 <div class="status-bar">
                     <label>🧠 Sanidade:</label>
-                    <input type="number" id="sanidade-atual" value="0" style="font-weight:bold;color:#b0c4de;" inputmode="numeric">
+                    <input type="number" id="sanidade-atual" value="0" style="font-weight:bold;color:#b0c4de;" inputmode="numeric" oninput="calcularStatus()">
                     <span class="highlight"> / 100</span>
                     <input type="text" id="sanidade-mod" class="mod-input" placeholder="+/-/%">
                     <button class="calc-btn" onclick="modificarStatus('sanidade')">✓</button>
