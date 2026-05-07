@@ -222,14 +222,15 @@ async function lerBuffsDinamicosTalentos(bases) {
         let talentos = await carregarDaNuvem('talentos');
         if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
 
-        // statusLocal com os valores atuais do DOM para os buffs condicionais
+        // statusLocal começa com os valores base e é atualizado progressivamente
         const nivel = parseInt(document.getElementById('nivel')?.value) || 0;
-        const manaMaxAtual = parseInt(document.getElementById('mana-maxima')?.textContent) || 0;
-        const vidaMaxAtual = parseInt(document.getElementById('vida-maxima')?.textContent) || 0;
         const sanidadeAtual = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
 
-        const statusLocal = {
-            nivel, manaMax: manaMaxAtual, vidaMax: vidaMaxAtual, sanidade: sanidadeAtual,
+        let statusLocal = {
+            nivel,
+            sanidade: sanidadeAtual,
+            manaMax: (bases.inteligencia * 10) || 10,
+            vidaMax: 50 + (bases.defesa * 50) || 100,
             ...bases
         };
 
@@ -239,6 +240,24 @@ async function lerBuffsDinamicosTalentos(bases) {
             Object.keys(buffs).forEach(key => {
                 if (din[key]) buffs[key] += din[key];
             });
+
+            // Atualiza statusLocal com os buffs acumulados até aqui
+            const defAcum = (bases.defesa || 0) + (buffs.defesa || 0);
+            const intAcum = (bases.inteligencia || 0) + (buffs.inteligencia || 0);
+            statusLocal = {
+                ...bases,
+                nivel,
+                sanidade: sanidadeAtual,
+                forca:        (bases.forca || 0)        + (buffs.forca || 0),
+                velocidade:   (bases.velocidade || 0)   + (buffs.velocidade || 0),
+                inteligencia: intAcum,
+                defesa:       defAcum,
+                pontaria:     (bases.pontaria || 0)     + (buffs.pontaria || 0),
+                carisma:      (bases.carisma || 0)      + (buffs.carisma || 0),
+                furtividade:  (bases.furtividade || 0)  + (buffs.furtividade || 0),
+                vidaMax: 50 + (defAcum * 50) + (buffs.vidaMax || 0),
+                manaMax: (intAcum * 10) + (buffs.manaMax || 0),
+            };
         });
 
         // ── Habilidades Ativas (campo da aba Status) ─────────
