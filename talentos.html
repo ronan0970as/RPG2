@@ -634,176 +634,64 @@ function montarBasesComBonus(d) {
     };
 }
 
+// ─────────────────────────────────────────────────────────
+//  _lerStatusBase() — carrega bases+nivel+sanidade da nuvem/cache
+// ─────────────────────────────────────────────────────────
+async function _lerStatusBase() {
+    let d = await carregarStatusNuvem();
+    if (!d) { try { d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}'); } catch(e) {} }
+    if (!d) return { bases: {}, nivel: 0, sanidade: 0 };
+    return {
+        bases:    montarBasesComBonus(d),
+        nivel:    parseInt(d.nivel   || 0),
+        sanidade: parseFloat(d.sanAtual || 0),
+    };
+}
+
+// ─────────────────────────────────────────────────────────
+//  calcularBuffsTotais — agora usa acumularBuffsDeTalentos
+//  (mantido para compatibilidade com carregarStatus)
+// ─────────────────────────────────────────────────────────
 async function calcularBuffsTotais(bases) {
-    // Inclui atributos E status (vidaMax, manaMax, sanidadeMax) nos totais
-    const totais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
-    ATRIBUTOS.forEach(a => totais[a.key] = 0);
-
-    // Busca dados de status para buffs dinâmicos (nível, mana max, etc.)
-    let statusLocal = {};
-    let nivel = 0;
+    const { nivel, sanidade } = await _lerStatusBase();
+    let talentos = [];
     try {
-        let d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        if (d) {
-            const basesLocal = montarBasesComBonus(d);
-            nivel = parseInt(d.nivel || 0);
-            statusLocal = {
-                manaMax: (basesLocal.inteligencia * 10) || 10,
-                vidaMax: 50 + (basesLocal.defesa * 50) || 100,
-                nivel,
-                ...basesLocal
-            };
-        }
+        talentos = await carregarTalentosNuvem()
+            || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
     } catch(e) {}
-
-    try {
-        let talentos = await carregarTalentosNuvem();
-        if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-        talentos.forEach(t => {
-            if (!t.ativo) return;
-
-            // ── Buffs fixos dos campos do painel ───────────────
-            ATRIBUTOS.forEach(a => {
-                const valStr = t.buffs?.[a.key] || '';
-                if (!valStr) return;
-                const baseVal = parseInt(bases[a.key] ?? 0);
-                if (valStr.includes('%')) {
-                    const pct = parseFloat(valStr.replace('%', ''));
-                    if (!isNaN(pct)) totais[a.key] += Math.round((pct / 100) * baseVal);
-                } else {
-                    const num = parseInt(valStr);
-                    if (!isNaN(num)) totais[a.key] += num;
-                }
-            });
-
-            // ── Buffs dinâmicos lidos da descrição ─────────────
-            // Usa statusLocal atualizado com buffs acumulados até aqui
-            const dinamicos = parsearBuffsDinamicos(t.desc, { bases, statusLocal });
-            Object.keys(totais).forEach(key => {
-                if (dinamicos[key]) totais[key] += dinamicos[key];
-            });
-
-            // ── Atualiza statusLocal com os totais acumulados ──
-            // Isso faz com que o próximo talento já enxergue os buffs anteriores
-            const defAcum = (bases.defesa || 0) + (totais.defesa || 0);
-            const intAcum = (bases.inteligencia || 0) + (totais.inteligencia || 0);
-            statusLocal = {
-                ...bases,
-                nivel,
-                // atributos acumulados (base + todos os buffs até agora)
-                forca:        (bases.forca || 0)        + (totais.forca || 0),
-                velocidade:   (bases.velocidade || 0)   + (totais.velocidade || 0),
-                inteligencia: intAcum,
-                defesa:       defAcum,
-                pontaria:     (bases.pontaria || 0)     + (totais.pontaria || 0),
-                carisma:      (bases.carisma || 0)      + (totais.carisma || 0),
-                furtividade:  (bases.furtividade || 0)  + (totais.furtividade || 0),
-                // status recalculados com os atributos acumulados + buffs diretos
-                vidaMax: 50 + (defAcum * 50) + (totais.vidaMax || 0),
-                manaMax: (intAcum * 10) + (totais.manaMax || 0),
-            };
-        });
-    } catch(e) {}
-    return totais;
+    return acumularBuffsDeTalentos(talentos, bases, { nivel, sanidade });
 }
 
 async function renderizarAtributos() {
-    let bases = {};
-    let nivel = 0;
-    let statusLocalInicial = {};
-    try {
-        let d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        if (d) {
-            // bases inclui bônus manuais do campo de texto
-            bases = montarBasesComBonus(d);
-            nivel = parseInt(d.nivel || 0);
-            statusLocalInicial = {
-                manaMax: (bases.inteligencia * 10) || 10,
-                vidaMax: 50 + (bases.defesa * 50) || 100,
-                nivel,
-                ...bases
-            };
-        }
-    } catch(e) {}
+    const { bases, nivel, sanidade } = await _lerStatusBase();
 
-    // Buffs fixos dos campos do painel
-    const buffsFixos = {};
-    ATRIBUTOS.forEach(a => buffsFixos[a.key] = 0);
-
-    // Buffs dinâmicos da descrição dos talentos ativos
-    const buffsDin = {};
-    ATRIBUTOS.forEach(a => buffsDin[a.key] = 0);
-
-    // statusLocal é atualizado progressivamente a cada talento processado
-    let statusLocal = { ...statusLocalInicial };
-
-    document.querySelectorAll('.talento-card').forEach(card => {
+    // Coleta talentos dos cards visíveis (estado atual da UI)
+    const talentosUI = Array.from(document.querySelectorAll('.talento-card')).map(card => {
         const id    = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        if (!ativo) return;
-
-        ATRIBUTOS.forEach(a => {
-            const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (!valStr) return;
-            const baseVal = parseInt(bases[a.key] ?? 0);
-            if (valStr.includes('%')) {
-                const pct = parseFloat(valStr.replace('%', ''));
-                if (!isNaN(pct)) buffsFixos[a.key] += Math.round((pct / 100) * baseVal);
-            } else {
-                const num = parseInt(valStr);
-                if (!isNaN(num)) buffsFixos[a.key] += num;
-            }
-        });
-
-        const desc = card.querySelector('.talento-desc')?.value || '';
-        const din  = parsearBuffsDinamicos(desc, { bases, statusLocal });
-        Object.keys(buffsDin).forEach(key => {
-            if (din[key]) buffsDin[key] += din[key];
-        });
-
-        // Atualiza statusLocal com buffs acumulados até aqui
-        const defAcum = (bases.defesa || 0) + (buffsFixos.defesa || 0) + (buffsDin.defesa || 0);
-        const intAcum = (bases.inteligencia || 0) + (buffsFixos.inteligencia || 0) + (buffsDin.inteligencia || 0);
-        statusLocal = {
-            ...bases,
-            nivel,
-            forca:        (bases.forca || 0)        + (buffsFixos.forca || 0)        + (buffsDin.forca || 0),
-            velocidade:   (bases.velocidade || 0)   + (buffsFixos.velocidade || 0)   + (buffsDin.velocidade || 0),
-            inteligencia: intAcum,
-            defesa:       defAcum,
-            pontaria:     (bases.pontaria || 0)     + (buffsFixos.pontaria || 0)     + (buffsDin.pontaria || 0),
-            carisma:      (bases.carisma || 0)      + (buffsFixos.carisma || 0)      + (buffsDin.carisma || 0),
-            furtividade:  (bases.furtividade || 0)  + (buffsFixos.furtividade || 0)  + (buffsDin.furtividade || 0),
-            vidaMax: 50 + (defAcum * 50) + (buffsDin.vidaMax || 0),
-            manaMax: (intAcum * 10) + (buffsDin.manaMax || 0),
-        };
+        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on') ?? false;
+        const buffs = {};
+        ATRIBUTOS.forEach(a => { buffs[a.key] = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || ''; });
+        return { ativo, buffs, desc: card.querySelector('.talento-desc')?.value || '' };
     });
+
+    // Multi-pass: resolve todas as dependências cruzadas
+    const totais = acumularBuffsDeTalentos(talentosUI, bases, { nivel, sanidade });
+    const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
 
     const container = document.getElementById('attr-resumo');
     if (!container) return;
     container.innerHTML = ATRIBUTOS.map(a => {
-        const base     = parseInt(bases[a.key] ?? 0);
-        const fixo     = buffsFixos[a.key] || 0;
-        const din      = buffsDin[a.key]   || 0;
-        const total    = base + fixo + din;
-        const buffTotal = fixo + din;
+        const base  = bases[a.key] || 0;
+        const buff  = totais[a.key] || 0;
+        const total = base + buff;
 
-        let buffHtml = '';
-        if (fixo !== 0 || din !== 0) {
-            const parts = [];
-            if (fixo !== 0) parts.push(`<span style="color:#4CAF50;font-size:10px">${fixo > 0 ? '+' : ''}${fixo} fix</span>`);
-            if (din  !== 0) parts.push(`<span style="color:#00bfff;font-size:10px">${din  > 0 ? '+' : ''}${din} desc</span>`);
-            buffHtml = parts.join(' ');
-        } else {
-            buffHtml = '<span style="color:#555;font-size:10px">—</span>';
-        }
+        let buffHtml = buff !== 0
+            ? `<span style="color:${buff > 0 ? '#4CAF50' : '#e74c3c'};font-size:10px">${buff > 0 ? '+' : ''}${buff} talento</span>`
+            : '<span style="color:#555;font-size:10px">—</span>';
 
-        const totalCor = buffTotal > 0 ? '#4CAF50' : buffTotal < 0 ? '#e74c3c' : '#4CAF50';
         return `<div class="attr-chip">
             <div class="a-nome">${a.label}</div>
-            <div class="a-val" style="color:${totalCor}">${total}</div>
+            <div class="a-val" style="color:${buff > 0 ? '#4CAF50' : buff < 0 ? '#e74c3c' : '#4CAF50'}">${total}</div>
             <div class="a-base" style="color:#5a82b5">base ${base}</div>
             <div class="a-buff">${buffHtml}</div>
         </div>`;
@@ -954,82 +842,23 @@ function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); recalcularS
 // Recalcula vida/mana máx com os buffs actuais dos cards
 // e exibe o toast se houver mudança — sem recarregar da rede.
 async function recalcularStatusComToast() {
-    let d = null;
-    try {
-        d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-    } catch(e) {}
-    if (!d) return;
+    const { bases, nivel, sanidade } = await _lerStatusBase();
 
-    const nivel   = parseInt(d.nivel ?? 0);
-    // bases inclui bônus manuais do campo de texto (ex: +1 manual em Defesa)
-    const bases   = montarBasesComBonus(d);
-    const defBase = bases.defesa;
-    const intBase = bases.inteligencia;
-
-    // Calcula buffs diretamente dos cards visíveis (sem nova chamada à rede)
-    const buffsLocais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
-    ATRIBUTOS.forEach(a => buffsLocais[a.key] = 0);
-
-    // statusLocal começa com os valores base e é atualizado a cada talento processado
-    let statusLocal = {
-        manaMax: (intBase * 10) || 10,
-        vidaMax: 50 + (defBase * 50) || 100,
-        nivel,
-        ...bases  // já inclui bônus manuais via montarBasesComBonus
-    };
-
-    document.querySelectorAll('.talento-card').forEach(card => {
+    // Coleta talentos dos cards visíveis (estado atual da UI, sem nova chamada à rede)
+    const talentosUI = Array.from(document.querySelectorAll('.talento-card')).map(card => {
         const id    = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        if (!ativo) return;
-
-        // Buffs fixos dos campos
-        ATRIBUTOS.forEach(a => {
-            const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (!valStr) return;
-            const baseVal = parseInt(bases[a.key] ?? 0);
-            if (valStr.includes('%')) {
-                const pct = parseFloat(valStr.replace('%', ''));
-                if (!isNaN(pct)) buffsLocais[a.key] += Math.round((pct / 100) * baseVal);
-            } else {
-                const num = parseInt(valStr);
-                if (!isNaN(num)) buffsLocais[a.key] += num;
-            }
-        });
-
-        // Buffs dinâmicos da descrição (inclui vidaMax/manaMax)
-        // Usa statusLocal atualizado com buffs acumulados até aqui
-        const desc = card.querySelector('.talento-desc')?.value || '';
-        const dinamicos = parsearBuffsDinamicos(desc, { bases, statusLocal });
-        Object.keys(buffsLocais).forEach(key => {
-            if (dinamicos[key]) buffsLocais[key] += dinamicos[key];
-        });
-
-        // ── Atualiza statusLocal com os totais acumulados até aqui ──
-        const defAcum = defBase + (buffsLocais.defesa || 0);
-        const intAcum = intBase + (buffsLocais.inteligencia || 0);
-        statusLocal = {
-            ...bases,
-            nivel,
-            forca:        (bases.forca || 0)        + (buffsLocais.forca || 0),
-            velocidade:   (bases.velocidade || 0)   + (buffsLocais.velocidade || 0),
-            inteligencia: intAcum,
-            defesa:       defAcum,
-            pontaria:     (bases.pontaria || 0)     + (buffsLocais.pontaria || 0),
-            carisma:      (bases.carisma || 0)      + (buffsLocais.carisma || 0),
-            furtividade:  (bases.furtividade || 0)  + (buffsLocais.furtividade || 0),
-            vidaMax: 50 + (defAcum * 50) + (buffsLocais.vidaMax || 0),
-            manaMax: (intAcum * 10) + (buffsLocais.manaMax || 0),
-        };
+        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on') ?? false;
+        const buffs = {};
+        ATRIBUTOS.forEach(a => { buffs[a.key] = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || ''; });
+        return { ativo, buffs, desc: card.querySelector('.talento-desc')?.value || '' };
     });
 
-    const defTotal = defBase + (buffsLocais.defesa || 0);
-    const intTotal = intBase + (buffsLocais.inteligencia || 0);
+    // Multi-pass: resolve todas as dependências cruzadas
+    const totais = acumularBuffsDeTalentos(talentosUI, bases, { nivel, sanidade });
+    const sf = construirStatusAtual(bases, totais, nivel, sanidade);
 
-    // Base + buffs de atributo + buffs diretos em vidaMax/manaMax da descrição
-    const novaVidaMax = (50 + (defTotal * 50) + (buffsLocais.vidaMax || 0)) || 100;
-    const novaManaMax = ((intTotal * 10) + (buffsLocais.manaMax || 0)) || 10;
+    const novaVidaMax = sf.vidaMax || 100;
+    const novaManaMax = sf.manaMax || 10;
 
     const vidaAnterior = STATUS.vida.max;
     const manaAnterior = STATUS.mana.max;
