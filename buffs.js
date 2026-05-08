@@ -1,35 +1,46 @@
 // ════════════════════════════════════════════════════════════
-//  buffs.js — Parser de Buffs Dinâmicos v5
+//  buffs.js — Parser de Buffs Dinâmicos v6
 //  Fonte única de verdade para java.js e talentos.html.
 //
-//  NOVIDADES v5:
-//  • Suporte completo a valores NEGATIVOS ( -x )
-//  • calcularTodosBuffs(): cálculo ITERATIVO — o resultado
-//    de cada talento alimenta o contexto do próximo, então
-//    "+1 Força a cada 50 de Mana" de um talento enxerga a
-//    Mana Máxima já aumentada por talentos anteriores.
+//  CORREÇÃO v6 — fim do loop infinito:
+//  ─ manaMax e vidaMax usados como FONTE de buff condicional
+//    são calculados APENAS a partir das bases fixas do personagem
+//    (base + bônus manual). Eles NÃO crescem com os buffs dos talentos.
+//  ─ Exemplo sem loop:
+//      T1: "+1 Defesa a cada 1 de Mana"  → usa manaBase = int*10
+//      T2: "+1 Inteligência a cada 1 de Vida" → usa vidaBase = 50+def*50
+//    Ambos calculam sobre os valores fixos das bases, não sobre si mesmos.
 //
-//  FORMATOS aceitos (todos suportam + e -):
+//  ATRIBUTOS como DESTINO: força, velocidade, inteligência,
+//    defesa, pontaria, carisma, furtividade
 //
-//  Simples      → ±N Força | ±N de Vida Máxima | (±N Mana Max)
-//  Condicional  → ±N Força a cada 50 Mana
-//                 ±10 Mana Máxima a cada 1 Inteligência
-//                 ±50 Vida Máxima a cada 1 Defesa
-//                 (±1 a cada 50 Mana)  ← todos os atributos
-//  Percentual   → ±10% Velocidade | ±5% vida máxima
-//  Por nível    → ±2 Defesa por nível | ±50 Vida Máx por nível
-//  Todos        → ±1 em todos | ±1 em tudo
+//  STATUS como DESTINO: vida máxima, mana máxima, sanidade máxima
 //
-//  RETORNO de parsearBuffsDinamicos():
-//    { forca, velocidade, inteligencia, defesa, pontaria,
-//      carisma, furtividade, vidaMax, manaMax, sanidadeMax }
+//  FONTES (a cada X de ...): mana, vida, sanidade, nível,
+//    e todos os atributos acima
+//
+//  FORMATOS suportados:
+//    +1 Força | +1 de Força | (+1 Força) | +1 em Força
+//    +1 em todos | +1 em tudo
+//    +50 vida máxima | +10 mana máxima
+//    +1 de Força a cada 50 de Mana
+//    +10% Velocidade | +10% de Força | +10% vida máxima
+//    +2 de Defesa por nível
 // ════════════════════════════════════════════════════════════
 
+// ── Normaliza: remove acentos + minúsculas ────────────────
 function _norm(txt) {
     return String(txt).toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+// ── Chaves de atributos ───────────────────────────────────
+const BUFF_ATTR_KEYS = [
+    'forca','velocidade','inteligencia','defesa',
+    'pontaria','carisma','furtividade'
+];
+
+// ── Aliases de atributos ──────────────────────────────────
 const BUFF_ALIAS = {
     forca:        ['forca','dano fisico','ataque fisico','dano','str'],
     velocidade:   ['velocidade','agilidade','spd'],
@@ -40,15 +51,17 @@ const BUFF_ALIAS = {
     furtividade:  ['furtividade','furtivo','stealth','sombra','furt']
 };
 
+// ── Status como DESTINO ───────────────────────────────────
 const STATUS_DEST_ALIAS = {
-    vidaMax:     ['vida maxima','vida max','hp maximo','hp max','vida total'],
-    manaMax:     ['mana maxima','mana max','mp maximo','mp max','mana total'],
-    sanidadeMax: ['sanidade maxima','sanidade max','san max']
+    vidaMax:     ['vida maxima','vida max','hp maximo','hp max','vida total','vida'],
+    manaMax:     ['mana maxima','mana max','mp maximo','mp max','mana total','mana'],
+    sanidadeMax: ['sanidade maxima','sanidade max','san max','sanidade']
 };
 
+// ── Fontes para "a cada X de FONTE" ──────────────────────
 const FONTE_ALIAS = {
-    mana:         ['mana maxima','mana max','mana','mp'],
-    vida:         ['vida maxima','vida max','vida','hp'],
+    mana:         ['mana','mp','mana maxima','mana max'],
+    vida:         ['vida','hp','vida maxima','vida max'],
     sanidade:     ['sanidade','san'],
     nivel:        ['nivel','level','lv','lvl'],
     forca:        ['forca','str'],
@@ -60,56 +73,264 @@ const FONTE_ALIAS = {
     furtividade:  ['furtividade','furtivo','stealth','furt']
 };
 
+// ── Resolve atributo → chave interna ─────────────────────
 function resolverAtributo(txt) {
-    if (!txt) return null;
-    const t = _norm(txt).replace(/[).,!:;]/g, '').trim();
+    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
+    if (!t) return null;
     for (const [key, aliases] of Object.entries(BUFF_ALIAS)) {
+        if (aliases.some(a => {
+            const re = new RegExp('(?:^|\\W)' + a + '(?:\\W|$)');
+            return re.test(t) || t.includes(a);
+        })) return key;
+    }
+    return null;
+}
+
+// ── Resolve status destino → chave interna ────────────────
+function resolverStatusDestino(txt) {
+    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
+    if (!t) return null;
+    for (const [key, aliases] of Object.entries(STATUS_DEST_ALIAS)) {
         const sorted = [...aliases].sort((a, b) => b.length - a.length);
         if (sorted.some(a => {
-            const re = new RegExp('(?:^|\\s)' + a.replace(/\s+/g, '\\s+') + '(?:\\s|$)');
+            // Word boundary: alias deve ser palavra isolada ou estar no início/fim
+            // Evita "vida" dentro de "furtividade", "sanidade" dentro de "velocidade" etc.
+            const re = new RegExp('(?:^|\\s)' + a.replace(/\s+/g,'\\s+') + '(?:\\s|$)');
             return re.test(t) || t === a;
         })) return key;
     }
     return null;
 }
 
-function resolverStatusDestino(txt) {
-    if (!txt) return null;
-    const t = _norm(txt).replace(/[).,!:;]/g, '').trim();
-    for (const [key, aliases] of Object.entries(STATUS_DEST_ALIAS)) {
-        const sorted = [...aliases].sort((a, b) => b.length - a.length);
-        if (sorted.some(a => t.includes(a))) return key;
-    }
-    return null;
-}
-
+// ── Resolve fonte → chave interna ────────────────────────
 function resolverFonte(txt) {
-    if (!txt) return null;
-    const t = _norm(txt).replace(/[).,!:;]/g, '').trim();
-    const entries = Object.entries(FONTE_ALIAS).sort((a, b) =>
-        Math.max(...b[1].map(x => x.length)) - Math.max(...a[1].map(x => x.length))
-    );
+    const t = _norm(txt).trim().replace(/[).,!:;]/g, '');
+    if (!t) return null;
+    const entries = Object.entries(FONTE_ALIAS).sort((a, b) => {
+        const maxA = Math.max(...a[1].map(x => x.length));
+        const maxB = Math.max(...b[1].map(x => x.length));
+        return maxB - maxA;
+    });
     for (const [key, aliases] of entries) {
         const sorted = [...aliases].sort((a, b) => b.length - a.length);
         if (sorted.some(a => {
-            const re = new RegExp('(?:^|\\s)' + a.replace(/\s+/g, '\\s+') + '(?:\\s|$)');
-            return re.test(t) || t === a || t.includes(a);
+            const re = new RegExp('(?:^|\\W)' + a.replace(/\s+/g, '\\s+') + '(?:\\W|$)');
+            return re.test(t) || t === a;
         })) return key;
     }
     return null;
 }
 
 // ─────────────────────────────────────────────────────────
+//  construirStatusBase(bases, nivel, sanidade)
+//
+//  Calcula o snapshot de STATUS usando SOMENTE as bases fixas
+//  do personagem (base + bônus manual dos campos de texto).
+//  NÃO inclui buffs de talentos.
+//
+//  Este é o valor que alimenta as fontes dos buffs condicionais
+//  (ex: "a cada 1 de Mana") — garantindo que não haja loop.
+// ─────────────────────────────────────────────────────────
+function construirStatusBase(bases, nivel, sanidade) {
+    nivel    = nivel    || 0;
+    sanidade = sanidade || 0;
+    const def = bases.defesa       || 0;
+    const int = bases.inteligencia || 0;
+
+    const vidaMaxCalc = 50 + (def * 50);
+    const manaMaxCalc = int * 10;
+
+    // Le valor ATUAL do DOM para condicionais "a cada X de vida/mana"
+    // Permite que buffs reajam conforme vida/mana atual do personagem muda
+    const vidaAtualDOM = parseInt(typeof document !== 'undefined' && document.getElementById && document.getElementById('vida-atual') ? document.getElementById('vida-atual').value : '0') || 0;
+    const manaAtualDOM = parseInt(typeof document !== 'undefined' && document.getElementById && document.getElementById('mana-atual') ? document.getElementById('mana-atual').value : '0') || 0;
+
+    // Em talentos.html os valores ficam em STATUS
+    const vidaStatusAtual = (typeof STATUS !== 'undefined' && STATUS.vida) ? (STATUS.vida.atual || 0) : 0;
+    const manaStatusAtual = (typeof STATUS !== 'undefined' && STATUS.mana) ? (STATUS.mana.atual || 0) : 0;
+
+    const vidaFonte = vidaAtualDOM || vidaStatusAtual || vidaMaxCalc;
+    const manaFonte = manaAtualDOM || manaStatusAtual || manaMaxCalc;
+
+    return {
+        nivel,
+        sanidade,
+        forca:        bases.forca        || 0,
+        velocidade:   bases.velocidade   || 0,
+        inteligencia: int,
+        defesa:       def,
+        pontaria:     bases.pontaria     || 0,
+        carisma:      bases.carisma      || 0,
+        furtividade:  bases.furtividade  || 0,
+        // maximos fixos das bases - sem buffs de talentos (evita loop)
+        vidaMax:     vidaMaxCalc,
+        manaMax:     manaMaxCalc,
+        sanidadeMax: 100,
+        // atuais: reagem conforme o personagem perde/ganha vida e mana
+        vida: vidaFonte,
+        mana: manaFonte,
+    };
+}
+
+// ─────────────────────────────────────────────────────────
+//  construirStatusAtual(bases, totais, nivel, sanidade)
+//
+//  Monta o snapshot completo para EXIBIÇÃO dos resultados finais.
+//  Inclui os buffs dos talentos nos atributos e nos status.
+//  NÃO é usado como fonte de condicionais — apenas para mostrar
+//  os valores totais ao jogador.
+// ─────────────────────────────────────────────────────────
+function construirStatusAtual(bases, totais, nivel, sanidade) {
+    nivel    = nivel    || 0;
+    sanidade = sanidade || 0;
+    const defTotal = (bases.defesa       || 0) + (totais.defesa       || 0);
+    const intTotal = (bases.inteligencia || 0) + (totais.inteligencia || 0);
+    const vidaMax  = 50 + (defTotal * 50) + (totais.vidaMax    || 0);
+    const manaMax  = (intTotal * 10)       + (totais.manaMax    || 0);
+    return {
+        nivel,
+        sanidade,
+        forca:        (bases.forca        || 0) + (totais.forca        || 0),
+        velocidade:   (bases.velocidade   || 0) + (totais.velocidade   || 0),
+        inteligencia: intTotal,
+        defesa:       defTotal,
+        pontaria:     (bases.pontaria     || 0) + (totais.pontaria     || 0),
+        carisma:      (bases.carisma      || 0) + (totais.carisma      || 0),
+        furtividade:  (bases.furtividade  || 0) + (totais.furtividade  || 0),
+        vidaMax,
+        manaMax,
+        sanidadeMax: 100 + (totais.sanidadeMax || 0),
+        vida: vidaMax,
+        mana: manaMax,
+    };
+}
+
+// ── Totais zerados ────────────────────────────────────────
+function _zeroTotais() {
+    return {
+        forca: 0, velocidade: 0, inteligencia: 0, defesa: 0,
+        pontaria: 0, carisma: 0, furtividade: 0,
+        vidaMax: 0, manaMax: 0, sanidadeMax: 0
+    };
+}
+
+// ── Compara convergência ──────────────────────────────────
+function _totaisIguais(a, b) {
+    return Object.keys(a).every(k => (a[k] || 0) === (b[k] || 0));
+}
+
+// ── Bonus fixo dos campos do painel ──────────────────────
+function _calcularBonusFixo(buffsObj, bases) {
+    const resultado = {};
+    if (!buffsObj) return resultado;
+    BUFF_ATTR_KEYS.forEach(key => {
+        const valStr = String(buffsObj[key] || '').trim();
+        if (!valStr) return;
+        const baseVal = bases[key] || 0;
+        if (valStr.includes('%')) {
+            const pct = parseFloat(valStr.replace('%', ''));
+            if (!isNaN(pct)) resultado[key] = Math.round((pct / 100) * baseVal);
+        } else {
+            const num = parseInt(valStr);
+            if (!isNaN(num)) resultado[key] = num;
+        }
+    });
+    return resultado;
+}
+
+// ─────────────────────────────────────────────────────────
+//  acumularBuffsDeTalentos(talentos, bases, extras)
+//
+//  Calcula o total de buffs de todos os talentos ativos.
+//
+//  REGRA ANTI-LOOP:
+//  ─ Os buffs condicionais "a cada X de FONTE" sempre usam
+//    o statusBase (calculado apenas das bases fixas), não
+//    o manaMax/vidaMax que cresce com os talentos.
+//  ─ Isso evita completamente loops do tipo:
+//      Defesa ↑ → vidaMax ↑ → mais Defesa ↑ → vidaMax ↑...
+//
+//  AINDA suporta dependências entre ATRIBUTOS:
+//  ─ T1: "+1 Defesa a cada 1 Mana" (usa manaBase fixo)
+//  ─ T2: "+1 Força a cada 1 Defesa" (usa Defesa acumulada do T1)
+//  ─ Para atributos, faz multi-pass até convergir (max 8 rounds).
+//
+//  Parâmetros:
+//    talentos — array { ativo, buffs, desc }
+//    bases    — atributos base+bônus manual do personagem
+//    extras   — { nivel, sanidade }
+// ─────────────────────────────────────────────────────────
+function acumularBuffsDeTalentos(talentos, bases, extras) {
+    const MAX_PASSES = 8;
+    const nivel    = (extras && extras.nivel)    || 0;
+    const sanidade = (extras && extras.sanidade) || 0;
+
+    const ativos = (talentos || []).filter(t => t && t.ativo);
+    if (ativos.length === 0) return _zeroTotais();
+
+    // statusBase: valores fixos das bases — usado como FONTE dos condicionais
+    // Este snapshot NÃO muda durante o cálculo, evitando loops
+    const statusBase = construirStatusBase(bases, nivel, sanidade);
+
+    let totais = _zeroTotais();
+
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+        // Para fontes de atributo (ex: "a cada 1 de Defesa"), usamos o
+        // snapshot do round anterior para que T2 veja o buff de T1.
+        // Para fontes de status (mana/vida), usamos sempre statusBase fixo.
+        const statusAtributos = construirStatusAtual(bases, totais, nivel, sanidade);
+
+        // Merge: atributos do round anterior + status fixos das bases
+        // Isso permite T2 ver Defesa do T1, mas NÃO permite que
+        // manaMax/vidaMax cresçam em loop
+        const fonteParaCondicional = {
+            ...statusAtributos,         // atributos acumulados (Defesa, Força...)
+            vidaMax:  statusBase.vidaMax,  // vida fixa — sem loop
+            manaMax:  statusBase.manaMax,  // mana fixa — sem loop
+            vida:     statusBase.vida,
+            mana:     statusBase.mana,
+            sanidade: statusBase.sanidade,
+            sanidadeMax: statusBase.sanidadeMax,
+        };
+
+        const novos = _zeroTotais();
+
+        ativos.forEach(t => {
+            // 1. Buffs fixos dos campos do painel
+            const fixos = _calcularBonusFixo(t.buffs, bases);
+            Object.keys(fixos).forEach(k => { novos[k] = (novos[k] || 0) + fixos[k]; });
+
+            // 2. Buffs dinâmicos da descrição
+            const din = parsearBuffsDinamicos(t.desc, {
+                bases,
+                statusLocal: fonteParaCondicional
+            });
+            Object.keys(novos).forEach(key => {
+                if (din[key]) novos[key] += din[key];
+            });
+        });
+
+        if (_totaisIguais(totais, novos)) break;
+        totais = novos;
+    }
+
+    return totais;
+}
+
+// ─────────────────────────────────────────────────────────
 //  parsearBuffsDinamicos(descricao, opts)
 //
-//  opts.bases       — { forca, defesa, ... } bases dos atributos
-//  opts.statusLocal — contexto acumulado { manaMax, vidaMax,
-//                     nivel, sanidade, forca, ... }
-//  opts.getValorFonte — override function(chave) → número
+//  opts.bases        — atributos base do personagem
+//  opts.statusLocal  — snapshot para resolver fontes condicionais
+//  opts.getValorFonte — override (opcional)
 // ─────────────────────────────────────────────────────────
 function parsearBuffsDinamicos(descricao, opts) {
     if (!descricao) return {};
-    const { bases = {}, statusLocal = {}, getValorFonte } = (opts || {});
+    opts = opts || {};
+
+    const bases       = opts.bases       || {};
+    const statusLocal = opts.statusLocal || {};
+    const getValorFonte = opts.getValorFonte;
 
     function _getFonte(chave) {
         if (typeof getValorFonte === 'function') {
@@ -117,86 +338,81 @@ function parsearBuffsDinamicos(descricao, opts) {
             if (v !== undefined && v !== null) return Number(v) || 0;
         }
         if (statusLocal[chave] !== undefined) return Number(statusLocal[chave]) || 0;
+        // Fallback DOM
         switch (chave) {
-            case 'mana': case 'manaMax':
-                return statusLocal.manaMax
-                    || parseInt(document.getElementById?.('mana-maxima')?.textContent) || 0;
-            case 'vida': case 'vidaMax':
-                return statusLocal.vidaMax
-                    || parseInt(document.getElementById?.('vida-maxima')?.textContent) || 0;
-            case 'sanidade': case 'sanidadeMax':
-                return statusLocal.sanidade
-                    || parseInt(document.getElementById?.('sanidade-atual')?.value) || 0;
+            case 'mana':
+            case 'manaMax':
+                return parseInt(document.getElementById?.('mana-maxima')?.textContent)
+                    || parseInt(document.getElementById?.('mana-atual')?.value) || 0;
+            case 'vida':
+            case 'vidaMax':
+                return parseInt(document.getElementById?.('vida-maxima')?.textContent)
+                    || parseInt(document.getElementById?.('vida-atual')?.value) || 0;
+            case 'sanidade':
+            case 'sanidadeMax':
+                return parseInt(document.getElementById?.('sanidade-atual')?.value) || 0;
             case 'nivel':
-                return statusLocal.nivel
-                    || parseInt(document.getElementById?.('nivel')?.value) || 0;
-            case 'forca':        return parseInt(statusLocal.forca        ?? bases.forca        ?? 0);
-            case 'velocidade':   return parseInt(statusLocal.velocidade   ?? bases.velocidade   ?? 0);
-            case 'inteligencia': return parseInt(statusLocal.inteligencia ?? bases.inteligencia ?? 0);
-            case 'defesa':       return parseInt(statusLocal.defesa       ?? bases.defesa       ?? 0);
-            case 'pontaria':     return parseInt(statusLocal.pontaria     ?? bases.pontaria     ?? 0);
-            case 'carisma':      return parseInt(statusLocal.carisma      ?? bases.carisma      ?? 0);
-            case 'furtividade':  return parseInt(statusLocal.furtividade  ?? bases.furtividade  ?? 0);
-            default: return 0;
+                return parseInt(document.getElementById?.('nivel')?.value) || 0;
+            default:
+                return parseInt(bases[chave] ?? statusLocal[chave] ?? 0) || 0;
         }
     }
 
     const buffs = {};
-    const ATTR_KEYS = Object.keys(BUFF_ALIAS);
+    const texto = _norm(descricao);
 
     function add(key, val) {
         if (!key || isNaN(val) || val === 0) return;
         buffs[key] = (buffs[key] || 0) + val;
     }
-    function addTodos(val) { ATTR_KEYS.forEach(k => add(k, val)); }
-
-    // Tokeniza capturando sinal + e - explicitamente
-    const texto  = _norm(descricao);
-    const tokens = [];
-    const rgx    = /\(\s*([+-])\s*(\d[^)]*)\)|(?<![a-z\d])([+-])\s*(\d[^\n]*?)(?=\s*[+-]|\s*\(|$)/g;
-    let m;
-    while ((m = rgx.exec(texto)) !== null) {
-        if (m[1] !== undefined) {
-            // grupo entre parênteses: (±N ...)
-            tokens.push({ sinal: m[1] === '-' ? -1 : 1, corpo: m[2].trim() });
-        } else {
-            // grupo fora de parênteses: ±N ...
-            tokens.push({ sinal: m[3] === '-' ? -1 : 1, corpo: m[4].trim() });
-        }
+    function addTodos(val) {
+        BUFF_ATTR_KEYS.forEach(k => add(k, val));
     }
 
-    for (const { sinal, corpo } of tokens) {
+    const tokens = [];
+    const rgxToken = /\(\s*\+([^)]+)\)|\+([^\n+]+)/g;
+    let mt;
+    while ((mt = rgxToken.exec(texto)) !== null) {
+        tokens.push((mt[1] || mt[2]).trim());
+    }
 
-        // 1. ±N em tudo/todos
-        if (/^(\d+(?:[.,]\d+)?)\s*(?:em\s+)?(?:tudo|todos)/.test(corpo)) {
-            addTodos(parseFloat(corpo.replace(',', '.')) * sinal);
+    for (const token of tokens) {
+
+        // 1. "+N em tudo/todos"
+        if (/^(\d+(?:[.,]\d+)?)\s*(?:em\s+)?(?:tudo|todos)/.test(token)) {
+            addTodos(parseFloat(token.replace(',', '.')));
             continue;
         }
 
-        // 2. ±N [de/em] DESTINO a cada X [de] FONTE
-        const mAC = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]*?)\s*a cada\s+(\d+(?:[.,]\d+)?)\s*(?:de\s+)?([a-z ]+)/.exec(corpo);
+        // 2. "N DESTINO a cada X FONTE"
+        const rgxACada = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]*?)\s*a cada\s+(\d+(?:[.,]\d+)?)\s*(?:de\s+)?([a-z ]+)/;
+        const mAC = rgxACada.exec(token);
         if (mAC) {
-            const bonusPorX = parseFloat(mAC[1].replace(',', '.')) * sinal;
+            const bonusPorX = parseFloat(mAC[1].replace(',', '.'));
             const destTxt   = mAC[2].trim();
             const divisor   = parseFloat(mAC[3].replace(',', '.'));
             const fonteKey  = resolverFonte(mAC[4].trim());
+
             if (divisor > 0 && fonteKey) {
                 const bonus = Math.floor(_getFonte(fonteKey) / divisor) * bonusPorX;
-                if (!destTxt || /^(tudo|todos)$/.test(destTxt)) addTodos(bonus);
-                else {
+                if (!destTxt || /^(tudo|todos)$/.test(destTxt)) {
+                    addTodos(bonus);
+                } else {
                     const sk = resolverStatusDestino(destTxt);
-                    if (sk) add(sk, bonus); else add(resolverAtributo(destTxt), bonus);
+                    if (sk) add(sk, bonus);
+                    else    add(resolverAtributo(destTxt), bonus);
                 }
             }
             continue;
         }
 
-        // 3. ±N% [de/em] DESTINO
-        const mPct = /^(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+|em\s+)?([a-z ]{2,35})/.exec(corpo);
+        // 3. "N% DESTINO"
+        const rgxPct = /^(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+|em\s+)?([a-z ]{2,35})/;
+        const mPct = rgxPct.exec(token);
         if (mPct) {
-            const pct     = parseFloat(mPct[1].replace(',', '.')) * sinal;
+            const pct     = parseFloat(mPct[1].replace(',', '.'));
             const destTxt = mPct[2].trim();
-            const sk      = resolverStatusDestino(destTxt);
+            const sk = resolverStatusDestino(destTxt);
             if (sk) {
                 add(sk, Math.round((pct / 100) * _getFonte(sk)));
             } else {
@@ -206,102 +422,31 @@ function parsearBuffsDinamicos(descricao, opts) {
             continue;
         }
 
-        // 4. ±N [de/em] DESTINO por nível
-        const mNiv = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]{2,35}?)\s+por\s+n[ií]vel/.exec(corpo);
+        // 4. "N DESTINO por nível"
+        const rgxNivel = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z ]{2,35}?)\s+por\s+n[ií]vel/;
+        const mNiv = rgxNivel.exec(token);
         if (mNiv) {
-            const bonusNiv = parseFloat(mNiv[1].replace(',', '.')) * sinal;
+            const bonusNiv = parseFloat(mNiv[1].replace(',', '.'));
             const nivel    = _getFonte('nivel');
-            const sk       = resolverStatusDestino(mNiv[2].trim());
+            const destTxt  = mNiv[2].trim();
+            const sk = resolverStatusDestino(destTxt);
             if (sk) add(sk, bonusNiv * nivel);
-            else    add(resolverAtributo(mNiv[2].trim()), bonusNiv * nivel);
+            else    add(resolverAtributo(destTxt), bonusNiv * nivel);
             continue;
         }
 
-        // 5. ±N [de/em] DESTINO (simples)
-        const mS = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z][a-z ]{0,30})/.exec(corpo);
+        // 5. "N DESTINO" simples
+        const rgxSimples = /^(\d+(?:[.,]\d+)?)\s*(?:de\s+|em\s+)?([a-z][a-z ]{0,30})/;
+        const mS = rgxSimples.exec(token);
         if (mS) {
-            const val     = parseFloat(mS[1].replace(',', '.')) * sinal;
+            const val     = parseFloat(mS[1].replace(',', '.'));
             const destTxt = mS[2].trim();
             if (/^(tudo|todos)$/.test(destTxt)) { addTodos(val); continue; }
             const sk = resolverStatusDestino(destTxt);
-            if (sk) add(sk, val); else add(resolverAtributo(destTxt), val);
+            if (sk) add(sk, val);
+            else    add(resolverAtributo(destTxt), val);
         }
     }
 
     return buffs;
-}
-
-// ─────────────────────────────────────────────────────────
-//  calcularTodosBuffs(talentos, basesIniciais, statusInicial)
-//
-//  Processa talentos de forma ITERATIVA/ACUMULATIVA:
-//  o contexto (atributos + vida/mana max) é atualizado
-//  após cada talento, então buffs condicionais do talento N
-//  enxergam os valores já modificados pelos talentos 1…N-1.
-//
-//  basesIniciais — { forca, velocidade, inteligencia, defesa,
-//                    pontaria, carisma, furtividade }
-//                  (base + bônus manuais do campo de texto)
-//
-//  statusInicial — { manaMax, vidaMax, sanidade, nivel }
-//                  calculados das bases iniciais
-//
-//  Retorna o acumulado total:
-//    { forca, velocidade, inteligencia, defesa, pontaria,
-//      carisma, furtividade, vidaMax, manaMax, sanidadeMax }
-// ─────────────────────────────────────────────────────────
-function calcularTodosBuffs(talentos, basesIniciais, statusInicial) {
-    const acum = {
-        forca: 0, velocidade: 0, inteligencia: 0, defesa: 0,
-        pontaria: 0, carisma: 0, furtividade: 0,
-        vidaMax: 0, manaMax: 0, sanidadeMax: 0
-    };
-
-    const ATTR_KEYS = Object.keys(BUFF_ALIAS);
-
-    for (const talento of talentos) {
-        if (!talento.ativo) continue;
-
-        // Contexto acumulado ATÉ AGORA
-        const ctxAttr = {};
-        ATTR_KEYS.forEach(k => { ctxAttr[k] = (basesIniciais[k] || 0) + (acum[k] || 0); });
-
-        const defAcum = ctxAttr.defesa;
-        const intAcum = ctxAttr.inteligencia;
-
-        const ctxStatus = {
-            manaMax:  (intAcum * 10) + (acum.manaMax  || 0),
-            vidaMax:  50 + (defAcum * 50) + (acum.vidaMax || 0),
-            sanidade: statusInicial.sanidade || 0,
-            nivel:    statusInicial.nivel    || 0,
-            ...ctxAttr
-        };
-
-        // Buffs fixos dos campos do painel
-        ATTR_KEYS.forEach(k => {
-            const valStr = talento.buffs?.[k] || '';
-            if (!valStr) return;
-            const baseVal = basesIniciais[k] || 0;
-            if (valStr.includes('%')) {
-                const pct = parseFloat(valStr.replace('%', ''));
-                if (!isNaN(pct)) acum[k] += Math.round((pct / 100) * baseVal);
-            } else {
-                const num = parseInt(valStr);
-                if (!isNaN(num)) acum[k] += num;
-            }
-        });
-
-        // Buffs dinâmicos da descrição
-        if (talento.desc) {
-            const din = parsearBuffsDinamicos(talento.desc, {
-                bases:       ctxAttr,
-                statusLocal: ctxStatus
-            });
-            Object.keys(acum).forEach(key => {
-                if (din[key]) acum[key] += din[key];
-            });
-        }
-    }
-
-    return acum;
 }
