@@ -637,141 +637,154 @@ function aplicarCalculo(tipo, inputId, feedbackId) {
 // ════════════════════════════════════════════════════════════
 
 
-async function calcularBuffsTotais(bases) {
-    // Inclui atributos E status (vidaMax, manaMax, sanidadeMax) nos totais
-    const totais = { vidaMax: 0, manaMax: 0, sanidadeMax: 0 };
-    ATRIBUTOS.forEach(a => totais[a.key] = 0);
 
-    // Busca dados de status para buffs dinâmicos (nível, mana max, etc.)
-    let statusLocal = {};
-    try {
-        let d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        if (d) statusLocal = {
-            manaMax:      (parseInt(d.intBase || 0) * 10) || 10,
-            vidaMax:      50 + (parseInt(d.defBase || 0) * 50) || 100,
-            nivel:        parseInt(d.nivel || 0),
-            // inclui atributos base para buffs condicionais por atributo
-            ...bases
-        };
-    } catch(e) {}
-
-    try {
-        let talentos = await carregarTalentosNuvem();
-        if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-        talentos.forEach(t => {
-            if (!t.ativo) return;
-
-            // ── Buffs fixos dos campos do painel ───────────────
-            ATRIBUTOS.forEach(a => {
-                const valStr = t.buffs?.[a.key] || '';
-                if (!valStr) return;
-                const baseVal = parseInt(bases[a.key] ?? 0);
-                if (valStr.includes('%')) {
-                    const pct = parseFloat(valStr.replace('%', ''));
-                    if (!isNaN(pct)) totais[a.key] += Math.round((pct / 100) * baseVal);
-                } else {
-                    const num = parseInt(valStr);
-                    if (!isNaN(num)) totais[a.key] += num;
-                }
-            });
-
-            // ── Buffs dinâmicos lidos da descrição ─────────────
-            const dinamicos = parsearBuffsDinamicos(t.desc, { bases, statusLocal });
-            Object.keys(totais).forEach(key => {
-                if (dinamicos[key]) totais[key] += dinamicos[key];
-            });
-        });
-    } catch(e) {}
-    return totais;
-}
-
-async function renderizarAtributos() {
-    let bases = {};
-    let statusLocal = {};
-    try {
-        let d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        if (d) {
-            bases = {
-                forca: d.forcaBase || 0, velocidade: d.velBase || 0,
-                inteligencia: d.intBase || 0, defesa: d.defBase || 0,
-                pontaria: d.pontBase || 0, carisma: d.carBase || 0,
-                furtividade: d.furtBase || 0
-            };
-            statusLocal = {
-                manaMax: (parseInt(d.intBase || 0) * 10) || 10,
-                vidaMax: 50 + (parseInt(d.defBase || 0) * 50) || 100,
-                nivel:   parseInt(d.nivel || 0),
-                // inclui atributos base para buffs condicionais por atributo
-                forca: d.forcaBase || 0, velocidade: d.velBase || 0,
-                inteligencia: d.intBase || 0, defesa: d.defBase || 0,
-                pontaria: d.pontBase || 0, carisma: d.carBase || 0,
-                furtividade: d.furtBase || 0
-            };
-        }
-    } catch(e) {}
-
-    // Buffs fixos dos campos do painel
-    const buffsFixos = {};
-    ATRIBUTOS.forEach(a => buffsFixos[a.key] = 0);
-
-    // Buffs dinâmicos da descrição dos talentos ativos
-    const buffsDin = {};
-    ATRIBUTOS.forEach(a => buffsDin[a.key] = 0);
-
+// ── Coleta talentos do DOM (mais atual que a nuvem durante edição) ──────
+function coletarTalentosDoDOM() {
+    const talentos = [];
     document.querySelectorAll('.talento-card').forEach(card => {
         const id    = card.dataset.id;
         const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        if (!ativo) return;
-
+        const desc  = card.querySelector('.talento-desc')?.value || '';
+        const buffsFixos = {};
         ATRIBUTOS.forEach(a => {
-            const valStr = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (!valStr) return;
-            const baseVal = parseInt(bases[a.key] ?? 0);
-            if (valStr.includes('%')) {
-                const pct = parseFloat(valStr.replace('%', ''));
-                if (!isNaN(pct)) buffsFixos[a.key] += Math.round((pct / 100) * baseVal);
-            } else {
-                const num = parseInt(valStr);
-                if (!isNaN(num)) buffsFixos[a.key] += num;
-            }
+            const v = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
+            if (v) buffsFixos[a.key] = v;
         });
-
-        const desc = card.querySelector('.talento-desc')?.value || '';
-        const din  = parsearBuffsDinamicos(desc, { bases, statusLocal });
-        Object.keys(buffsDin).forEach(key => {
-            if (din[key]) buffsDin[key] += din[key];
-        });
+        talentos.push({ ativo, desc, buffs: buffsFixos });
     });
+    return talentos;
+}
+
+async function calcularBuffsTotais(bases, dadosStatus) {
+    // Usa calcularTodosBuffs iterativo do buffs.js
+    let d = dadosStatus;
+    if (!d) {
+        try {
+            d = await carregarStatusNuvem();
+            if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+        } catch(e) {}
+    }
+
+    // Bases reais com bônus manuais
+    const basesReais = d ? _basesComBonus(d) : bases;
+
+    let talentos = [];
+    try {
+        talentos = await carregarTalentosNuvem();
+        if (!Array.isArray(talentos)) talentos = [];
+    } catch(e) {}
+
+    const nivel    = parseInt(d?.nivel    || 0);
+    const sanidade = parseInt(d?.sanAtual || 0);
+    const statusInicial = {
+        manaMax:  basesReais.inteligencia * 10,
+        vidaMax:  50 + basesReais.defesa * 50,
+        nivel, sanidade
+    };
+
+    const acum = calcularTodosBuffs(talentos, basesReais, statusInicial);
+
+    // Habilidades Ativas
+    const habilidades = d?.habilidades || '';
+    if (habilidades.trim()) {
+        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr = {};
+        ATTR_KEYS.forEach(key => { ctxAttr[key] = (basesReais[key]||0) + (acum[key]||0); });
+        const ctxStatus = {
+            manaMax:  (ctxAttr.inteligencia*10) + acum.manaMax,
+            vidaMax:  50 + (ctxAttr.defesa*50) + acum.vidaMax,
+            nivel, sanidade, ...ctxAttr
+        };
+        const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
+        Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+    }
+
+    return acum;
+}
+
+async function renderizarAtributos() {
+    let d = null;
+    try {
+        d = await carregarStatusNuvem();
+        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
+    } catch(e) {}
+
+    const bases = d ? _basesComBonus(d) : { forca:0, velocidade:0, inteligencia:0, defesa:0, pontaria:0, carisma:0, furtividade:0 };
+    const nivel    = parseInt(d?.nivel    || 0);
+    const sanidade = parseInt(d?.sanAtual || 0);
+    const statusInicial = {
+        manaMax:  bases.inteligencia * 10,
+        vidaMax:  50 + bases.defesa * 50,
+        nivel, sanidade
+    };
+
+    // Talentos do DOM (mais atual que a nuvem durante edição)
+    const talentos = coletarTalentosDoDOM();
+    const acum = calcularTodosBuffs(talentos, bases, statusInicial);
+
+    // Habilidades Ativas
+    const habilidades = d?.habilidades || '';
+    if (habilidades.trim()) {
+        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr = {};
+        ATTR_KEYS.forEach(key => { ctxAttr[key] = (bases[key]||0) + (acum[key]||0); });
+        const ctxStatus = {
+            manaMax:  (ctxAttr.inteligencia*10) + acum.manaMax,
+            vidaMax:  50 + (ctxAttr.defesa*50) + acum.vidaMax,
+            nivel, sanidade, ...ctxAttr
+        };
+        const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
+        Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+    }
 
     const container = document.getElementById('attr-resumo');
     if (!container) return;
-    container.innerHTML = ATRIBUTOS.map(a => {
-        const base     = parseInt(bases[a.key] ?? 0);
-        const fixo     = buffsFixos[a.key] || 0;
-        const din      = buffsDin[a.key]   || 0;
-        const total    = base + fixo + din;
-        const buffTotal = fixo + din;
 
-        let buffHtml = '';
-        if (fixo !== 0 || din !== 0) {
-            const parts = [];
-            if (fixo !== 0) parts.push(`<span style="color:#4CAF50;font-size:10px">${fixo > 0 ? '+' : ''}${fixo} fix</span>`);
-            if (din  !== 0) parts.push(`<span style="color:#00bfff;font-size:10px">${din  > 0 ? '+' : ''}${din} desc</span>`);
-            buffHtml = parts.join(' ');
-        } else {
-            buffHtml = '<span style="color:#555;font-size:10px">—</span>';
-        }
-
-        const totalCor = buffTotal > 0 ? '#4CAF50' : buffTotal < 0 ? '#e74c3c' : '#4CAF50';
+    // Chips dos 7 atributos
+    const chipsAttr = ATRIBUTOS.map(a => {
+        const base    = bases[a.key] || 0;
+        const buffVal = acum[a.key]  || 0;
+        const total   = base + buffVal;
+        const cor     = buffVal > 0 ? '#4CAF50' : buffVal < 0 ? '#e74c3c' : '#c8aa6e';
+        const buffHtml = buffVal !== 0
+            ? `<span style="color:${cor};font-size:10px">${buffVal > 0 ? '+' : ''}${buffVal} talento</span>`
+            : '<span style="color:#555;font-size:10px">—</span>';
         return `<div class="attr-chip">
             <div class="a-nome">${a.label}</div>
-            <div class="a-val" style="color:${totalCor}">${total}</div>
+            <div class="a-val" style="color:${cor}">${total}</div>
             <div class="a-base" style="color:#5a82b5">base ${base}</div>
             <div class="a-buff">${buffHtml}</div>
         </div>`;
     }).join('');
+
+    // Chips de status máximos
+    const defTotal = (bases.defesa       || 0) + (acum.defesa       || 0);
+    const intTotal = (bases.inteligencia || 0) + (acum.inteligencia || 0);
+    const vidaMaxCalc = Math.max(1, 50 + (defTotal * 50) + (acum.vidaMax || 0));
+    const manaMaxCalc = Math.max(1, (intTotal * 10)       + (acum.manaMax || 0));
+    const sanMaxCalc  = 100 + (acum.sanidadeMax || 0);
+
+    const chipsStatus = `
+        <div class="attr-chip" style="border-color:rgba(224,123,57,0.35)">
+            <div class="a-nome">❤️ Vida Máx</div>
+            <div class="a-val" style="color:#e07b39">${vidaMaxCalc}</div>
+            <div class="a-base" style="color:#5a82b5">def×50+50</div>
+            <div class="a-buff">${(acum.vidaMax||0)!==0 ? `<span style="color:#00bfff;font-size:10px">${(acum.vidaMax||0)>0?'+':''}${acum.vidaMax} desc</span>` : '<span style="color:#555;font-size:10px">—</span>'}</div>
+        </div>
+        <div class="attr-chip" style="border-color:rgba(0,191,255,0.35)">
+            <div class="a-nome">💧 Mana Máx</div>
+            <div class="a-val" style="color:#00bfff">${manaMaxCalc}</div>
+            <div class="a-base" style="color:#5a82b5">int×10</div>
+            <div class="a-buff">${(acum.manaMax||0)!==0 ? `<span style="color:#00bfff;font-size:10px">${(acum.manaMax||0)>0?'+':''}${acum.manaMax} desc</span>` : '<span style="color:#555;font-size:10px">—</span>'}</div>
+        </div>
+        <div class="attr-chip" style="border-color:rgba(176,196,222,0.35)">
+            <div class="a-nome">🧠 San Máx</div>
+            <div class="a-val" style="color:#b0c4de">${sanMaxCalc}</div>
+            <div class="a-base" style="color:#5a82b5">base 100</div>
+            <div class="a-buff"><span style="color:#555;font-size:10px">—</span></div>
+        </div>`;
+
+    container.innerHTML = chipsAttr + chipsStatus;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -947,33 +960,33 @@ async function recalcularStatusComToast() {
     } catch(e) {}
     if (!d) return;
 
-    // Bases já com bônus manuais embutidos
-    const bases = _basesComBonus(d);
+    const bases    = _basesComBonus(d);
     const nivel    = parseInt(d.nivel    || 0);
     const sanidade = STATUS.sanidade.atual;
-
-    // Monta talentos do DOM (mais atualizado que a nuvem durante edição)
-    const talentosDOM = [];
-    document.querySelectorAll('.talento-card').forEach(card => {
-        const id   = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        const desc  = card.querySelector('.talento-desc')?.value || '';
-        const buffsFixos = {};
-        ATRIBUTOS.forEach(a => {
-            const v = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (v) buffsFixos[a.key] = v;
-        });
-        talentosDOM.push({ ativo, desc, buffs: buffsFixos });
-    });
-
     const statusInicial = {
         manaMax:  bases.inteligencia * 10,
         vidaMax:  50 + bases.defesa * 50,
         nivel, sanidade
     };
 
-    // Cálculo iterativo/acumulativo
+    // Usa talentos do DOM — mais atual durante edição
+    const talentosDOM = coletarTalentosDoDOM();
     const acum = calcularTodosBuffs(talentosDOM, bases, statusInicial);
+
+    // Habilidades Ativas
+    const habilidades = d.habilidades || '';
+    if (habilidades.trim()) {
+        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr = {};
+        ATTR_KEYS.forEach(key => { ctxAttr[key] = (bases[key]||0) + (acum[key]||0); });
+        const ctxStatus = {
+            manaMax:  (ctxAttr.inteligencia*10) + acum.manaMax,
+            vidaMax:  50 + (ctxAttr.defesa*50) + acum.vidaMax,
+            nivel, sanidade, ...ctxAttr
+        };
+        const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
+        Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+    }
 
     const defTotal = (bases.defesa       || 0) + (acum.defesa       || 0);
     const intTotal = (bases.inteligencia || 0) + (acum.inteligencia || 0);
@@ -988,14 +1001,12 @@ async function recalcularStatusComToast() {
     STATUS.mana.max     = novaManaMax;
     STATUS.sanidade.max = 100 + (acum.sanidadeMax || 0);
 
-    // Clamp atuais ao novo máximo
     STATUS.vida.atual     = Math.min(STATUS.vida.atual,     STATUS.vida.max);
     STATUS.mana.atual     = Math.min(STATUS.mana.atual,     STATUS.mana.max);
     STATUS.sanidade.atual = Math.min(STATUS.sanidade.atual, STATUS.sanidade.max);
 
     notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
     notificarMudancaStatus('mana', manaAnterior, novaManaMax);
-
     renderizarStatus();
 }
 

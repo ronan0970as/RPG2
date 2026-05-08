@@ -223,7 +223,7 @@ function _lerBasesDoDOM() {
 
 // ─────────────────────────────────────────────────────────
 //  calcularStatus() — ponto único de cálculo na aba Status.
-//  Usa acumularBuffsDeTalentos (multi-pass) + habilidades ativas.
+//  Usa calcularTodosBuffs() (iterativo) do buffs.js.
 // ─────────────────────────────────────────────────────────
 async function calcularStatus() {
     const bases = _lerBasesDoDOM();
@@ -233,25 +233,43 @@ async function calcularStatus() {
     try {
         talentos = await carregarDaNuvem('talentos')
             || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-    } catch(e) {}
+        if (!Array.isArray(talentos)) talentos = [];
+    } catch(e) { talentos = []; }
 
-    // Extras para o acumulador
     const nivel    = parseInt(document.getElementById('nivel')?.value) || 0;
     const sanidade = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
 
-    // Multi-pass: resolve dependências cruzadas entre talentos
-    const totais = acumularBuffsDeTalentos(talentos, bases, { nivel, sanidade });
+    // bases como contexto inicial (base + bônus manual já somados)
+    const statusInicial = {
+        manaMax:  bases.inteligencia * 10,
+        vidaMax:  50 + bases.defesa * 50,
+        nivel, sanidade
+    };
+
+    // Cálculo iterativo/acumulativo de buffs.js
+    const totais = calcularTodosBuffs(talentos, bases, statusInicial);
 
     // Habilidades Ativas (textarea da aba Status) — sempre ativas
     const habilidades = document.getElementById('habilidades-ativas')?.value || '';
     if (habilidades.trim()) {
-        const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
-        const habBufss = parsearBuffsDinamicos(habilidades, { bases, statusLocal: statusFinal });
-        Object.keys(totais).forEach(k2 => { if (habBufss[k2]) totais[k2] += habBufss[k2]; });
+        // Contexto com os atributos já acumulados pelos talentos
+        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr = {};
+        ATTR_KEYS.forEach(k2 => { ctxAttr[k2] = (bases[k2] || 0) + (totais[k2] || 0); });
+        const ctxStatus = {
+            manaMax:  (ctxAttr.inteligencia * 10) + (totais.manaMax || 0),
+            vidaMax:  50 + (ctxAttr.defesa * 50) + (totais.vidaMax || 0),
+            nivel, sanidade, ...ctxAttr
+        };
+        const habBuffs = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
+        Object.keys(totais).forEach(k2 => { if (habBuffs[k2]) totais[k2] += habBuffs[k2]; });
     }
 
-    // Status finais derivados
-    const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
+    // Totais finais de atributos e status
+    const defTotal = (bases.defesa       || 0) + (totais.defesa       || 0);
+    const intTotal = (bases.inteligencia || 0) + (totais.inteligencia || 0);
+    const vidaMax  = Math.max(1, 50 + (defTotal * 50) + (totais.vidaMax || 0));
+    const manaMax  = Math.max(1, (intTotal * 10)       + (totais.manaMax || 0));
 
     // Renderiza cada linha de atributo: = TOTAL (+X manual, +Y talento)
     function renderTotal(elId, rawBase, manualBonus, talentoTotal) {
@@ -268,26 +286,39 @@ async function calcularStatus() {
 
     const r = bases._raw;
     const b = bases._bonus;
-    renderTotal('forca-total',  r.forca,        b.forca,        totais.forca);
-    renderTotal('vel-total',    r.velocidade,   b.velocidade,   totais.velocidade);
-    renderTotal('int-total',    r.inteligencia, b.inteligencia, totais.inteligencia);
-    renderTotal('defesa-total', r.defesa,       b.defesa,       totais.defesa);
-    renderTotal('pont-total',   r.pontaria,     b.pontaria,     totais.pontaria);
-    renderTotal('car-total',    r.carisma,      b.carisma,      totais.carisma);
-    renderTotal('furt-total',   r.furtividade,  b.furtividade,  totais.furtividade);
+    renderTotal('forca-total',  r.forca,        b.forca,        totais.forca        || 0);
+    renderTotal('vel-total',    r.velocidade,   b.velocidade,   totais.velocidade   || 0);
+    renderTotal('int-total',    r.inteligencia, b.inteligencia, totais.inteligencia || 0);
+    renderTotal('defesa-total', r.defesa,       b.defesa,       totais.defesa       || 0);
+    renderTotal('pont-total',   r.pontaria,     b.pontaria,     totais.pontaria     || 0);
+    renderTotal('car-total',    r.carisma,      b.carisma,      totais.carisma      || 0);
+    renderTotal('furt-total',   r.furtividade,  b.furtividade,  totais.furtividade  || 0);
 
+    // Atualiza vida/mana máxima na tela com toast de mudança
     const vidaMaxEl = document.getElementById('vida-maxima');
     const manaMaxEl = document.getElementById('mana-maxima');
 
     if (vidaMaxEl) {
         const ant = parseInt(vidaMaxEl.textContent) || 0;
-        vidaMaxEl.textContent = statusFinal.vidaMax;
-        notificarMudancaStatus('vida', ant, statusFinal.vidaMax);
+        vidaMaxEl.textContent = vidaMax;
+        notificarMudancaStatus('vida', ant, vidaMax);
     }
     if (manaMaxEl) {
         const ant = parseInt(manaMaxEl.textContent) || 0;
-        manaMaxEl.textContent = statusFinal.manaMax;
-        notificarMudancaStatus('mana', ant, statusFinal.manaMax);
+        manaMaxEl.textContent = manaMax;
+        notificarMudancaStatus('mana', ant, manaMax);
+    }
+
+    // Clamp: vida/mana atual não pode ultrapassar o máximo
+    const vidaAtualEl = document.getElementById('vida-atual');
+    const manaAtualEl = document.getElementById('mana-atual');
+    if (vidaAtualEl) {
+        const v = parseInt(vidaAtualEl.value) || 0;
+        if (v > vidaMax) vidaAtualEl.value = vidaMax;
+    }
+    if (manaAtualEl) {
+        const m = parseInt(manaAtualEl.value) || 0;
+        if (m > manaMax) manaAtualEl.value = manaMax;
     }
 }
 
@@ -622,6 +653,9 @@ async function carregarTalentosNuvem() {
 }
 
 // ── Inicialização ──────────────────────────────────────────
+// Versão debounced de calcularStatus (evita chamadas ao Supabase em cada tecla)
+const calcularStatusDebounced = debounce(calcularStatus, 350);
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Proteção: sem ficha ativa → volta ao painel
     if (!protegerFichaAtiva()) return;
