@@ -177,117 +177,133 @@ const ATRIBUTOS_MAPA = {
     defesa: 'defesa-total', pontaria: 'pont-total', carisma: 'car-total', furtividade: 'furt-total'
 };
 
-// ─────────────────────────────────────────────────────────
-//  _lerBasesDoDOM() — lê os atributos base+bônus manual da página index.html
-// ─────────────────────────────────────────────────────────
-function _lerBasesDoDOM() {
-    function base(id) { return parseInt(document.getElementById(id)?.value) || 0; }
-    function bonus(baseVal, id) {
-        const el = document.getElementById(id);
-        if (!el) return 0;
-        const txt = el.value.trim();
-        if (!txt || txt === '0') return 0;
-        if (txt.includes('%')) return Math.round(baseVal * (parseFloat(txt.replace('%','')) / 100));
-        return parseInt(txt) || 0;
-    }
-    const f = base('forca-base');
-    const v = base('vel-base');
-    const i = base('int-base');
-    const d = base('defesa-base');
-    const p = base('pont-base');
-    const c = base('car-base');
-    const fu= base('furt-base');
-    return {
-        // base pura (para renderTotal separar as parcelas)
-        _raw: { forca:f, velocidade:v, inteligencia:i, defesa:d, pontaria:p, carisma:c, furtividade:fu },
-        // bonus manual dos campos de texto
-        _bonus: {
-            forca:       bonus(f,  'forca-bonus'),
-            velocidade:  bonus(v,  'vel-bonus'),
-            inteligencia:bonus(i,  'int-bonus'),
-            defesa:      bonus(d,  'defesa-bonus'),
-            pontaria:    bonus(p,  'pont-bonus'),
-            carisma:     bonus(c,  'car-bonus'),
-            furtividade: bonus(fu, 'furt-bonus'),
-        },
-        // base + bonus (o que os talentos enxergam como "base")
-        forca:        f  + bonus(f,  'forca-bonus'),
-        velocidade:   v  + bonus(v,  'vel-bonus'),
-        inteligencia: i  + bonus(i,  'int-bonus'),
-        defesa:       d  + bonus(d,  'defesa-bonus'),
-        pontaria:     p  + bonus(p,  'pont-bonus'),
-        carisma:      c  + bonus(c,  'car-bonus'),
-        furtividade:  fu + bonus(fu, 'furt-bonus'),
-    };
+
+
+// ── Buffs processados pelo calcularTodosBuffs() do buffs.js ──
+
+async function _getTalentosAtivos() {
+    let talentos = await carregarDaNuvem('talentos');
+    if (!talentos) talentos = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+    return Array.isArray(talentos) ? talentos : [];
 }
 
-// ─────────────────────────────────────────────────────────
-//  calcularStatus() — ponto único de cálculo na aba Status.
-//  Usa acumularBuffsDeTalentos (multi-pass) + habilidades ativas.
-// ─────────────────────────────────────────────────────────
-async function calcularStatus() {
-    const bases = _lerBasesDoDOM();
-
-    // Carrega talentos (nuvem ou cache local)
-    let talentos = [];
+async function lerTodosOsBuffs(basesIniciais) {
     try {
-        talentos = await carregarDaNuvem('talentos')
-            || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-    } catch(e) {}
+        const talentos = await _getTalentosAtivos();
+        const nivel    = parseInt(document.getElementById('nivel')?.value) || 0;
+        const sanidade = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
+        const statusInicial = {
+            manaMax:  basesIniciais.inteligencia * 10,
+            vidaMax:  50 + basesIniciais.defesa * 50,
+            nivel, sanidade
+        };
 
-    // Extras para o acumulador
-    const nivel    = parseInt(document.getElementById('nivel')?.value) || 0;
-    const sanidade = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
+        const acum = calcularTodosBuffs(talentos, basesIniciais, statusInicial);
 
-    // Multi-pass: resolve dependências cruzadas entre talentos
-    const totais = acumularBuffsDeTalentos(talentos, bases, { nivel, sanidade });
+        // Habilidades Ativas tratadas como talento extra sempre ativo
+        const habilidades = document.getElementById('habilidades-ativas')?.value || '';
+        if (habilidades.trim()) {
+            const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+            const ctxAttr = {};
+            ATTR_KEYS.forEach(k => { ctxAttr[k] = (basesIniciais[k]||0) + (acum[k]||0); });
+            const ctxStatus = {
+                manaMax:  (ctxAttr.inteligencia*10) + acum.manaMax,
+                vidaMax:  50 + (ctxAttr.defesa*50) + acum.vidaMax,
+                nivel, sanidade, ...ctxAttr
+            };
+            const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
+            Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+        }
 
-    // Habilidades Ativas (textarea da aba Status) — sempre ativas
-    const habilidades = document.getElementById('habilidades-ativas')?.value || '';
-    if (habilidades.trim()) {
-        const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
-        const habBufss = parsearBuffsDinamicos(habilidades, { bases, statusLocal: statusFinal });
-        Object.keys(totais).forEach(k2 => { if (habBufss[k2]) totais[k2] += habBufss[k2]; });
+        return acum;
+    } catch(e) {
+        console.warn('lerTodosOsBuffs:', e);
+        return { forca:0,velocidade:0,inteligencia:0,defesa:0,pontaria:0,carisma:0,furtividade:0,vidaMax:0,manaMax:0,sanidadeMax:0 };
     }
+}
 
-    // Status finais derivados
-    const statusFinal = construirStatusAtual(bases, totais, nivel, sanidade);
+function calcularBonusAttr(baseValue, inputId) {
+    const el = document.getElementById(inputId);
+    if (!el) return 0;
+    let txt = el.value.trim();
+    if (txt === '') return 0;
+    if (txt.includes('%')) {
+        const pct = parseFloat(txt.replace('%', ''));
+        return Math.round(baseValue * (pct / 100));
+    }
+    return parseInt(txt) || 0;
+}
 
-    // Renderiza cada linha de atributo: = TOTAL (+X manual, +Y talento)
-    function renderTotal(elId, rawBase, manualBonus, talentoTotal) {
+async function calcularStatus() {
+    const bases = {
+        defesa:       parseInt(document.getElementById('defesa-base')?.value) || 0,
+        inteligencia: parseInt(document.getElementById('int-base')?.value) || 0,
+        forca:        parseInt(document.getElementById('forca-base')?.value) || 0,
+        velocidade:   parseInt(document.getElementById('vel-base')?.value) || 0,
+        pontaria:     parseInt(document.getElementById('pont-base')?.value) || 0,
+        carisma:      parseInt(document.getElementById('car-base')?.value) || 0,
+        furtividade:  parseInt(document.getElementById('furt-base')?.value) || 0
+    };
+
+    // Bônus manuais dos campos de texto (ex: +1 manual em Defesa)
+    const defBonus   = calcularBonusAttr(bases.defesa,       'defesa-bonus');
+    const intBonus   = calcularBonusAttr(bases.inteligencia, 'int-bonus');
+    const forcaBonus = calcularBonusAttr(bases.forca,        'forca-bonus');
+    const velBonus   = calcularBonusAttr(bases.velocidade,   'vel-bonus');
+    const pontBonus  = calcularBonusAttr(bases.pontaria,     'pont-bonus');
+    const carBonus   = calcularBonusAttr(bases.carisma,      'car-bonus');
+    const furtBonus  = calcularBonusAttr(bases.furtividade,  'furt-bonus');
+
+    // Bases REAIS = base + bônus manual (contexto inicial para os talentos)
+    const basesReais = {
+        forca:        bases.forca        + forcaBonus,
+        velocidade:   bases.velocidade   + velBonus,
+        inteligencia: bases.inteligencia + intBonus,
+        defesa:       bases.defesa       + defBonus,
+        pontaria:     bases.pontaria     + pontBonus,
+        carisma:      bases.carisma      + carBonus,
+        furtividade:  bases.furtividade  + furtBonus,
+    };
+
+    // Um único passo iterativo: talentos + habilidades ativas
+    const buffs = await lerTodosOsBuffs(basesReais);
+
+    const defTotal = basesReais.defesa       + (buffs.defesa       || 0);
+    const intTotal = basesReais.inteligencia + (buffs.inteligencia || 0);
+    const manaMax  = (intTotal * 10) + (buffs.manaMax  || 0);
+    const vidaMax  = 50 + (defTotal * 50) + (buffs.vidaMax || 0);
+
+    function renderTotal(elId, base, manual, buffTotal) {
         const el = document.getElementById(elId);
         if (!el) return;
-        const total = rawBase + manualBonus + talentoTotal;
+        const total = base + manual + buffTotal;
+        let txt = `= ${total}`;
         const partes = [];
-        if (manualBonus !== 0)
-            partes.push(`<span class="buff-part" style="color:#c8aa6e">${manualBonus > 0 ? '+' : ''}${manualBonus} manual</span>`);
-        if (talentoTotal !== 0)
-            partes.push(`<span class="buff-part" style="color:#4CAF50">${talentoTotal > 0 ? '+' : ''}${talentoTotal} talento</span>`);
-        el.innerHTML = `<span>= ${total}</span>${partes.length ? ' <small>(' + partes.join(', ') + ')</small>' : ''}`;
+        if (manual    !== 0) partes.push(`<span class="buff-part" style="color:#c8aa6e">${manual > 0 ? '+' : ''}${manual} manual</span>`);
+        if (buffTotal !== 0) partes.push(`<span class="buff-part" style="color:#4CAF50">${buffTotal > 0 ? '+' : ''}${buffTotal} talento</span>`);
+        el.innerHTML = `<span>${txt}</span>${partes.length ? ' <small>(' + partes.join(', ') + ')</small>' : ''}`;
     }
 
-    const r = bases._raw;
-    const b = bases._bonus;
-    renderTotal('forca-total',  r.forca,        b.forca,        totais.forca);
-    renderTotal('vel-total',    r.velocidade,   b.velocidade,   totais.velocidade);
-    renderTotal('int-total',    r.inteligencia, b.inteligencia, totais.inteligencia);
-    renderTotal('defesa-total', r.defesa,       b.defesa,       totais.defesa);
-    renderTotal('pont-total',   r.pontaria,     b.pontaria,     totais.pontaria);
-    renderTotal('car-total',    r.carisma,      b.carisma,      totais.carisma);
-    renderTotal('furt-total',   r.furtividade,  b.furtividade,  totais.furtividade);
+    renderTotal('forca-total',  bases.forca,        forcaBonus, buffs.forca        || 0);
+    renderTotal('vel-total',    bases.velocidade,   velBonus,   buffs.velocidade   || 0);
+    renderTotal('int-total',    bases.inteligencia, intBonus,   buffs.inteligencia || 0);
+    renderTotal('defesa-total', bases.defesa,       defBonus,   buffs.defesa       || 0);
+    renderTotal('pont-total',   bases.pontaria,     pontBonus,  buffs.pontaria     || 0);
+    renderTotal('car-total',    bases.carisma,      carBonus,   buffs.carisma      || 0);
+    renderTotal('furt-total',   bases.furtividade,  furtBonus,  buffs.furtividade  || 0);
 
     const vidaMaxEl = document.getElementById('vida-maxima');
     const manaMaxEl = document.getElementById('mana-maxima');
 
     if (vidaMaxEl) {
-        const ant = parseInt(vidaMaxEl.textContent) || 0;
-        vidaMaxEl.textContent = statusFinal.vidaMax;
-        notificarMudancaStatus('vida', ant, statusFinal.vidaMax);
+        const vidaAnterior = parseInt(vidaMaxEl.textContent) || 0;
+        vidaMaxEl.textContent = vidaMax;
+        notificarMudancaStatus('vida', vidaAnterior, vidaMax);
     }
     if (manaMaxEl) {
-        const ant = parseInt(manaMaxEl.textContent) || 0;
-        manaMaxEl.textContent = statusFinal.manaMax;
-        notificarMudancaStatus('mana', ant, statusFinal.manaMax);
+        const manaAnterior = parseInt(manaMaxEl.textContent) || 0;
+        manaMaxEl.textContent = manaMax;
+        notificarMudancaStatus('mana', manaAnterior, manaMax);
     }
 }
 
@@ -405,8 +421,6 @@ function modificarStatus(tipo) {
 
     atualEl.value = Math.min(Math.max(Math.round(atual), 0), maxVal);
     modEl.value   = '';
-    // Recalcula buffs dos talentos com novo valor de vida/mana atual
-    calcularStatus();
 }
 
 // ── Card de foto do personagem ────────────────────────────
