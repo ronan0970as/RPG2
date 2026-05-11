@@ -3,26 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>Ficha RPG - Inventário e Lore</title>
+    <title>Ficha RPG - Inventário</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Sliders mais fáceis de arrastar com dedo */
-        .crop-controls input[type="range"] {
-            height: 36px;
-            accent-color: #c8aa6e;
-            cursor: pointer;
-        }
-        /* Input de arquivo mobile-friendly */
-        .file-input {
-            display: block;
-            width: 100%;
-            padding: 10px 0;
-            font-size: 15px;
-        }
+        .crop-controls input[type="range"] { height: 36px; accent-color: #c8aa6e; cursor: pointer; }
+        .file-input { display: block; width: 100%; padding: 10px 0; font-size: 15px; }
+        .inv-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+        .inv-busca-wrap { flex:1; min-width:160px; position:relative; }
+        .inv-busca-wrap input { padding-left:32px; background:#111; border:1px solid #2a2a2a; font-size:14px; }
+        .inv-busca-wrap::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; pointer-events:none; }
+        .inv-cats { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+        .inv-cat-btn { background:#111; border:1px solid #2a2a2a; color:#666; padding:6px 12px; border-radius:20px; cursor:pointer; font-size:12px; font-weight:bold; font-family:inherit; transition:0.2s; white-space:nowrap; }
+        .inv-cat-btn:hover { border-color:#c8aa6e; color:#c8aa6e; }
+        .inv-cat-btn.ativo { background:rgba(200,170,110,.15); border-color:#c8aa6e; color:#c8aa6e; }
+        .inv-cat-btn.ativo[data-cat="arma"]      { background:rgba(231,76,60,.15);border-color:#e74c3c;color:#e74c3c; }
+        .inv-cat-btn.ativo[data-cat="armadura"]  { background:rgba(52,152,219,.15);border-color:#3498db;color:#3498db; }
+        .inv-cat-btn.ativo[data-cat="consumivel"]{ background:rgba(46,204,113,.15);border-color:#2ecc71;color:#2ecc71; }
+        .inv-cat-btn.ativo[data-cat="anotacao"]  { background:rgba(243,156,18,.15);border-color:#f39c12;color:#f39c12; }
+        .inv-cat-btn.ativo[data-cat="tesouro"]   { background:rgba(241,196,15,.15);border-color:#f1c40f;color:#f1c40f; }
+        .inv-cat-btn.ativo[data-cat="magico"]    { background:rgba(155,89,182,.15);border-color:#9b59b6;color:#9b59b6; }
+        .inv-cat-btn.ativo[data-cat="montaria"]  { background:rgba(26,188,156,.15);border-color:#1abc9c;color:#1abc9c; }
+        .inv-count { font-size:12px; color:#555; align-self:center; white-space:nowrap; }
+        .campos-extras { display:flex; gap:10px; flex-wrap:wrap; }
+        .campos-extras > div { flex:1; min-width:120px; }
+        .campos-extras label { width:auto; display:block; margin-bottom:4px; font-size:12px; color:#888; }
+        .campos-extras select, .campos-extras input { font-size:14px; }
+        .skeleton-card { display:flex; gap:14px; padding:14px; background:#111; border:1px solid #1e1e1e; border-radius:8px; margin-bottom:12px; animation:skel 1.4s ease-in-out infinite; }
+        .skeleton-line { background:#222; border-radius:4px; }
+        .skeleton-img  { width:90px; height:90px; background:#222; border-radius:6px; flex-shrink:0; animation:skel 1.4s ease-in-out infinite; }
+        .skeleton-body { flex:1; display:flex; flex-direction:column; gap:8px; }
+        @keyframes skel { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .form-toggle-btn { background:rgba(200,170,110,.08); border:1px solid #c8aa6e; color:#c8aa6e; padding:10px 18px; border-radius:5px; cursor:pointer; font-size:14px; font-weight:bold; font-family:inherit; width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .form-toggle-btn:hover { background:rgba(200,170,110,.15); }
+        .form-collapse { transition:max-height .3s ease,opacity .3s; overflow:hidden; }
+        .form-collapse.fechado { max-height:0; opacity:0; pointer-events:none; }
+        .form-collapse.aberto  { max-height:9999px; opacity:1; }
+        @media (max-width:750px) { .inv-cat-btn { padding:5px 9px; font-size:11px; } }
     </style>
 </head>
 <body>
-
 <nav>
     <a href="painel_de_escolhas_de_fichas.html">◀ Fichas</a>
     <a href="index.html">Status</a>
@@ -31,64 +50,134 @@
 </nav>
 
 <div class="rpg-window">
-    <h2>Adicionar Nova Entrada</h2>
-    <div class="section item-form">
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <input type="text" id="item-nome" placeholder="Título do Item, Arma ou Anotação" oninput="atualizarPreview()" autocomplete="off">
+    <button class="form-toggle-btn" onclick="toggleFormItem()">
+        <span>➕ Adicionar Novo Item</span>
+        <span id="toggle-icon">▼</span>
+    </button>
 
-            <textarea id="item-descricao" rows="5" placeholder="Escreva aqui (Máximo recomendado de 6 linhas)..." oninput="atualizarPreview()" style="font-size:15px;"></textarea>
+    <div class="form-collapse aberto" id="form-item-wrap">
+        <div class="section item-form">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <input type="text" id="item-nome" placeholder="Nome do Item, Arma ou Anotação" oninput="atualizarPreview()" autocomplete="off">
+                <textarea id="item-descricao" rows="4" placeholder="Descrição..." oninput="atualizarPreview()" style="font-size:15px;"></textarea>
 
-            <div class="upload-area">
-                <label style="width: 100%; color: #ffd700; font-size: 13px; margin-bottom: 8px; display: block;">Adicionar Imagem:</label>
-                <input type="file" id="item-file" accept="image/*" onchange="carregarImagemLocal(event)" class="file-input">
-                <p style="margin: 8px 0 4px; font-size: 12px; color: #a9cce3;">OU cole um Link (URL):</p>
-                <input type="text" id="item-imagem" placeholder="https://link-da-imagem.com/foto.jpg" oninput="atualizarPreview()">
-            </div>
-
-            <div class="crop-controls">
-                <label>🔍 Zoom:</label>
-                <input type="range" id="crop-zoom" min="1" max="3" step="0.1" value="1" oninput="atualizarPreview()">
-                <label>↔️ Posição Horizontal:</label>
-                <input type="range" id="crop-x" min="0" max="100" value="50" oninput="atualizarPreview()">
-                <label>↕️ Posição Vertical:</label>
-                <input type="range" id="crop-y" min="0" max="100" value="50" oninput="atualizarPreview()">
-            </div>
-
-            <h3 style="color: #4b7cad; font-size: 14px; margin-top: 4px;">Pré-visualização:</h3>
-            <div id="item-preview" class="item-card preview-card">
-                <div class="item-info">
-                    <h3 id="prev-nome">Título...</h3>
-                    <p id="prev-desc">O texto aparecerá aqui...</p>
+                <div class="campos-extras">
+                    <div>
+                        <label>📂 Categoria:</label>
+                        <select id="item-categoria" style="-webkit-appearance:auto;appearance:auto;">
+                            <option value="geral">📦 Geral</option>
+                            <option value="arma">⚔️ Arma</option>
+                            <option value="armadura">🛡️ Armadura</option>
+                            <option value="consumivel">🧪 Consumível</option>
+                            <option value="anotacao">📝 Anotação</option>
+                            <option value="tesouro">💰 Tesouro</option>
+                            <option value="magico">✨ Mágico</option>
+                            <option value="montaria">🐴 Montaria</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>🔢 Quantidade:</label>
+                        <input type="number" id="item-quantidade" value="1" min="1" inputmode="numeric" style="text-align:center;">
+                    </div>
                 </div>
-                <div class="item-img-container">
-                    <img id="prev-img" src="https://via.placeholder.com/120?text=Foto" alt="Preview">
-                </div>
-            </div>
 
-            <button class="save-btn" onclick="adicionarItem()" style="margin-top:4px;">➕ Adicionar à Lista</button>
+                <div class="upload-area">
+                    <label style="width:100%;color:#ffd700;font-size:13px;margin-bottom:8px;display:block;">🖼️ Imagem (opcional):</label>
+                    <input type="file" id="item-file" accept="image/*" onchange="carregarImagemLocal(event)" class="file-input">
+                    <p style="margin:8px 0 4px;font-size:12px;color:#a9cce3;">OU cole uma URL:</p>
+                    <input type="text" id="item-imagem" placeholder="https://link-da-imagem.com/foto.jpg" oninput="atualizarPreview()">
+                </div>
+
+                <div class="crop-controls">
+                    <label>🔍 Zoom:</label>
+                    <input type="range" id="crop-zoom" min="1" max="3" step="0.1" value="1" oninput="atualizarPreview()">
+                    <label>↔️ Posição Horizontal:</label>
+                    <input type="range" id="crop-x" min="0" max="100" value="50" oninput="atualizarPreview()">
+                    <label>↕️ Posição Vertical:</label>
+                    <input type="range" id="crop-y" min="0" max="100" value="50" oninput="atualizarPreview()">
+                </div>
+
+                <h3 style="color:#4b7cad;font-size:13px;margin-top:2px;">Pré-visualização:</h3>
+                <div id="item-preview" class="item-card preview-card">
+                    <div class="item-info"><h3 id="prev-nome">Título...</h3><p id="prev-desc">O texto aparecerá aqui...</p></div>
+                    <div class="item-img-container">
+                        <img id="prev-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%23111'/%3E%3Ctext x='60' y='66' text-anchor='middle' font-size='32' fill='%23444'%3E📷%3C/text%3E%3C/svg%3E" alt="Preview">
+                    </div>
+                </div>
+                <button class="save-btn" onclick="adicionarItem()" style="margin-top:4px;">➕ Adicionar ao Inventário</button>
+            </div>
         </div>
     </div>
 
-    <h2>Seu Inventário</h2>
-    <div id="lista-itens" class="grid-itens"></div>
+    <h2 style="margin-top:16px;">⚔️ Inventário</h2>
+
+    <div class="inv-toolbar">
+        <div class="inv-busca-wrap">
+            <input type="text" id="inv-busca" placeholder="Buscar item..." oninput="_renderizarInventarioLocal();_atualizarCount()">
+        </div>
+        <span class="inv-count" id="inv-count">— itens</span>
+    </div>
+
+    <div class="inv-cats">
+        <button class="inv-cat-btn ativo" data-cat="todos"      onclick="filtrarCategoria(this)">Todos</button>
+        <button class="inv-cat-btn"       data-cat="arma"       onclick="filtrarCategoria(this)">⚔️ Armas</button>
+        <button class="inv-cat-btn"       data-cat="armadura"   onclick="filtrarCategoria(this)">🛡️ Armaduras</button>
+        <button class="inv-cat-btn"       data-cat="consumivel" onclick="filtrarCategoria(this)">🧪 Consumíveis</button>
+        <button class="inv-cat-btn"       data-cat="anotacao"   onclick="filtrarCategoria(this)">📝 Anotações</button>
+        <button class="inv-cat-btn"       data-cat="tesouro"    onclick="filtrarCategoria(this)">💰 Tesouros</button>
+        <button class="inv-cat-btn"       data-cat="magico"     onclick="filtrarCategoria(this)">✨ Mágicos</button>
+        <button class="inv-cat-btn"       data-cat="montaria"   onclick="filtrarCategoria(this)">🐴 Montarias</button>
+        <button class="inv-cat-btn"       data-cat="geral"      onclick="filtrarCategoria(this)">📦 Geral</button>
+    </div>
+
+    <div id="lista-itens" class="grid-itens">
+        <div class="skeleton-card"><div class="skeleton-body"><div class="skeleton-line" style="height:16px;width:55%"></div><div class="skeleton-line" style="height:12px;width:90%"></div><div class="skeleton-line" style="height:12px;width:75%"></div></div><div class="skeleton-img"></div></div>
+        <div class="skeleton-card"><div class="skeleton-body"><div class="skeleton-line" style="height:16px;width:40%"></div><div class="skeleton-line" style="height:12px;width:85%"></div><div class="skeleton-line" style="height:12px;width:60%"></div></div><div class="skeleton-img"></div></div>
+    </div>
 </div>
 
-<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
 <script src="buffs.js"></script>
 <script src="java.js"></script>
 <script>
-    // Avisa antes de sair se houver item sendo editado (campos preenchidos)
+    function toggleFormItem() {
+        const wrap = document.getElementById('form-item-wrap');
+        const icon = document.getElementById('toggle-icon');
+        const aberto = wrap.classList.toggle('aberto');
+        wrap.classList.toggle('fechado', !aberto);
+        icon.textContent = aberto ? '▼' : '▶';
+    }
+
+    function filtrarCategoria(btn) {
+        document.querySelectorAll('.inv-cat-btn').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        _renderizarInventarioLocal();
+        _atualizarCount();
+    }
+
+    function _atualizarCount() {
+        const total   = (_inventarioCache || []).length;
+        const visivel = document.querySelectorAll('#lista-itens .item-card').length;
+        const el      = document.getElementById('inv-count');
+        if (!el) return;
+        el.textContent = visivel === total
+            ? `${total} ite${total !== 1 ? 'ns' : 'm'}`
+            : `${visivel} de ${total}`;
+    }
+
     window.addEventListener('beforeunload', e => {
         const nome = document.getElementById('item-nome')?.value.trim();
         const desc = document.getElementById('item-descricao')?.value.trim();
-        if (nome || desc) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
+        if (nome || desc) { e.preventDefault(); e.returnValue = ''; }
     });
+
+    const _origRenderizarInventario = renderizarInventario;
+    renderizarInventario = async function() {
+        await _origRenderizarInventario();
+        _atualizarCount();
+    };
 </script>
 </body>
 </html>
