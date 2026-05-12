@@ -71,34 +71,6 @@ async function carregarDaNuvem(tipo) {
 }
 
 // ── Salvar / carregar dados da ficha ──────────────────────
-
-// ── Toast de confirmação de salvamento ──────────────────────────────
-function _mostrarToastSave() {
-    const id = '_toast_save';
-    const antigo = document.getElementById(id);
-    if (antigo) antigo.remove();
-    const t = document.createElement('div');
-    t.id = id;
-    t.innerHTML = '💾 Ficha salva!';
-    t.style.cssText = `
-        position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
-        background:#1a2a1a;border:1px solid #4CAF50;color:#4CAF50;
-        padding:10px 22px;border-radius:8px;font-size:14px;font-weight:bold;
-        z-index:9998;opacity:0;transition:opacity 0.2s,transform 0.2s;
-        pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.7);
-    `;
-    document.body.appendChild(t);
-    requestAnimationFrame(() => {
-        t.style.opacity = '1';
-        t.style.transform = 'translateX(-50%) translateY(0)';
-    });
-    setTimeout(() => {
-        t.style.opacity = '0';
-        t.style.transform = 'translateX(-50%) translateY(16px)';
-        setTimeout(() => t.remove(), 250);
-    }, 2200);
-}
-
 async function salvarFicha() {
     const dados = {
         jogador:    document.getElementById('jogador')?.value || '',
@@ -139,8 +111,6 @@ async function salvarFicha() {
     localStorage.setItem(k('rpg_dados'), JSON.stringify(dados));
     await salvarNuvem('status', dados);
     mostrarToastSalvo();
-
-    // Toast de confirmação de save
     _mostrarToastSave();
 }
 
@@ -260,9 +230,12 @@ async function calcularStatus() {
     const bases = _lerBasesDoDOM();
 
     // Carrega talentos (nuvem ou cache local)
-    // Usa cache de talentos (máx 30s) para evitar round-trip ao Supabase a cada tecla
     let talentos = [];
-    try { talentos = await _getTalentos(); } catch(e) { talentos = []; }
+    try {
+        talentos = await carregarDaNuvem('talentos')
+            || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+        if (!Array.isArray(talentos)) talentos = [];
+    } catch(e) { talentos = []; }
 
     const nivel    = parseInt(document.getElementById('nivel')?.value) || 0;
     const sanidade = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
@@ -582,25 +555,6 @@ function atualizarPreview() {
 // ── Cache em memória do inventário (evita múltiplas chamadas ao Supabase) ──
 let _inventarioCache = null;
 
-// Cache de talentos para calcularStatus (evita busca no Supabase a cada tecla)
-let _talentosCache = null;
-let _talentosCacheTs = 0;
-const _TALENTOS_TTL = 30000; // 30s
-
-async function _getTalentos() {
-    const agora = Date.now();
-    if (_talentosCache !== null && (agora - _talentosCacheTs) < _TALENTOS_TTL) {
-        return _talentosCache;
-    }
-    let t = await carregarDaNuvem('talentos');
-    if (!t) t = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-    _talentosCache = Array.isArray(t) ? t : [];
-    _talentosCacheTs = agora;
-    return _talentosCache;
-}
-
-function _invalidarCacheTalentos() { _talentosCache = null; }
-
 async function _getInventario() {
     if (_inventarioCache !== null) return _inventarioCache;
     let inv = await carregarDaNuvem('inventario');
@@ -634,9 +588,10 @@ async function adicionarItem() {
 
     if (!nome || !descricao) { alert('Preencha o nome e a descrição do item!'); return; }
 
+    const categoria  = document.getElementById('item-categoria')?.value  || 'geral';
+    const quantidade = Math.max(1, parseInt(document.getElementById('item-quantidade')?.value || '1') || 1);
+
     const inventario = await _getInventario();
-    const categoria  = document.getElementById('item-categoria')?.value || 'geral';
-    const quantidade = parseInt(document.getElementById('item-quantidade')?.value || '1') || 1;
     inventario.push({ id: Date.now(), nome, descricao, imagem: imgUrl, zoom, posX, posY, categoria, quantidade });
     await _salvarInventario(inventario);
 
@@ -654,7 +609,8 @@ async function adicionarItem() {
     _renderizarInventarioLocal();
 }
 
-// Configuração de categorias do inventário
+
+// ── Configuração de categorias do inventário ────────────────────────
 const CATEGORIAS_INV = {
     geral:      { label: '📦 Geral',      cor: '#888',    borda: '#444' },
     arma:       { label: '⚔️ Arma',       cor: '#e74c3c', borda: '#c0392b' },
@@ -665,13 +621,66 @@ const CATEGORIAS_INV = {
     magico:     { label: '✨ Mágico',     cor: '#9b59b6', borda: '#8e44ad' },
     montaria:   { label: '🐴 Montaria',   cor: '#1abc9c', borda: '#16a085' },
 };
+function _catInfo(cat) { return CATEGORIAS_INV[cat] || CATEGORIAS_INV.geral; }
+function _norm_inv(txt) {
+    return String(txt).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
-function _catInfo(cat) {
-    return CATEGORIAS_INV[cat] || CATEGORIAS_INV.geral;
+// ── Alterar quantidade de um item diretamente no card ────────────────
+async function alterarQuantidade(id, delta) {
+    const inventario = await _getInventario();
+    const item = inventario.find(i => i.id === id);
+    if (!item) return;
+
+    const novaQtd = Math.max(0, (item.quantidade || 1) + delta);
+
+    if (novaQtd === 0) {
+        // Quantidade zerou — confirmar remoção
+        if (!confirm(`Remover "${item.nome}" do inventário?`)) {
+            // Cancela — re-renderiza sem mudança
+            _renderizarInventarioLocal();
+            return;
+        }
+        const novo = inventario.filter(i => i.id !== id);
+        await _salvarInventario(novo);
+    } else {
+        item.quantidade = novaQtd;
+        await _salvarInventario(inventario);
+    }
+    _renderizarInventarioLocal();
+}
+
+// ── Toast de confirmação de salvamento ──────────────────────────────
+function _mostrarToastSave(msg, cor) {
+    msg = msg || '💾 Ficha salva!';
+    cor = cor || '#4CAF50';
+    const id  = '_toast_save';
+    const ant = document.getElementById(id);
+    if (ant) ant.remove();
+    const t = document.createElement('div');
+    t.id = id;
+    t.innerHTML = msg;
+    t.style.cssText = `
+        position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(16px);
+        background:#1a1a1a;border:1px solid ${cor};color:${cor};
+        padding:10px 22px;border-radius:8px;font-size:14px;font-weight:bold;
+        z-index:9998;opacity:0;transition:opacity .2s,transform .2s;
+        pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.7);
+    `;
+    document.body.appendChild(t);
+    requestAnimationFrame(() => {
+        t.style.opacity = '1';
+        t.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translateX(-50%) translateY(16px)';
+        setTimeout(() => t.remove(), 250);
+    }, 2200);
 }
 
 // Renderiza a partir do cache — sem nova chamada ao Supabase
-// Respeita filtros de categoria e busca por nome ativos na página
+// Respeita filtros de categoria e busca ativos na página
 function _renderizarInventarioLocal() {
     const listaConteiner = document.getElementById('lista-itens');
     if (!listaConteiner) return;
@@ -680,7 +689,9 @@ function _renderizarInventarioLocal() {
     // Filtro de busca
     const buscaEl = document.getElementById('inv-busca');
     const termo   = buscaEl ? _norm_inv(buscaEl.value) : '';
-    if (termo) inventario = inventario.filter(i => _norm_inv(i.nome + ' ' + i.descricao).includes(termo));
+    if (termo) inventario = inventario.filter(i =>
+        _norm_inv((i.nome || '') + ' ' + (i.descricao || '')).includes(termo)
+    );
 
     // Filtro de categoria
     const catAtiva = document.querySelector('.inv-cat-btn.ativo')?.dataset.cat || 'todos';
@@ -688,35 +699,63 @@ function _renderizarInventarioLocal() {
 
     if (inventario.length === 0) {
         listaConteiner.innerHTML = `<div style="color:#555;padding:24px;text-align:center;font-size:14px;">
-            ${termo || catAtiva !== 'todos' ? '🔍 Nenhum item encontrado com esses filtros.' : '📦 Inventário vazio. Adicione seu primeiro item acima.'}
+            ${termo || catAtiva !== 'todos'
+                ? '🔍 Nenhum item encontrado com esses filtros.'
+                : '📦 Inventário vazio. Adicione seu primeiro item acima.'
+            }
         </div>`;
         return;
     }
 
     listaConteiner.innerHTML = inventario.map(item => {
-        const cat   = _catInfo(item.categoria || 'geral');
-        const qtd   = (item.quantidade && item.quantidade > 1) ? `<span style="background:${cat.cor};color:#111;font-size:11px;font-weight:bold;padding:2px 7px;border-radius:10px;margin-left:6px;">x${item.quantidade}</span>` : '';
-        const badge = `<span style="font-size:10px;font-weight:bold;color:${cat.cor};background:rgba(0,0,0,0.4);border:1px solid ${cat.borda};padding:2px 8px;border-radius:10px;white-space:nowrap">${cat.label}</span>`;
+        const cat = _catInfo(item.categoria || 'geral');
+        const qtd = item.quantidade && item.quantidade > 0 ? item.quantidade : 1;
+
+        // Cor dos controles: vermelho quando quantidade é 1 (próximo passo remove)
+        const corMenos = qtd <= 1 ? '#e74c3c' : '#888';
+        const titMenos = qtd <= 1 ? 'Remover item' : 'Diminuir quantidade';
+
+        const badge = `<span style="font-size:10px;font-weight:bold;color:${cat.cor};
+            background:rgba(0,0,0,.4);border:1px solid ${cat.borda};
+            padding:2px 8px;border-radius:10px;white-space:nowrap">${cat.label}</span>`;
+
         return `
         <div class="item-card" style="border-left:3px solid ${cat.borda};">
             <div class="item-info">
-                <h3 style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
-                    ${_esc(item.nome)}${qtd}
+                <h3 style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
+                    ${_esc(item.nome)}
                     <span style="flex:1"></span>${badge}
                 </h3>
                 <p>${_esc(item.descricao)}</p>
             </div>
-            <div class="item-img-container">
-                <img src="${_esc(item.imagem)}" alt="${_esc(item.nome)}"
-                     style="transform:scale(${parseFloat(item.zoom)||1});object-position:${parseFloat(item.posX)||50}% ${parseFloat(item.posY)||50}%;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+                <div class="item-img-container" style="margin:0">
+                    <img src="${_esc(item.imagem)}" alt="${_esc(item.nome)}"
+                         style="transform:scale(${parseFloat(item.zoom)||1});
+                                object-position:${parseFloat(item.posX)||50}% ${parseFloat(item.posY)||50}%;">
+                </div>
+                <!-- Controles de quantidade -->
+                <div style="display:flex;align-items:center;gap:6px;background:#0f0f0f;
+                            border:1px solid #2a2a2a;border-radius:6px;padding:4px 8px;">
+                    <button onclick="alterarQuantidade(${Number(item.id)}, -1)"
+                        title="${titMenos}"
+                        style="background:none;border:none;color:${corMenos};font-size:18px;
+                               font-weight:bold;cursor:pointer;padding:0 4px;line-height:1;
+                               transition:color .15s;font-family:inherit;">−</button>
+                    <span style="color:#fff;font-weight:bold;font-size:15px;
+                                 min-width:22px;text-align:center;">${qtd}</span>
+                    <button onclick="alterarQuantidade(${Number(item.id)}, +1)"
+                        title="Aumentar quantidade"
+                        style="background:none;border:none;color:#4CAF50;font-size:18px;
+                               font-weight:bold;cursor:pointer;padding:0 4px;line-height:1;
+                               transition:color .15s;font-family:inherit;">+</button>
+                </div>
+                <button class="btn-remover-item"
+                    onclick="removerItemInventario(${Number(item.id)})"
+                    style="width:100%;padding:6px 8px;font-size:12px;">🗑️ Remover</button>
             </div>
-            <button class="btn-remover-item" onclick="removerItemInventario(${Number(item.id)})">🗑️</button>
         </div>`;
     }).join('');
-}
-
-function _norm_inv(txt) {
-    return String(txt).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 }
 
 // Carrega da nuvem UMA vez e depois só usa o cache
