@@ -19,9 +19,9 @@
             padding: 20px;
         }
 
-        .logo { font-size: 36px; margin-bottom: 8px; }
+        .logo        { font-size: 36px; margin-bottom: 8px; }
         .logo-titulo { font-size: 20px; font-weight: bold; color: #c8aa6e; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
-        .logo-sub { font-size: 12px; color: #555; margin-bottom: 32px; }
+        .logo-sub    { font-size: 12px; color: #555; margin-bottom: 32px; }
 
         .auth-box {
             background: #1a1a1a;
@@ -34,6 +34,7 @@
             box-shadow: 0 8px 28px rgba(0,0,0,0.8);
         }
 
+        /* ── Tabs ── */
         .tabs { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 24px; }
         .tab-btn {
             flex: 1; background: none; border: none; border-bottom: 2px solid transparent;
@@ -43,38 +44,136 @@
         }
         .tab-btn.ativo { color: #c8aa6e; border-bottom-color: #c8aa6e; }
 
-        .auth-form { display: none; flex-direction: column; gap: 14px; }
+        /* ── Forms ── */
+        .auth-form         { display: none; flex-direction: column; gap: 14px; }
         .auth-form.visivel { display: flex; }
 
-        .campo label { display: block; font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; width: auto; }
-        .campo input { width: 100%; background: #111; border: 1px solid #333; color: #fff; padding: 10px 12px; border-radius: 4px; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .campo label {
+            display: block; font-size: 11px; font-weight: bold; color: #888;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; width: auto;
+        }
+        .campo input {
+            width: 100%; background: #111; border: 1px solid #333; color: #fff;
+            padding: 10px 12px; border-radius: 4px; font-size: 14px; font-family: inherit;
+            outline: none; transition: border-color 0.2s;
+            -webkit-appearance: none; appearance: none;
+        }
         .campo input:focus { border-color: #c8aa6e; }
 
-        .campo-senha { position: relative; }
-        .campo-senha input { padding-right: 52px; }
-        .toggle-senha { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #555; font-size: 12px; cursor: pointer; font-family: inherit; padding: 2px 4px; transition: color 0.2s; }
+        .campo-senha            { position: relative; }
+        .campo-senha input      { padding-right: 72px; }
+        .toggle-senha {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: #555; font-size: 12px; cursor: pointer;
+            font-family: inherit; padding: 2px 4px; transition: color 0.2s;
+        }
         .toggle-senha:hover { color: #c8aa6e; }
 
-        .forca-wrap { margin-top: 6px; }
-        .forca-bar { height: 3px; border-radius: 2px; width: 0; transition: width 0.3s, background 0.3s; background: #444; }
+        /* ── Força de senha ── */
+        .forca-wrap  { margin-top: 6px; }
+        .forca-bar   { height: 3px; border-radius: 2px; width: 0; transition: width 0.3s, background 0.3s; background: #444; }
         .forca-label { font-size: 11px; color: #555; margin-top: 4px; min-height: 14px; }
 
-        .msg { font-size: 13px; min-height: 18px; text-align: center; font-weight: bold; }
-        .msg.erro    { color: #e74c3c; }
-        .msg.sucesso { color: #4CAF50; }
+        /* ── Mensagens de feedback ── */
+        .msg             { font-size: 13px; min-height: 18px; text-align: center; font-weight: bold; }
+        .msg.erro        { color: #e74c3c; }
+        .msg.sucesso     { color: #4CAF50; }
+        /* [BUG-3] Tipo informativo (azul) para confirmação de e-mail */
+        .msg.info        { color: #5dade2; }
 
+        /* ── Botão principal ── */
         .btn-principal {
             background: #c8aa6e; color: #0f0f0f; border: none; padding: 12px; border-radius: 5px;
-            font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; text-transform: uppercase;
-            letter-spacing: 0.5px; font-family: inherit; transition: background 0.2s, opacity 0.2s;
+            font-size: 14px; font-weight: bold; cursor: pointer; width: 100%;
+            text-transform: uppercase; letter-spacing: 0.5px; font-family: inherit;
+            transition: background 0.2s, opacity 0.2s;
         }
-        .btn-principal:hover { background: #d4ba80; }
-        .btn-principal:active { opacity: 0.85; }
+        .btn-principal:hover   { background: #d4ba80; }
+        .btn-principal:active  { opacity: 0.85; }
         .btn-principal:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        /* ── Links secundários ── */
         .link-alternar { text-align: center; font-size: 13px; color: #555; margin-top: 4px; }
         .link-alternar span { color: #c8aa6e; cursor: pointer; font-weight: bold; }
         .link-alternar span:hover { text-decoration: underline; }
+
+        /* [UX-7] Link "Esqueci minha senha" */
+        .link-esqueci {
+            text-align: right; font-size: 12px; color: #555;
+            margin-top: -6px; margin-bottom: -4px;
+        }
+        .link-esqueci span {
+            color: #7f8c8d; cursor: pointer; transition: color 0.2s;
+        }
+        .link-esqueci span:hover { color: #c8aa6e; text-decoration: underline; }
+
+        /* ── Modal de Esqueci Senha ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            align-items: center; justify-content: center;
+            z-index: 9999;
+            animation: fadeIn .15s ease;
+        }
+        .modal-overlay.visivel { display: flex; }
+
+        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+        @keyframes slideUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+        .reset-box {
+            background: #1a1a1a; border: 1px solid #2a2a2a;
+            border-top: 3px solid #c8aa6e; border-radius: 12px;
+            padding: 28px; width: 90%; max-width: 360px;
+            display: flex; flex-direction: column; gap: 14px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+            animation: slideUp .2s ease;
+        }
+        .reset-box .rb-titulo {
+            font-size: 15px; font-weight: bold; color: #c8aa6e;
+            text-transform: uppercase; letter-spacing: .8px; text-align: center;
+        }
+        .reset-box .rb-sub {
+            font-size: 13px; color: #888; line-height: 1.5; text-align: center;
+        }
+        .reset-box .rb-msg { font-size: 13px; text-align: center; font-weight: bold; min-height: 18px; }
+        .reset-box .rb-msg.erro    { color: #e74c3c; }
+        .reset-box .rb-msg.sucesso { color: #4CAF50; }
+        .reset-box .rb-msg.info    { color: #5dade2; }
+        .reset-box .rb-btns { display: flex; gap: 10px; }
+        .reset-box .rb-btn-enviar {
+            flex: 1; background: #c8aa6e; color: #0f0f0f; border: none;
+            padding: 12px; border-radius: 6px; font-size: 14px; font-weight: bold;
+            cursor: pointer; font-family: inherit; transition: background .2s;
+        }
+        .reset-box .rb-btn-enviar:hover    { background: #d4ba80; }
+        .reset-box .rb-btn-enviar:disabled { opacity: .6; cursor: not-allowed; }
+        .reset-box .rb-btn-cancelar {
+            flex: 1; background: transparent; color: #888;
+            border: 1px solid #333; padding: 12px; border-radius: 6px;
+            font-size: 14px; font-weight: bold; cursor: pointer;
+            font-family: inherit; transition: .2s;
+        }
+        .reset-box .rb-btn-cancelar:hover { border-color: #c8aa6e; color: #c8aa6e; }
+
+        /* ── Banner de e-mail pendente ── */
+        .banner-email-pendente {
+            display: none;
+            background: rgba(93,173,226,0.1);
+            border: 1px solid rgba(93,173,226,0.35);
+            border-radius: 6px; padding: 12px 14px;
+            font-size: 13px; color: #5dade2;
+            line-height: 1.5; text-align: center;
+            animation: fadeIn .3s ease;
+        }
+        .banner-email-pendente.visivel { display: block; }
+        .banner-email-pendente strong { display: block; margin-bottom: 4px; font-size: 14px; }
+
+        /* ── Contador de tentativas ── */
+        .tentativas-aviso {
+            font-size: 11px; color: #e67e22; text-align: center;
+            min-height: 14px; margin-top: -6px;
+        }
     </style>
 </head>
 <body>
@@ -88,11 +187,11 @@
 
 <div class="auth-box">
     <div class="tabs">
-        <button class="tab-btn ativo" id="tab-login" onclick="mostrarAba('login')">Entrar</button>
-        <button class="tab-btn" id="tab-cadastro" onclick="mostrarAba('cadastro')">Cadastrar</button>
+        <button class="tab-btn ativo" id="tab-login"    onclick="mostrarAba('login')">Entrar</button>
+        <button class="tab-btn"       id="tab-cadastro" onclick="mostrarAba('cadastro')">Cadastrar</button>
     </div>
 
-    <!-- FORM LOGIN -->
+    <!-- ══ FORM LOGIN ══ -->
     <form class="auth-form visivel" id="form-login" onsubmit="fazerLogin(event)">
         <div class="campo">
             <label>E-mail</label>
@@ -105,12 +204,21 @@
                 <button type="button" class="toggle-senha" onclick="toggleVer('l-senha', this)">ver</button>
             </div>
         </div>
+
+        <!-- [UX-7] Link "Esqueci minha senha" -->
+        <div class="link-esqueci">
+            <span onclick="abrirModalReset()">Esqueci minha senha</span>
+        </div>
+
+        <!-- [SEG-6] Aviso de tentativas -->
+        <div class="tentativas-aviso" id="aviso-tentativas"></div>
+
         <div class="msg" id="msg-login"></div>
         <button type="submit" class="btn-principal" id="btn-login">Entrar na conta</button>
         <p class="link-alternar">Não tem conta? <span onclick="mostrarAba('cadastro')">Cadastre-se</span></p>
     </form>
 
-    <!-- FORM CADASTRO -->
+    <!-- ══ FORM CADASTRO ══ -->
     <form class="auth-form" id="form-cadastro" onsubmit="fazerCadastro(event)">
         <div class="campo">
             <label>Nome completo</label>
@@ -123,11 +231,12 @@
         <div class="campo">
             <label>Senha</label>
             <div class="campo-senha">
-                <input type="password" id="c-senha" placeholder="mínimo 6 caracteres" autocomplete="new-password" oninput="checkForca()" required>
+                <input type="password" id="c-senha" placeholder="mínimo 6 caracteres"
+                    autocomplete="new-password" oninput="checkForca()" required>
                 <button type="button" class="toggle-senha" onclick="toggleVer('c-senha', this)">ver</button>
             </div>
             <div class="forca-wrap">
-                <div class="forca-bar" id="forca-bar"></div>
+                <div class="forca-bar"   id="forca-bar"></div>
                 <div class="forca-label" id="forca-label"></div>
             </div>
         </div>
@@ -138,28 +247,62 @@
                 <button type="button" class="toggle-senha" onclick="toggleVer('c-confirma', this)">ver</button>
             </div>
         </div>
+
+        <!-- [BUG-3] Banner informativo de e-mail pendente -->
+        <div class="banner-email-pendente" id="banner-email-pendente">
+            <strong>📧 Verifique seu e-mail!</strong>
+            Enviamos um link de confirmação. Acesse seu e-mail e clique no link para ativar sua conta.
+        </div>
+
         <div class="msg" id="msg-cadastro"></div>
         <button type="submit" class="btn-principal" id="btn-cadastro">Criar conta</button>
         <p class="link-alternar">Já tem conta? <span onclick="mostrarAba('login')">Entrar</span></p>
     </form>
 </div>
 
+<!-- ══ Modal: Esqueci minha senha ══ -->
+<div class="modal-overlay" id="modal-reset" onclick="fecharModalResetSeFora(event)">
+    <div class="reset-box">
+        <div class="rb-titulo">🔑 Recuperar senha</div>
+        <div class="rb-sub">
+            Informe seu e-mail cadastrado e enviaremos um link para você criar uma nova senha.
+        </div>
+        <div class="campo">
+            <label>E-mail</label>
+            <input type="email" id="reset-email" placeholder="seu@email.com"
+                autocomplete="email" oninput="limparMsgReset()">
+        </div>
+        <div class="rb-msg" id="msg-reset"></div>
+        <div class="rb-btns">
+            <button class="rb-btn-enviar" id="btn-reset" onclick="enviarReset()">Enviar link</button>
+            <button class="rb-btn-cancelar" onclick="fecharModalReset()">Cancelar</button>
+        </div>
+    </div>
+</div>
+
 <script src="auth.js"></script>
 <script>
-    // Verifica sessão ativa ao carregar
+    // ── Verifica sessão ativa e modo de reset ao carregar ──
     (async () => {
+        _verificarModoReset(); // [UX-7] detecta redirect de recuperação de senha
         const logado = await sincronizarSessao();
         if (logado) window.location.replace(PAINEL_PAGE);
     })();
 
+    // ── Tabs ───────────────────────────────────────────────
     function mostrarAba(aba) {
         const isLogin = aba === 'login';
         document.getElementById('form-login').classList.toggle('visivel', isLogin);
         document.getElementById('form-cadastro').classList.toggle('visivel', !isLogin);
         document.getElementById('tab-login').classList.toggle('ativo', isLogin);
         document.getElementById('tab-cadastro').classList.toggle('ativo', !isLogin);
+        // Limpa mensagens ao trocar de aba
+        setMsg('msg-login', '', '');
+        setMsg('msg-cadastro', '', '');
+        document.getElementById('aviso-tentativas').textContent = '';
     }
 
+    // ── Helpers de UI ──────────────────────────────────────
     function toggleVer(inputId, btn) {
         const el = document.getElementById(inputId);
         const escondido = el.type === 'password';
@@ -169,20 +312,22 @@
 
     function setMsg(id, texto, tipo) {
         const el = document.getElementById(id);
+        if (!el) return;
         el.textContent = texto;
         el.className = 'msg ' + tipo;
     }
 
+    // ── Força de senha ─────────────────────────────────────
     function checkForca() {
         const senha = document.getElementById('c-senha').value;
         const bar   = document.getElementById('forca-bar');
         const label = document.getElementById('forca-label');
         let pts = 0;
-        if (senha.length >= 6)  pts++;
-        if (senha.length >= 10) pts++;
-        if (/[A-Z]/.test(senha)) pts++;
-        if (/[0-9]/.test(senha)) pts++;
-        if (/[^A-Za-z0-9]/.test(senha)) pts++;
+        if (senha.length >= 6)           pts++;
+        if (senha.length >= 10)          pts++;
+        if (/[A-Z]/.test(senha))         pts++;
+        if (/[0-9]/.test(senha))         pts++;
+        if (/[^A-Za-z0-9]/.test(senha))  pts++;
         const niveis = [
             { w: '0%',   cor: '#444',    txt: '' },
             { w: '25%',  cor: '#e74c3c', txt: 'Fraca' },
@@ -197,12 +342,15 @@
         label.style.color    = n.cor;
     }
 
+    // ── Login ──────────────────────────────────────────────
     async function fazerLogin(e) {
         e.preventDefault();
-        const btn = document.getElementById('btn-login');
-        btn.disabled = true;
+        const btn    = document.getElementById('btn-login');
+        const avisoEl = document.getElementById('aviso-tentativas');
+        btn.disabled    = true;
         btn.textContent = 'Entrando...';
         setMsg('msg-login', '', '');
+        avisoEl.textContent = '';
 
         const email = document.getElementById('l-email').value.trim();
         const senha = document.getElementById('l-senha').value;
@@ -210,19 +358,27 @@
 
         if (!res.ok) {
             setMsg('msg-login', res.erro, 'erro');
-            btn.disabled = false;
+            btn.disabled    = false;
             btn.textContent = 'Entrar na conta';
+
+            // [SEG-6] Mostra aviso de rate limit se aplicável
+            if (res.erro && res.erro.includes('Aguarde')) {
+                avisoEl.textContent = res.erro;
+            }
             return;
         }
         window.location.replace(PAINEL_PAGE);
     }
 
+    // ── Cadastro ───────────────────────────────────────────
     async function fazerCadastro(e) {
         e.preventDefault();
-        const btn = document.getElementById('btn-cadastro');
-        btn.disabled = true;
+        const btn    = document.getElementById('btn-cadastro');
+        const banner = document.getElementById('banner-email-pendente');
+        btn.disabled    = true;
         btn.textContent = 'Criando conta...';
         setMsg('msg-cadastro', '', '');
+        banner.classList.remove('visivel');
 
         const nome     = document.getElementById('c-nome').value.trim();
         const email    = document.getElementById('c-email').value.trim();
@@ -231,21 +387,92 @@
 
         if (senha !== confirma) {
             setMsg('msg-cadastro', 'As senhas não coincidem.', 'erro');
-            btn.disabled = false;
+            btn.disabled    = false;
             btn.textContent = 'Criar conta';
             return;
         }
 
         const res = await cadastrar(nome, email, senha);
+
         if (!res.ok) {
             setMsg('msg-cadastro', res.erro, 'erro');
-            btn.disabled = false;
+            btn.disabled    = false;
             btn.textContent = 'Criar conta';
             return;
         }
-        setMsg('msg-cadastro', 'Conta criada! Redirecionando...', 'sucesso');
-        setTimeout(() => window.location.replace(PAINEL_PAGE), 900);
+
+        // [BUG-3] Distingue confirmação pendente de login imediato
+        if (res.emailPendente) {
+            // Mostra banner informativo azul, não mensagem de erro
+            banner.classList.add('visivel');
+            btn.disabled    = false;
+            btn.textContent = 'Criar conta';
+        } else {
+            setMsg('msg-cadastro', 'Conta criada! Redirecionando...', 'sucesso');
+            setTimeout(() => window.location.replace(PAINEL_PAGE), 900);
+        }
     }
+
+    // ── [UX-7] Modal de recuperação de senha ──────────────
+    function abrirModalReset() {
+        document.getElementById('reset-email').value = '';
+        limparMsgReset();
+        document.getElementById('modal-reset').classList.add('visivel');
+        setTimeout(() => document.getElementById('reset-email').focus(), 100);
+    }
+
+    function fecharModalReset() {
+        document.getElementById('modal-reset').classList.remove('visivel');
+    }
+
+    function fecharModalResetSeFora(e) {
+        if (e.target.id === 'modal-reset') fecharModalReset();
+    }
+
+    function limparMsgReset() {
+        const el = document.getElementById('msg-reset');
+        if (el) { el.textContent = ''; el.className = 'rb-msg'; }
+    }
+
+    function setMsgReset(txt, tipo) {
+        const el = document.getElementById('msg-reset');
+        if (!el) return;
+        el.textContent = txt;
+        el.className = 'rb-msg ' + tipo;
+    }
+
+    async function enviarReset() {
+        const btn   = document.getElementById('btn-reset');
+        const email = document.getElementById('reset-email').value.trim();
+        btn.disabled    = true;
+        btn.textContent = 'Enviando...';
+        limparMsgReset();
+
+        const res = await enviarResetSenha(email);
+
+        if (!res.ok) {
+            setMsgReset(res.erro, 'erro');
+            btn.disabled    = false;
+            btn.textContent = 'Enviar link';
+            return;
+        }
+
+        setMsgReset('✅ Link enviado! Verifique sua caixa de entrada (e o spam).', 'sucesso');
+        btn.disabled    = true;
+        btn.textContent = 'Enviado';
+
+        // Fecha automaticamente após 4 segundos
+        setTimeout(() => {
+            fecharModalReset();
+            btn.disabled    = false;
+            btn.textContent = 'Enviar link';
+        }, 4000);
+    }
+
+    // Fecha modal com Escape
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') fecharModalReset();
+    });
 </script>
 </body>
 </html>
