@@ -6,6 +6,24 @@
     <title>Ficha RPG - Status</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* ── Fundo temático: Torre Gótica Sombria ── */
+        body {
+            background-image:
+                /* Overlay escuro que preserva legibilidade */
+                linear-gradient(to bottom,
+                    rgba(8,6,4,0.82) 0%,
+                    rgba(10,8,5,0.75) 40%,
+                    rgba(8,6,4,0.85) 100%
+                ),
+                /* Vinheta nas bordas */
+                radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%),
+                url('torre_status.png');
+            background-size: cover;
+            background-position: center top;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+
         /* ── Ajustes específicos da página de status ── */
 
         /* Info básica: cada campo ocupa linha inteira */

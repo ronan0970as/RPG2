@@ -6,6 +6,23 @@
     <title>Seleção de Fichas - RPG</title>
     <link rel="stylesheet" href="painel_de_escolhas_de_fichas.css">
     <style>
+        /* ── Fundo temático: Torre Sombria de Cristais ── */
+        body {
+            background-image:
+                linear-gradient(to bottom,
+                    rgba(8,5,15,0.80) 0%,
+                    rgba(10,6,18,0.70) 40%,
+                    rgba(6,4,12,0.85) 100%
+                ),
+                radial-gradient(ellipse at center top, rgba(80,0,120,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%),
+                url('torre_painel.png');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+
         /* Campo "Outro" — animação de entrada */
         #outro-classe-wrap {
             display: none;

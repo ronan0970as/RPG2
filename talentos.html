@@ -6,6 +6,22 @@
     <title>Ficha RPG - Talentos</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* ── Fundo temático: Torre Mágica Flutuante ── */
+        body {
+            background-image:
+                linear-gradient(to bottom,
+                    rgba(12,6,20,0.82) 0%,
+                    rgba(15,8,25,0.74) 40%,
+                    rgba(10,5,18,0.86) 100%
+                ),
+                radial-gradient(ellipse at center, transparent 35%, rgba(5,0,15,0.65) 100%),
+                url('torre_talentos.png');
+            background-size: cover;
+            background-position: center top;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+
         /* ══ Status pills ══════════════════════════════════════ */
         .status-panel { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .status-pill { flex: 1; min-width: 150px; background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; transition: border-color 0.2s; }
