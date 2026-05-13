@@ -110,7 +110,6 @@ async function salvarFicha() {
     // Cache local + nuvem
     localStorage.setItem(k('rpg_dados'), JSON.stringify(dados));
     await salvarNuvem('status', dados);
-    mostrarToastSalvo();
     _mostrarToastSave();
 }
 
@@ -787,8 +786,11 @@ async function carregarTalentosNuvem() {
 }
 
 // ── Inicialização ──────────────────────────────────────────
-// Versão debounced de calcularStatus (evita chamadas ao Supabase em cada tecla)
-const calcularStatusDebounced = debounce(calcularStatus, 350);
+// calcularStatusDebounced: sempre chama window.calcularStatus no momento da invocação,
+// garantindo que o wrap do ui-enhancements.js seja respeitado.
+const calcularStatusDebounced = debounce(function(...args) {
+    return window.calcularStatus(...args);
+}, 350);
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Proteção: sem ficha ativa → volta ao painel
