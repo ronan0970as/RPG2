@@ -6,24 +6,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
 
 :root {
-    --gold:        #d4a943;
-    --gold-light:  #f5d06e;
-    --gold-dark:   #a07828;
-    --gold-glow:   rgba(212,169,67,0.45);
-    --blood-light: #d93025;
-    --parchment:   #f5e8c0;
-    --ink:         #d4c8a0;
-    --ink-dim:     #9a8e6e;
-    --ink-faint:   #4a4230;
-    --panel-bg:    rgba(12,9,5,0.80);
-    --panel-border:rgba(160,120,40,0.55);
-    --input-bg:    rgba(8,6,3,0.72);
+    /* ── Tema: Torre de Cristais Roxa ── */
+    --gold:        #b06ee8;
+    --gold-light:  #d4a8f5;
+    --gold-dark:   #7c3aed;
+    --gold-glow:   rgba(176,110,232,0.50);
+    --blood-light: #e74c3c;
+    --parchment:   #ede0ff;
+    --ink:         #c9b8e8;
+    --ink-dim:     #9a82c0;
+    --ink-faint:   #3d2a5a;
+    --panel-bg:    rgba(10,5,20,0.82);
+    --panel-border:rgba(130,80,220,0.50);
+    --input-bg:    rgba(6,3,14,0.75);
     --font-title:  'Cinzel Decorative', serif;
     --font-heading:'Cinzel', serif;
     --font-body:   'IM Fell English', serif;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    overflow-x: hidden;
+    max-width: 100%;
+}
 
 body {
     background-color: #0a0806;
@@ -32,29 +38,31 @@ body {
     min-height: 100vh;
     padding: 0;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    width: 100%;
 }
 
-/* Dragão fixo — bem visível */
+/* Cristal decorativo */
 body::before {
-    content: '🐉';
+    content: '💎';
     position: fixed;
     top: 60px; right: -20px;
-    font-size: 200px; opacity: 0.16;
+    font-size: 200px; opacity: 0.18;
     transform: scaleX(-1) rotate(-8deg);
     pointer-events: none; z-index: 0;
-    filter: drop-shadow(0 0 40px rgba(220,80,10,0.7));
-    animation: dragonFloat 9s ease-in-out infinite;
+    filter: drop-shadow(0 0 40px rgba(140,80,220,0.9));
+    animation: crystalFloat 9s ease-in-out infinite;
 }
-/* Torre fixo — bem visível */
+/* Magia decorativa */
 body::after {
-    content: '🏰';
+    content: '🔮';
     position: fixed;
     bottom: -15px; left: -15px;
-    font-size: 200px; opacity: 0.13;
+    font-size: 200px; opacity: 0.16;
     pointer-events: none; z-index: 0;
-    filter: drop-shadow(0 0 30px rgba(212,169,67,0.5));
+    filter: drop-shadow(0 0 30px rgba(130,60,200,0.7));
 }
-@keyframes dragonFloat {
+@keyframes crystalFloat {
     0%,100% { transform: scaleX(-1) rotate(-8deg) translateY(0); }
     50%      { transform: scaleX(-1) rotate(-5deg) translateY(-15px); }
 }
@@ -74,7 +82,7 @@ body::after {
 .sidebar {
     position: fixed; top: 0; left: 0;
     height: 100%; width: 280px;
-    background: rgba(10,7,4,0.88);
+    background: rgba(8,4,18,0.90);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--panel-border);
     z-index: 400; display: flex; flex-direction: column;
@@ -84,15 +92,15 @@ body::after {
     overflow: hidden;
 }
 .sidebar::before {
-    content: '🏰';
+    content: '💜';
     position: absolute; bottom: 55px; right: 8px;
-    font-size: 90px; opacity: 0.09; pointer-events: none;
+    font-size: 90px; opacity: 0.12; pointer-events: none;
     filter: drop-shadow(0 0 15px rgba(212,169,67,0.4));
 }
 .sidebar::after {
-    content: '⚔️';
+    content: '✨';
     position: absolute; top: 70px; right: 12px;
-    font-size: 50px; opacity: 0.07; pointer-events: none;
+    font-size: 50px; opacity: 0.10; pointer-events: none;
 }
 .sidebar.aberta { transform: translateX(0); }
 
@@ -168,7 +176,7 @@ body::after {
    TOPO — semitransparente
 ════════════════════════════════════════════════════════════ */
 .painel-topo {
-    background: rgba(12,9,5,0.85);
+    background: rgba(8,4,18,0.88);
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     border-bottom: 2px solid var(--gold-dark);
     padding: 0 16px; display: flex; align-items: center; gap: 12px;
@@ -271,7 +279,7 @@ body::after {
 /* ─── CARD DE PERSONAGEM ─── */
 .card-personagem {
     position: relative;
-    background: rgba(14,10,5,0.65);
+    background: rgba(12,6,24,0.68);
     backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
     border: 1px solid var(--gold-dark);
     border-radius: 3px; overflow: hidden; cursor: pointer;
@@ -428,11 +436,11 @@ body::after {
     .btn-acao-label { display: none; }
     .grid-personagens { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 12px; }
     #inputBusca { width: 100%; }
-    .painel-filtros-busca { padding: 8px 12px; gap: 8px; }
-    .filtros { gap: 4px; }
+    .painel-filtros-busca { padding: 8px 12px; gap: 8px; overflow-x: hidden; }
+    .filtros { gap: 4px; flex-wrap: wrap; }
     .btn-filtro { padding: 6px 9px; font-size: 9px; }
-    body::before { font-size: 120px; opacity: 0.12; }
-    body::after  { font-size: 120px; opacity: 0.09; }
+    body::before { font-size: 120px; opacity: 0.14; }
+    body::after  { font-size: 120px; opacity: 0.12; }
 }
 @media (max-width: 380px) {
     .grid-personagens { grid-template-columns: repeat(2, 1fr); }
