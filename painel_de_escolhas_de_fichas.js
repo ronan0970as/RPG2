@@ -195,7 +195,178 @@ async function criarFicha() {
 
 // ── Importar ───────────────────────────────────────────────
 function importarFicha() {
-    alert('Para importar, copie os arquivos de outra ficha.\n(Funcionalidade de exportação futura)');
+    const input = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Botão de feedback
+        const btn = document.querySelector('.btn-acao.secundario[onclick="importarFicha()"]');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando...'; }
+
+        try {
+            const texto = await file.text();
+            const dados = JSON.parse(texto);
+
+            // Validação básica
+            if (!dados._app || dados._app !== 'Ficha RPG') {
+                throw new Error('Arquivo inválido. Use um JSON exportado por esta aplicação.');
+            }
+            if (!dados.ficha) {
+                throw new Error('Arquivo corrompido ou sem dados de ficha.');
+            }
+
+            const confirmou = confirm(
+                `Importar ficha "${dados.ficha.nome || 'Sem nome'}"?\n\n` +
+                `Isso criará uma nova ficha com todos os dados do arquivo.\n` +
+                `Exportado em: ${dados._exportadoEm ? new Date(dados._exportadoEm).toLocaleString('pt-BR') : 'data desconhecida'}`
+            );
+            if (!confirmou) return;
+
+            const userId = getUserId();
+            if (!userId) throw new Error('Usuário não autenticado.');
+
+            const supa = window._supaClient;
+
+            // 1. Cria a ficha na tabela fichas
+            const { data: novaFicha, error: erroFicha } = await supa
+                .from('fichas')
+                .insert([{
+                    user_id: userId,
+                    nome:    dados.ficha.nome   || 'Ficha Importada',
+                    classe:  dados.ficha.classe || '',
+                    genero:  dados.ficha.genero || '',
+                    img:     dados.ficha.img    || ''
+                }])
+                .select()
+                .single();
+
+            if (erroFicha) throw new Error('Erro ao criar ficha: ' + erroFicha.message);
+
+            // 2. Salva status, talentos e inventário
+            const tipos = ['status', 'talentos', 'inventario'];
+            for (const tipo of tipos) {
+                if (dados[tipo] === undefined) continue;
+                const { error: erroDados } = await supa.from('fichas_dados').insert({
+                    ficha_id: novaFicha.id,
+                    tipo,
+                    valor: JSON.stringify(dados[tipo])
+                });
+                if (erroDados) console.warn(`Aviso ao salvar ${tipo}:`, erroDados.message);
+            }
+
+            // 3. Adiciona ao estado local e re-renderiza
+            fichas.push({
+                id:     novaFicha.id,
+                nome:   novaFicha.nome,
+                classe: novaFicha.classe,
+                img:    novaFicha.img || '',
+                genero: novaFicha.genero || ''
+            });
+            renderizar();
+
+            _mostrarToastPainel(`✅ Ficha "${novaFicha.nome}" importada com sucesso!`, '#4CAF50');
+
+        } catch (err) {
+            _mostrarToastPainel('❌ Erro ao importar: ' + err.message, '#e74c3c');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '⬆ Importar'; }
+        }
+    };
+    input.click();
+}
+
+// ── Exportar ficha pelo menu de contexto ───────────────────
+async function exportarFichaAtual() {
+    if (!fichaContextoId) return;
+    const ficha = fichas.find(f => f.id === fichaContextoId);
+    if (!ficha) return;
+
+    _mostrarToastPainel('⏳ Exportando...', '#c8aa6e');
+
+    try {
+        const supa = window._supaClient;
+
+        // Busca dados completos da ficha
+        const { data: fichaInfo, error: erroFicha } = await supa
+            .from('fichas')
+            .select('*')
+            .eq('id', fichaContextoId)
+            .maybeSingle();
+
+        if (erroFicha) throw new Error('Erro ao buscar ficha: ' + erroFicha.message);
+
+        const { data: fichasDados, error: erroDados } = await supa
+            .from('fichas_dados')
+            .select('tipo, valor')
+            .eq('ficha_id', fichaContextoId);
+
+        if (erroDados) throw new Error('Erro ao buscar dados: ' + erroDados.message);
+
+        const dados = { status: {}, talentos: [], inventario: [] };
+        (fichasDados || []).forEach(row => {
+            try { dados[row.tipo] = JSON.parse(row.valor); } catch(e) {}
+        });
+
+        const exportado = {
+            _versao:       '1.0',
+            _exportadoEm:  new Date().toISOString(),
+            _app:          'Ficha RPG',
+            ficha: {
+                nome:   fichaInfo.nome   || '',
+                classe: fichaInfo.classe || '',
+                genero: fichaInfo.genero || '',
+                img:    fichaInfo.img    || ''
+            },
+            status:    dados.status    || {},
+            talentos:  dados.talentos  || [],
+            inventario: dados.inventario || []
+        };
+
+        const json      = JSON.stringify(exportado, null, 2);
+        const nomeSeg   = (ficha.nome || 'ficha').replace(/[^a-zA-Z0-9À-ÿ\s_-]/g, '').trim().replace(/\s+/g, '_') || 'ficha';
+        const data      = new Date().toISOString().slice(0, 10);
+        const blob      = new Blob([json], { type: 'application/json' });
+        const url       = URL.createObjectURL(blob);
+        const a         = document.createElement('a');
+        a.href          = url;
+        a.download      = `${nomeSeg}_${data}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        _mostrarToastPainel(`✅ "${ficha.nome}" exportada com sucesso!`, '#4CAF50');
+
+    } catch (err) {
+        _mostrarToastPainel('❌ Erro ao exportar: ' + err.message, '#e74c3c');
+    }
+}
+
+// ── Toast do painel ─────────────────────────────────────────
+function _mostrarToastPainel(msg, cor) {
+    let toast = document.getElementById('painel-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'painel-toast';
+        toast.style.cssText = `
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            z-index: 9999; padding: 10px 18px; border-radius: 6px;
+            font-size: 14px; font-weight: bold; pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.textContent        = msg;
+    toast.style.background   = cor === '#4CAF50' ? 'rgba(30,60,30,0.95)' : cor === '#e74c3c' ? 'rgba(60,20,20,0.95)' : 'rgba(30,24,10,0.95)';
+    toast.style.border       = `1px solid ${cor}`;
+    toast.style.color        = cor === '#4CAF50' ? '#7ee87e' : cor === '#e74c3c' ? '#ff8a7a' : '#f5d06e';
+    toast.style.opacity      = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
 }
 
 // ── Abrir Ficha ────────────────────────────────────────────
