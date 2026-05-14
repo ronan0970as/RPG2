@@ -197,7 +197,7 @@ body {
 
 .dice-controls {
     display: grid;
-    grid-template-columns: minmax(80px, 1fr) 84px;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 8px;
 }
@@ -330,9 +330,9 @@ body {
         gap: 7px;
     }
 
-    /* Dados: expressão e botão em linha, presets em 3 colunas */
+    /* Dados: expressão e botão em linha, proporção igual */
     .dice-controls {
-        grid-template-columns: minmax(80px, 1fr) 76px;
+        grid-template-columns: 1fr 1fr;
         gap: 7px;
     }
     .dice-presets {
