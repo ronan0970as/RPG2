@@ -35,7 +35,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10px;
+    padding: 0 10px 10px;
     min-height: 100vh;
     -webkit-text-size-adjust: 100%;
 }
@@ -52,6 +52,8 @@ body::before {
     z-index: 0;
     filter: drop-shadow(0 0 30px rgba(220,80,10,0.7));
     animation: dragonFloat 8s ease-in-out infinite;
+    overflow: hidden;
+    max-width: 50vw;
 }
 body::after {
     content: '🏰';
@@ -62,6 +64,8 @@ body::after {
     pointer-events: none;
     z-index: 0;
     filter: drop-shadow(0 0 20px rgba(212,169,67,0.5));
+    max-width: 50vw;
+    overflow: hidden;
 }
 @keyframes dragonFloat {
     0%,100% { transform: scaleX(-1) rotate(-5deg) translateY(0); }
@@ -105,7 +109,8 @@ body::after {
 
 /* ─── NAVEGAÇÃO — semitransparente ─── */
 nav {
-    margin-bottom: 14px;
+    margin-bottom: 10px;
+    margin-top: 10px;
     display: flex; gap: 4px; flex-wrap: wrap;
     justify-content: center;
     width: 100%; max-width: 900px;
@@ -165,6 +170,14 @@ nav a:hover, nav a.active {
     display: grid;
     grid-template-columns: 180px 1fr 1fr;
     gap: 20px; align-items: start;
+    width: 100%;
+}
+
+@media (max-width: 900px) {
+    .grid-container {
+        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
+    }
 }
 
 /* ─── CARD DE FOTO DO PERSONAGEM ─── */
@@ -180,7 +193,7 @@ nav a:hover, nav a.active {
     display: flex; flex-direction: column; align-items: center;
     padding: 12px 10px 14px; gap: 8px;
     box-shadow: 0 0 20px rgba(212,169,67,0.08), 0 6px 24px rgba(0,0,0,0.6);
-    position: sticky; top: 20px;
+    position: sticky; top: 70px;
 }
 .char-foto-card::before {
     content: '🛡️';
@@ -420,8 +433,10 @@ textarea { height: 100px; resize: vertical; line-height: 1.6; }
     font-family: var(--font-heading); margin: 0 0 6px 0; color: var(--gold-light);
     font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
     border-bottom: 1px solid rgba(160,120,40,0.3); padding-bottom: 6px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     text-shadow: 0 0 10px rgba(212,169,67,0.35);
+    word-break: break-word;
 }
 .item-info p {
     margin: 0; font-family: var(--font-body); font-style: italic; font-size: 13px;
@@ -439,8 +454,8 @@ textarea { height: 100px; resize: vertical; line-height: 1.6; }
 .item-card:hover .item-img-container { border-color: var(--gold-light); box-shadow: 0 0 20px rgba(212,169,67,0.2); }
 .item-img-container img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ─── WIDGET DE USUÁRIO ─── */
-body { padding-top: 56px; }
+/* ─── WIDGET DE USUÁRIO — espaço para o nav fixo do auth.js ─── */
+body { padding-top: 60px; }
 
 /* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -453,11 +468,11 @@ body { padding-top: 56px; }
    RESPONSIVIDADE MOBILE
 ══════════════════════════════════════════════════════════════ */
 @media (max-width: 750px) {
-    body { padding: 8px; }
+    body { padding: 0 8px 8px; }
     body::before { font-size: 100px; opacity: 0.14; right: -10px; top: 60px; }
     body::after  { font-size: 100px; opacity: 0.10; }
     .rpg-window { padding: 12px; }
-    nav { gap: 4px; }
+    nav { gap: 4px; margin-top: 8px; }
     nav a { min-width: 44%; font-size: 10px; padding: 10px 6px; }
     .grid-container { grid-template-columns: 1fr; gap: 12px; }
     .char-card-col { flex-direction: row; width: 100%; }

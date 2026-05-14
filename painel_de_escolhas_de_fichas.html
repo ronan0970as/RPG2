@@ -298,6 +298,32 @@
     // Fecha com ESC
     document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSidebar(); });
 
+    // ── Fix: ctx-menu overflow — reposiciona se sair da tela ──
+    const _abrirCtxMenuOriginal = window.abrirCtxMenu;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Sobrescreve após painel_de_escolhas_de_fichas.js carregar
+        setTimeout(() => {
+            const origAbrirCtxMenu = window.abrirCtxMenu;
+            window.abrirCtxMenu = function(event, id) {
+                origAbrirCtxMenu(event, id);
+                // Corrige overflow depois do display
+                requestAnimationFrame(() => {
+                    const menu = document.getElementById('ctxMenu');
+                    if (!menu) return;
+                    const rect = menu.getBoundingClientRect();
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    let left = event.clientX;
+                    let top  = event.clientY;
+                    if (left + rect.width  > vw - 8) left = vw - rect.width - 8;
+                    if (top  + rect.height > vh - 8) top  = vh - rect.height - 8;
+                    menu.style.left = `${Math.max(8, left)}px`;
+                    menu.style.top  = `${Math.max(8, top)}px`;
+                });
+            };
+        }, 100);
+    });
+
     // ── Preenche nome do usuário na sidebar e no topo ─────────
     function preencherUsuarioUI() {
         const sessao = typeof getSessao === 'function' ? getSessao() : null;

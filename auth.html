@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ficha RPG — Entrar</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background-color: #0f0f0f;
+            background-color: #0a0806;
+            background-image:
+                linear-gradient(to bottom, rgba(4,3,2,0.55) 0%, rgba(6,4,2,0.40) 100%),
+                url('torre_status.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             color: #fff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'IM Fell English', Georgia, serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -19,27 +27,29 @@
             padding: 20px;
         }
 
-        .logo        { font-size: 36px; margin-bottom: 8px; }
-        .logo-titulo { font-size: 20px; font-weight: bold; color: #c8aa6e; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; }
-        .logo-sub    { font-size: 12px; color: #555; margin-bottom: 32px; }
+        .logo        { font-size: 42px; margin-bottom: 8px; filter: drop-shadow(0 0 20px rgba(200,170,110,0.6)); }
+        .logo-titulo { font-size: 18px; font-weight: bold; color: #c8aa6e; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 6px; font-family: 'Cinzel', serif; text-shadow: 0 0 20px rgba(200,170,110,0.5); }
+        .logo-sub    { font-size: 13px; color: #888; margin-bottom: 28px; font-style: italic; }
 
         .auth-box {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: rgba(14,10,5,0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(160,120,40,0.45);
             border-top: 3px solid #c8aa6e;
             border-radius: 8px;
             padding: 28px 28px 24px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 8px 28px rgba(0,0,0,0.8);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 0 1px rgba(200,170,110,0.05);
         }
 
         /* ── Tabs ── */
-        .tabs { display: flex; border-bottom: 1px solid #2a2a2a; margin-bottom: 24px; }
+        .tabs { display: flex; border-bottom: 1px solid rgba(160,120,40,0.35); margin-bottom: 24px; }
         .tab-btn {
             flex: 1; background: none; border: none; border-bottom: 2px solid transparent;
-            color: #555; font-size: 14px; font-weight: bold; padding: 10px 0; cursor: pointer;
-            text-transform: uppercase; letter-spacing: 0.5px; font-family: inherit;
+            color: #666; font-size: 13px; font-weight: bold; padding: 10px 0; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px; font-family: 'Cinzel', serif;
             transition: color 0.2s, border-color 0.2s; margin-bottom: -1px;
         }
         .tab-btn.ativo { color: #c8aa6e; border-bottom-color: #c8aa6e; }
@@ -49,16 +59,17 @@
         .auth-form.visivel { display: flex; }
 
         .campo label {
-            display: block; font-size: 11px; font-weight: bold; color: #888;
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; width: auto;
+            display: block; font-size: 10px; font-weight: bold; color: #888;
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; width: auto;
+            font-family: 'Cinzel', serif;
         }
         .campo input {
-            width: 100%; background: #111; border: 1px solid #333; color: #fff;
-            padding: 10px 12px; border-radius: 4px; font-size: 14px; font-family: inherit;
-            outline: none; transition: border-color 0.2s;
+            width: 100%; background: rgba(8,6,3,0.80); border: 1px solid rgba(160,120,40,0.35); color: #e8dfc0;
+            padding: 10px 12px; border-radius: 4px; font-size: 15px; font-family: 'IM Fell English', Georgia, serif;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
             -webkit-appearance: none; appearance: none;
         }
-        .campo input:focus { border-color: #c8aa6e; }
+        .campo input:focus { border-color: #c8aa6e; box-shadow: 0 0 0 2px rgba(200,170,110,0.15); }
 
         .campo-senha            { position: relative; }
         .campo-senha input      { padding-right: 72px; }
@@ -83,14 +94,15 @@
 
         /* ── Botão principal ── */
         .btn-principal {
-            background: #c8aa6e; color: #0f0f0f; border: none; padding: 12px; border-radius: 5px;
-            font-size: 14px; font-weight: bold; cursor: pointer; width: 100%;
-            text-transform: uppercase; letter-spacing: 0.5px; font-family: inherit;
-            transition: background 0.2s, opacity 0.2s;
+            background: linear-gradient(135deg, #c8aa6e, #d4ba80); color: #0a0806; border: none; padding: 13px; border-radius: 5px;
+            font-size: 13px; font-weight: bold; cursor: pointer; width: 100%;
+            text-transform: uppercase; letter-spacing: 1.5px; font-family: 'Cinzel', serif;
+            transition: background 0.2s, opacity 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 12px rgba(200,170,110,0.25);
         }
-        .btn-principal:hover   { background: #d4ba80; }
+        .btn-principal:hover   { background: linear-gradient(135deg, #d4ba80, #e0cc96); box-shadow: 0 4px 18px rgba(200,170,110,0.4); }
         .btn-principal:active  { opacity: 0.85; }
-        .btn-principal:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-principal:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
 
         /* ── Links secundários ── */
         .link-alternar { text-align: center; font-size: 13px; color: #555; margin-top: 4px; }
@@ -122,12 +134,13 @@
         @keyframes slideUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
 
         .reset-box {
-            background: #1a1a1a; border: 1px solid #2a2a2a;
+            background: rgba(14,10,5,0.96); border: 1px solid rgba(160,120,40,0.45);
             border-top: 3px solid #c8aa6e; border-radius: 12px;
             padding: 28px; width: 90%; max-width: 360px;
             display: flex; flex-direction: column; gap: 14px;
             box-shadow: 0 12px 40px rgba(0,0,0,0.9);
             animation: slideUp .2s ease;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
         .reset-box .rb-titulo {
             font-size: 15px; font-weight: bold; color: #c8aa6e;

@@ -40,17 +40,12 @@
             min-width: 100px;
         }
 
-        /* Barra de status: layout flexível */
+        /* Barra de status: layout flexível — complementa style.css */
         .status-bar {
-            display: flex;
-            align-items: center;
             flex-wrap: wrap;
             gap: 6px;
             margin-bottom: 12px;
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 6px;
-            padding: 8px 10px;
+            padding: 8px 10px 8px 14px;
         }
         .status-bar label {
             min-width: 80px;
@@ -69,12 +64,13 @@
             gap: 6px;
             flex-wrap: wrap;
             flex: 1;
+            min-width: 0;
         }
         .genero-btn {
-            background: #111;
+            background: rgba(14,11,7,0.80);
             border: 1px solid #333;
             color: #666;
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 13px;
@@ -83,40 +79,37 @@
             transition: background 0.2s, border-color 0.2s, color 0.2s;
             min-height: 40px;
             white-space: nowrap;
+            flex: 1;
+            min-width: 80px;
         }
         .genero-btn:hover {
-            border-color: #c8aa6e;
-            color: #c8aa6e;
+            border-color: var(--gold);
+            color: var(--gold);
             background: rgba(200,170,110,0.07);
         }
         .genero-btn.ativo {
             background: rgba(200,170,110,0.15);
-            border-color: #c8aa6e;
-            color: #c8aa6e;
+            border-color: var(--gold);
+            color: var(--gold);
             box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
         }
 
-        /* Linha de atributo */
+        /* Linha de atributo — complementa style.css */
         .attr-row {
             display: flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 8px;
-            padding: 6px 8px;
-            background: #111;
-            border-radius: 5px;
-            border: 1px solid #1e1e1e;
             flex-wrap: wrap;
         }
         .attr-row label { min-width: 90px; width: auto; flex-shrink: 0; }
-        .attr-row > span { color: #555; flex-shrink: 0; }
+        .attr-row > span { color: var(--gold-dark); flex-shrink: 0; }
         .attr-row input[type="number"] { width: 56px; flex-shrink: 0; }
         .attr-row .mod-input { flex: 1; min-width: 50px; }
         .attr-row .total-stat { flex-shrink: 0; font-size: 14px; }
 
         @media (max-width: 400px) {
             .attr-row label { width: 100%; margin-bottom: 2px; }
-            .attr-row { flex-wrap: wrap; }
         }
     </style>
 </head>

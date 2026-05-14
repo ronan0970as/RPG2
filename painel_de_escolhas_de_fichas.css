@@ -272,8 +272,10 @@ body::after {
 /* ─── GRID DE CARDS ─── */
 .grid-personagens {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 14px; padding: 16px; position: relative; z-index: 1;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    position: relative; z-index: 1;
 }
 
 /* ─── CARD DE PERSONAGEM ─── */
@@ -343,13 +345,21 @@ body::after {
 /* ─── MENU DE CONTEXTO ─── */
 .ctx-menu {
     position: fixed;
-    background: rgba(14,10,5,0.95);
+    background: rgba(14,10,5,0.97);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--gold); border-radius: 3px;
-    padding: 6px 0; z-index: 999; display: none; min-width: 165px;
+    border: 1px solid var(--gold); border-radius: 6px;
+    padding: 6px 0; z-index: 999; min-width: 165px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.85), 0 0 0 1px rgba(212,169,67,0.1);
+    opacity: 0; pointer-events: none;
+    transform: scale(0.96) translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    transform-origin: top right;
+    max-width: calc(100vw - 24px);
 }
-.ctx-menu.visivel { display: block; }
+.ctx-menu.visivel {
+    opacity: 1; pointer-events: all;
+    transform: scale(1) translateY(0);
+}
 .ctx-menu button {
     display: block; width: 100%; background: transparent; border: none;
     color: var(--ink); padding: 11px 16px; text-align: left; cursor: pointer;
@@ -380,10 +390,10 @@ body::after {
 .modal-box {
     background: rgba(16,12,7,0.96);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--gold); border-radius: 4px 4px 0 0;
-    padding: 24px 20px 32px; width: 100%; max-width: 500px;
+    border: 1px solid var(--gold); border-radius: 12px 12px 0 0;
+    padding: 24px 20px calc(32px + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 500px;
     display: flex; flex-direction: column; gap: 12px;
-    max-height: 92vh; overflow-y: auto;
+    max-height: 90dvh; overflow-y: auto;
     border-top: 3px solid var(--gold-light);
     box-shadow: 0 -10px 50px rgba(0,0,0,0.85), 0 0 30px rgba(212,169,67,0.06);
 }
