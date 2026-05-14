@@ -446,7 +446,11 @@
     function fecharDropdownTemplates() {
         document.getElementById('dropdownTemplatesMenu').classList.remove('aberto');
     }
-    document.addEventListener('click', fecharDropdownTemplates);
+    document.addEventListener('mousedown', function(e) {
+        if (!document.getElementById('dropdownTemplates').contains(e.target)) {
+            fecharDropdownTemplates();
+        }
+    });
 
     // ── Intercepta criarFicha para tratar "Outro" ─────────────
     const _criarFichaOriginal = criarFicha;
