@@ -144,7 +144,7 @@ body {
 
 .status-smart-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 0.85fr);
     gap: 12px;
     align-items: stretch;
 }
@@ -169,7 +169,7 @@ body {
 
 .quick-actions-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -280,11 +280,6 @@ body {
 }
 
 @media (max-width: 900px) {
-    .grid-container {
-        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
-    }
-
     .rpg-window {
         max-width: 100%;
     }
@@ -303,62 +298,125 @@ body {
 
     .ui-ambient-panel {
         margin-top: 0;
-        padding: 9px;
+        padding: 8px;
     }
 
+    /* Tema: 2 colunas no tablet */
     .tower-theme-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
     .tower-theme-btn {
-        min-height: 62px;
+        min-height: 60px;
     }
+    .tower-theme-btn span { font-size: 9px; }
 
+    /* Painel de ferramentas → coluna única */
     .status-smart-grid {
         grid-template-columns: 1fr;
+        gap: 10px;
     }
+
+    /* Ações rápidas mantém 2 colunas */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    /* Dados: expressão e botão em linha, presets em 3 colunas */
+    .dice-controls {
+        grid-template-columns: minmax(0, 1fr) 76px;
+        gap: 7px;
+    }
+    .dice-presets {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+    }
+
+    /* Notas rápidas */
+    .quick-notes textarea { min-height: 70px; }
 }
 
 @media (max-width: 520px) {
+    .ui-ambient-panel {
+        margin-left: 0;
+        margin-right: 0;
+        padding: 8px;
+        border-radius: 4px;
+    }
+    .painel-page .ui-ambient-panel {
+        margin-left: 8px;
+        margin-right: 8px;
+    }
+
     .ui-ambient-title {
         align-items: flex-start;
         flex-direction: column;
         gap: 2px;
     }
 
+    /* Tema: 2 colunas compactas */
+    .tower-theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .tower-theme-btn { min-height: 52px; }
+    .tower-theme-btn span { font-size: 9px; letter-spacing: 0.4px; }
+
+    /* Barras de status no painel */
     .status-bar {
         align-items: stretch;
+        flex-wrap: wrap;
     }
-
     .status-bar label {
         width: 100%;
         min-width: 0;
     }
-
     .status-bar input[type="number"] {
-        flex: 1 1 72px;
+        flex: 1 1 60px;
     }
-
     .status-bar .mod-input {
-        flex: 1 1 90px;
+        flex: 1 1 80px;
     }
-
     .status-bar .calc-btn {
-        width: 42px;
+        width: 38px;
         padding-left: 0;
         padding-right: 0;
     }
 
+    /* Ações rápidas — 2 colunas com botão Descanso em span 2 */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .ui-action-btn { font-size: 9px; min-height: 38px; padding: 6px 8px; }
+
+    /* Dados: input+botão empilhados verticalmente */
     .dice-controls {
         grid-template-columns: 1fr;
+        gap: 6px;
     }
+    #dice-roll-btn { width: 100%; }
 
+    /* Presets: 2 por linha */
     .dice-presets {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 5px;
     }
 
-    .painel-page .ui-ambient-panel {
-        margin-left: 12px;
-        margin-right: 12px;
-    }
+    .dice-result { font-size: 13px; padding: 7px 9px; }
+    .dice-history span { font-size: 11px; padding: 2px 7px; }
+
+    /* Notas */
+    .quick-notes textarea { min-height: 64px; font-size: 14px; }
+    .quick-notes-footer { font-size: 11px; }
+
+    /* Toast */
+    .ui-mini-toast { font-size: 13px; padding: 9px 14px; }
+}
+
+@media (max-width: 360px) {
+    .tower-theme-btn { min-height: 46px; }
+    .tower-theme-btn span { font-size: 8px; }
+    .ui-action-btn { font-size: 8px; min-height: 34px; letter-spacing: 0.4px; }
+    .dice-presets { gap: 4px; }
 }

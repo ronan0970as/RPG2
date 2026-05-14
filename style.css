@@ -467,42 +467,168 @@ body { padding-top: 60px; }
 /* ══════════════════════════════════════════════════════════════
    RESPONSIVIDADE MOBILE
 ══════════════════════════════════════════════════════════════ */
-@media (max-width: 750px) {
-    body { padding: 0 8px 8px; }
-    body::before { font-size: 100px; opacity: 0.14; right: -10px; top: 60px; }
-    body::after  { font-size: 100px; opacity: 0.10; }
-    .rpg-window { padding: 12px; }
-    nav { gap: 4px; margin-top: 8px; }
-    nav a { min-width: 44%; font-size: 10px; padding: 10px 6px; }
-    .grid-container { grid-template-columns: 1fr; gap: 12px; }
-    .char-card-col { flex-direction: row; width: 100%; }
-    .char-foto-card {
-        flex-direction: row; align-items: center; gap: 12px;
-        padding: 10px 12px; position: static; flex: 1;
+
+/* ── Tablet largo (≤ 900px) ─────────────────────────────── */
+@media (max-width: 900px) {
+    .grid-container {
+        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
     }
-    .char-foto-card::before { font-size: 22px; }
-    .char-foto-wrap { width: 72px; height: 90px; flex-shrink: 0; }
-    .char-foto-placeholder { font-size: 28px; }
-    .char-foto-nome { font-size: 10px; }
-    .char-foto-btn { font-size: 10px; padding: 6px 8px; }
-    label { width: 90px; font-size: 10px; }
-    input[type="number"] { width: 56px; }
-    .mod-input { width: 60px; }
-    .status-bar { gap: 5px; }
-    .status-bar label { min-width: 80px; }
-    .attr-row { gap: 4px; }
-    .attr-row label { width: 90px; }
-    .attr-row input[type="number"] { width: 52px; }
-    .attr-row .mod-input { width: 56px; }
-    .attr-row .total-stat { font-size: 12px; }
-    .item-card { flex-direction: column; align-items: center; text-align: center; transform: none !important; }
-    .item-card:hover { transform: none !important; }
-    .item-img-container { width: 100%; max-width: 220px; height: 180px; }
-    .btn-remover-item { width: 100%; }
 }
-@media (max-width: 380px) {
-    nav a { min-width: 100%; }
-    label { width: 80px; font-size: 10px; }
-    input[type="number"] { width: 48px; }
-    .mod-input { width: 50px; }
+
+/* ── Tablet / Mobile grande (≤ 750px) ───────────────────── */
+@media (max-width: 750px) {
+    body {
+        padding: 0 8px 24px;
+        padding-top: 56px;
+    }
+    body::before { font-size: 90px; opacity: 0.10; right: -8px; top: 56px; }
+    body::after  { font-size: 90px; opacity: 0.08; }
+
+    /* Janela principal */
+    .rpg-window {
+        padding: 14px 12px;
+        border-radius: 6px;
+    }
+
+    /* Nav — sticky, linha única com scroll horizontal se precisar */
+    nav {
+        gap: 4px;
+        margin-top: 6px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 2px;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+        flex: 1 0 auto;
+        min-width: 72px;
+        font-size: 10px;
+        padding: 10px 8px;
+        white-space: nowrap;
+    }
+
+    /* Grid de colunas → coluna única */
+    .grid-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Card de foto → linha horizontal compacta */
+    .char-card-col {
+        flex-direction: row;
+        width: 100%;
+    }
+    .char-foto-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        position: static;
+        flex: 1;
+        width: 100%;
+    }
+    .char-foto-card::before { font-size: 20px; bottom: 4px; right: 4px; }
+    .char-foto-wrap { width: 68px; height: 86px; flex-shrink: 0; }
+    .char-foto-placeholder { font-size: 26px; }
+    .char-foto-nome { font-size: 10px; letter-spacing: 1px; }
+    .char-foto-classe { font-size: 10px; }
+    .char-foto-btn { font-size: 10px; padding: 7px 8px; }
+
+    /* Labels e inputs */
+    label { width: 84px; font-size: 10px; }
+    input, textarea, select { font-size: 15px; }
+    input[type="number"] { width: 54px; min-width: 44px; font-size: 14px; }
+    .mod-input { width: 64px; min-width: 52px; }
+
+    /* Barras de status */
+    .status-bar {
+        gap: 5px;
+        padding: 8px 8px 8px 10px;
+    }
+    .status-bar label { min-width: 76px; font-size: 10px; }
+    .status-bar .highlight { font-size: 12px; }
+    .status-bar .calc-btn { padding: 8px 10px; font-size: 10px; min-height: 38px; }
+
+    /* Linhas de atributo */
+    .attr-row { gap: 4px; padding: 5px 8px; }
+    .attr-row label { width: 86px; font-size: 10px; }
+    .attr-row input[type="number"] { width: 50px; }
+    .attr-row .mod-input { width: 54px; }
+    .attr-row .total-stat { font-size: 12px; }
+
+    /* Cards de inventário */
+    .item-card {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        transform: none !important;
+        gap: 10px;
+    }
+    .item-card:hover { transform: none !important; }
+    .item-img-container {
+        width: 100%;
+        max-width: 100%;
+        height: 160px;
+        border-radius: 4px;
+    }
+    .item-info { width: 100%; }
+    .btn-remover-item { width: 100%; text-align: center; }
+
+    /* Títulos */
+    h2 { font-size: 11px; letter-spacing: 2px; margin-top: 14px; margin-bottom: 10px; }
+}
+
+/* ── Mobile pequeno (≤ 480px) ────────────────────────────── */
+@media (max-width: 480px) {
+    body { padding-left: 6px; padding-right: 6px; }
+
+    .rpg-window { padding: 12px 10px; }
+    .rpg-window::before, .rpg-window::after { font-size: 20px; }
+
+    nav a { min-width: 64px; font-size: 9px; padding: 9px 6px; letter-spacing: 0.8px; }
+
+    /* Card de foto ainda menor */
+    .char-foto-wrap { width: 58px; height: 74px; }
+    .char-foto-placeholder { font-size: 22px; }
+    .char-foto-btn { font-size: 9px; padding: 6px; }
+
+    /* Labels */
+    label { width: 78px; font-size: 9px; }
+    input[type="number"] { width: 48px; min-width: 40px; }
+    .mod-input { width: 56px; min-width: 46px; }
+
+    /* Status bar — empilha label em linha própria */
+    .status-bar { flex-wrap: wrap; }
+    .status-bar label { width: 100%; min-width: 0; margin-bottom: 2px; }
+    .status-bar input[type="number"] { flex: 1 1 60px; }
+    .status-bar .mod-input { flex: 1 1 80px; }
+    .status-bar .calc-btn { width: 38px; padding: 0; }
+
+    /* Atributos — label em linha própria em telas muito pequenas */
+    .attr-row { flex-wrap: wrap; }
+    .attr-row label { width: 100%; margin-bottom: 2px; }
+    .attr-row input[type="number"] { flex: 1 1 50px; }
+    .attr-row .mod-input { flex: 1 1 60px; }
+    .attr-row .total-stat { margin-left: auto; font-size: 12px; }
+
+    /* Inventário */
+    .item-img-container { height: 140px; }
+
+    /* Botões de ação */
+    .save-btn { font-size: 11px; letter-spacing: 1.5px; padding: 12px; }
+    .calc-btn { min-height: 36px; }
+}
+
+/* ── Mobile muito pequeno (≤ 360px) ─────────────────────── */
+@media (max-width: 360px) {
+    nav { gap: 3px; }
+    nav a { font-size: 9px; padding: 8px 5px; min-width: 58px; letter-spacing: 0.5px; }
+    label { width: 70px; font-size: 9px; }
+    input[type="number"] { width: 44px; min-width: 36px; font-size: 13px; }
+    .mod-input { width: 50px; min-width: 42px; }
+    .char-foto-wrap { width: 52px; height: 66px; }
+    .char-foto-placeholder { font-size: 20px; }
 }
