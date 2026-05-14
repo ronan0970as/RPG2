@@ -291,7 +291,7 @@
                         <button type="button" class="ui-action-btn" data-status-delta="mana:10">Mana +10</button>
                         <button type="button" class="ui-action-btn" data-status-delta="mana:-10">Mana -10</button>
                         <button type="button" class="ui-action-btn" data-status-delta="sanidade:-5">San -5</button>
-                        <button type="button" class="ui-action-btn" data-status-rest="true">Descanso</button>
+                        <button type="button" class="ui-action-btn" data-status-rest="true" style="grid-column: span 2;">Descanso</button>
                     </div>
                 </div>
                 <div class="status-tool-block">
