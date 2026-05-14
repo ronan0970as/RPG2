@@ -2,115 +2,118 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ficha RPG - Status</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Gótica Sombria ── */
+        /* ══ TEMA: Torre Gótica na Floresta Sombria (Foto 2) ══
+           Paleta: azuis-escuros, cinzas, roxo nos detalhes
+        ══════════════════════════════════════════════════════ */
+        :root {
+            --theme-accent:  #7c3aed;
+            --theme-accent2: #a78bfa;
+            --theme-glow:    rgba(124,58,237,0.45);
+            --theme-panel:   rgba(10,8,18,0.82);
+            --theme-border:  rgba(100,70,180,0.50);
+        }
+
         body {
             background-image:
                 linear-gradient(to bottom,
-                    rgba(4,3,2,0.45) 0%,
-                    rgba(6,4,2,0.38) 50%,
-                    rgba(4,3,2,0.50) 100%
+                    rgba(5,4,14,0.15) 0%,
+                    rgba(6,5,16,0.08) 40%,
+                    rgba(5,4,14,0.20) 100%
                 ),
                 url('torre_status.png');
-            background-size: cover;
-            background-position: center center;
+            background-size: 75%;
+            background-position: center top;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
 
-        /* ── Ajustes específicos da página de status ── */
+        /* Decorações temáticas: substituir dragão/castelo por névoa roxa */
+        body::before {
+            content: '🌑';
+            filter: drop-shadow(0 0 30px rgba(124,58,237,0.8));
+            opacity: 0.22;
+        }
+        body::after {
+            content: '🌲';
+            filter: drop-shadow(0 0 20px rgba(100,70,180,0.6));
+            opacity: 0.20;
+        }
 
-        /* Info básica: cada campo ocupa linha inteira */
+        /* Painel com toque roxo-escuro */
+        .rpg-window {
+            background: var(--theme-panel);
+            border-top-color: var(--theme-accent);
+            border-color: var(--theme-border);
+        }
+        .rpg-window::before, .rpg-window::after { content: '🔮'; filter: drop-shadow(0 0 6px var(--theme-glow)); }
+
+        nav a:hover, nav a.active {
+            background: rgba(124,58,237,0.20);
+            border-color: var(--theme-accent2);
+            color: var(--theme-accent2);
+            text-shadow: 0 0 14px var(--theme-glow);
+        }
+        nav::after { background: linear-gradient(90deg, transparent, var(--theme-accent), transparent); }
+        nav::before { content: '🗡️'; filter: drop-shadow(0 0 6px var(--theme-glow)); }
+
+        h2 { color: var(--theme-accent2); text-shadow: 0 0 10px var(--theme-glow); }
+        h2::before { background: linear-gradient(90deg, var(--theme-accent), transparent); }
+
+        .status-bar { border-left-color: var(--theme-accent); background: rgba(124,58,237,0.06); }
+        .attr-row { border-left-color: #5b21b6; }
+        .attr-row:hover { border-left-color: var(--theme-accent2); background: rgba(124,58,237,0.10); }
+        .char-foto-card { border-top-color: var(--theme-accent); border-color: var(--theme-border); }
+        .char-foto-card::before { content: '🏰'; }
+        .char-foto-wrap { border-color: #5b21b6; }
+
+        /* Info básica */
         .section > div {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 8px;
+            display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
         }
-        .section > div label {
-            flex-shrink: 0;
-        }
-        .section > div input {
-            flex: 1;
-            min-width: 100px;
-        }
+        .section > div label { flex-shrink: 0; }
+        .section > div input { flex: 1; min-width: 100px; }
 
-        /* Barra de status: layout flexível — complementa style.css */
+        /* Barra de status */
         .status-bar {
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
-            padding: 8px 10px 8px 14px;
+            display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+            margin-bottom: 12px; background: rgba(124,58,237,0.07);
+            border: 1px solid rgba(100,70,180,0.25); border-left: 3px solid var(--theme-accent);
+            border-radius: 0 6px 6px 0; padding: 8px 10px;
         }
-        .status-bar label {
-            min-width: 80px;
-            width: auto;
-        }
-        .status-bar .highlight {
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
+        .status-bar label { min-width: 80px; width: auto; }
+        .status-bar .highlight { flex-shrink: 0; white-space: nowrap; }
         .status-bar .mod-input { flex: 1; min-width: 50px; }
         .status-bar .calc-btn  { flex-shrink: 0; }
 
-        /* Seletor de gênero */
-        .genero-selector {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            flex: 1;
-            min-width: 0;
-        }
+        /* Gênero */
+        .genero-selector { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
         .genero-btn {
-            background: rgba(14,11,7,0.80);
-            border: 1px solid #333;
-            color: #666;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            font-family: inherit;
-            transition: background 0.2s, border-color 0.2s, color 0.2s;
-            min-height: 40px;
-            white-space: nowrap;
-            flex: 1;
-            min-width: 80px;
+            background: rgba(10,8,18,0.80); border: 1px solid #2d2060; color: #5b4fa0;
+            padding: 8px 14px; border-radius: 5px; cursor: pointer;
+            font-size: 13px; font-weight: bold; font-family: inherit;
+            transition: 0.2s; min-height: 40px; white-space: nowrap;
         }
-        .genero-btn:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-            background: rgba(200,170,110,0.07);
-        }
+        .genero-btn:hover { border-color: var(--theme-accent2); color: var(--theme-accent2); background: rgba(124,58,237,0.10); }
         .genero-btn.ativo {
-            background: rgba(200,170,110,0.15);
-            border-color: var(--gold);
-            color: var(--gold);
-            box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
+            background: rgba(124,58,237,0.18); border-color: var(--theme-accent2);
+            color: var(--theme-accent2); box-shadow: 0 0 0 1px rgba(124,58,237,0.3);
         }
 
-        /* Linha de atributo — complementa style.css */
+        /* Atributos */
         .attr-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
+            display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+            padding: 6px 8px; background: rgba(124,58,237,0.06);
+            border-radius: 0 5px 5px 0; border-left: 2px solid #5b21b6; flex-wrap: wrap;
         }
         .attr-row label { min-width: 90px; width: auto; flex-shrink: 0; }
-        .attr-row > span { color: var(--gold-dark); flex-shrink: 0; }
+        .attr-row > span { color: #5b4fa0; flex-shrink: 0; }
         .attr-row input[type="number"] { width: 56px; flex-shrink: 0; }
         .attr-row .mod-input { flex: 1; min-width: 50px; }
-        .attr-row .total-stat { flex-shrink: 0; font-size: 14px; }
-
-        @media (max-width: 400px) {
-            .attr-row label { width: 100%; margin-bottom: 2px; }
-        }
+        .attr-row .total-stat { flex-shrink: 0; font-size: 14px; color: var(--theme-accent2); text-shadow: 0 0 10px var(--theme-glow); }
     </style>
 </head>
 <body>
@@ -125,7 +128,6 @@
 <div class="rpg-window">
     <div class="grid-container">
 
-        <!-- Card de foto do personagem -->
         <div class="char-card-col">
             <div class="char-foto-card">
                 <div class="char-foto-wrap" id="char-foto-wrap">
@@ -152,9 +154,9 @@
                 <div style="align-items:flex-start;">
                     <label style="padding-top:4px;">Gênero:</label>
                     <div class="genero-selector">
-                        <button type="button" class="genero-btn" data-genero="Masculino" onclick="selecionarGenero(this)" title="Masculino">♂ Masculino</button>
-                        <button type="button" class="genero-btn" data-genero="Feminino"  onclick="selecionarGenero(this)" title="Feminino">♀ Feminino</button>
-                        <button type="button" class="genero-btn" data-genero="Outro"     onclick="selecionarGenero(this)" title="Outro">⚧ Outro</button>
+                        <button type="button" class="genero-btn" data-genero="Masculino" onclick="selecionarGenero(this)">♂ Masculino</button>
+                        <button type="button" class="genero-btn" data-genero="Feminino"  onclick="selecionarGenero(this)">♀ Feminino</button>
+                        <button type="button" class="genero-btn" data-genero="Outro"     onclick="selecionarGenero(this)">⚧ Outro</button>
                     </div>
                 </div>
                 <div><label>Classe:</label> <input type="text" id="classe" placeholder="Ex: Guerreiro, Mago..." autocomplete="off" oninput="atualizarNomeCard()"></div>
@@ -258,25 +260,19 @@
 <script src="buffs.js"></script>
 <script src="java.js"></script>
 <script>
-    // ── Flag de alterações não salvas ──────────────────────
     let _fichaAlterada = false;
     function marcarAlterada() { _fichaAlterada = true; }
 
     window.addEventListener('beforeunload', e => {
-        if (_fichaAlterada) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
+        if (_fichaAlterada) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    // Marca como salva após salvarFicha()
     const _salvarFichaOriginal = salvarFicha;
     salvarFicha = async function() {
         await _salvarFichaOriginal();
         _fichaAlterada = false;
     };
 
-    // Monitora inputs para marcar alteração
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input, textarea, select').forEach(el => {
             el.addEventListener('input', marcarAlterada);
@@ -290,6 +286,5 @@
         marcarAlterada();
     }
 </script>
-<script src="ui-enhancements.js"></script>
 </body>
 </html>

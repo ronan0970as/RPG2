@@ -2,22 +2,23 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Seleção de Fichas - RPG</title>
     <link rel="stylesheet" href="painel_de_escolhas_de_fichas.css">
-    <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Sombria de Cristais ── */
+        /* ══ TEMA: Torre de Cristais Roxa — Espirais Mágicas (Foto 1) ══
+           Paleta: roxo-escuro profundo, cristais brilhantes, névoa
+        ══════════════════════════════════════════════════════ */
         body {
             background-image:
                 linear-gradient(to bottom,
-                    rgba(4,2,8,0.42) 0%,
-                    rgba(5,3,10,0.34) 50%,
-                    rgba(3,2,6,0.50) 100%
+                    rgba(3,1,8,0.12) 0%,
+                    rgba(4,2,10,0.06) 40%,
+                    rgba(3,1,8,0.18) 100%
                 ),
                 url('torre_painel.png');
-            background-size: cover;
-            background-position: center center;
+            background-size: 70%;
+            background-position: center top;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
@@ -298,32 +299,6 @@
     // Fecha com ESC
     document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSidebar(); });
 
-    // ── Fix: ctx-menu overflow — reposiciona se sair da tela ──
-    const _abrirCtxMenuOriginal = window.abrirCtxMenu;
-    document.addEventListener('DOMContentLoaded', () => {
-        // Sobrescreve após painel_de_escolhas_de_fichas.js carregar
-        setTimeout(() => {
-            const origAbrirCtxMenu = window.abrirCtxMenu;
-            window.abrirCtxMenu = function(event, id) {
-                origAbrirCtxMenu(event, id);
-                // Corrige overflow depois do display
-                requestAnimationFrame(() => {
-                    const menu = document.getElementById('ctxMenu');
-                    if (!menu) return;
-                    const rect = menu.getBoundingClientRect();
-                    const vw = window.innerWidth;
-                    const vh = window.innerHeight;
-                    let left = event.clientX;
-                    let top  = event.clientY;
-                    if (left + rect.width  > vw - 8) left = vw - rect.width - 8;
-                    if (top  + rect.height > vh - 8) top  = vh - rect.height - 8;
-                    menu.style.left = `${Math.max(8, left)}px`;
-                    menu.style.top  = `${Math.max(8, top)}px`;
-                });
-            };
-        }, 100);
-    });
-
     // ── Preenche nome do usuário na sidebar e no topo ─────────
     function preencherUsuarioUI() {
         const sessao = typeof getSessao === 'function' ? getSessao() : null;
@@ -393,6 +368,5 @@
         await _criarFichaOriginal();
     };
 </script>
-<script src="ui-enhancements.js"></script>
 </body>
 </html>

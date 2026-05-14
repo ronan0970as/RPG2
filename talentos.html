@@ -2,29 +2,47 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ficha RPG - Talentos</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Mágica Flutuante ── */
+        /* ══ TEMA: Torre Mágica Flutuante — Rio Roxo (Foto 4) ══
+           Paleta: dourado/creme, roxo mágico, névoa suave
+        ══════════════════════════════════════════════════════ */
+        :root {
+            --theme-accent:  #9b59b6;
+            --theme-accent2: #e8d5b7;
+            --theme-glow:    rgba(155,89,182,0.45);
+        }
+
         body {
             background-image:
                 linear-gradient(to bottom,
-                    rgba(6,3,12,0.42) 0%,
-                    rgba(8,4,16,0.34) 50%,
-                    rgba(5,2,10,0.50) 100%
+                    rgba(10,6,18,0.12) 0%,
+                    rgba(12,8,20,0.06) 45%,
+                    rgba(10,6,18,0.18) 100%
                 ),
                 url('torre_talentos.png');
-            background-size: cover;
+            background-size: 70%;
             background-position: center top;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
 
+        /* Decorações: estrelas e magia */
+        body::before { content: '✨'; opacity: 0.25; filter: drop-shadow(0 0 30px rgba(155,89,182,0.9)); font-size: 140px; }
+        body::after  { content: '🌊'; opacity: 0.20; filter: drop-shadow(0 0 20px rgba(155,89,182,0.6)); font-size: 140px; }
+
+        /* Painel com toque mágico */
+        .rpg-window { background: rgba(12,8,20,0.80); border-top-color: #9b59b6; border-color: rgba(155,89,182,0.45); }
+        .rpg-window::before, .rpg-window::after { content: '✨'; filter: drop-shadow(0 0 6px rgba(155,89,182,0.6)); }
+        nav::after { background: linear-gradient(90deg, transparent, #9b59b6, transparent); }
+        nav::before { content: '🔮'; filter: drop-shadow(0 0 6px rgba(155,89,182,0.5)); }
+        nav a:hover, nav a.active { background: rgba(155,89,182,0.18); border-color: #c39bd3; color: #c39bd3; text-shadow: 0 0 14px rgba(155,89,182,0.7); }
+
         /* ══ Status pills ══════════════════════════════════════ */
         .status-panel { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .status-pill { flex: 1; min-width: 0; background: rgba(14,10,5,0.80); border: 1px solid rgba(160,120,40,0.35); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; transition: border-color 0.2s; backdrop-filter: blur(3px); }
+        .status-pill { flex: 1; min-width: 150px; background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; transition: border-color 0.2s; }
         .status-pill:hover { border-color: #c8aa6e; }
         .status-pill .s-label { font-size: 12px; font-weight: bold; color: #888; text-transform: uppercase; white-space: nowrap; }
         .status-pill .bar-wrap { flex: 1; height: 8px; background: #0f0f0f; border-radius: 4px; overflow: hidden; }
@@ -37,7 +55,7 @@
 
         /* ══ Grid de atributos ════════════════════════════════ */
         .attr-resumo { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 20px; }
-        .attr-chip { background: rgba(14,10,5,0.75); border: 1px solid rgba(160,120,40,0.3); border-radius: 5px; padding: 7px 10px; text-align: center; transition: border-color 0.2s; backdrop-filter: blur(2px); }
+        .attr-chip { background: #111; border: 1px solid #2a2a2a; border-radius: 5px; padding: 7px 10px; text-align: center; transition: border-color 0.2s; }
         .attr-chip:hover { border-color: #c8aa6e; }
         .attr-chip .a-nome { font-size: 10px; color: #888; text-transform: uppercase; }
         .attr-chip .a-val  { font-size: 20px; font-weight: bold; color: #4CAF50; margin: 2px 0; }
@@ -46,7 +64,7 @@
 
         /* ══ Lista de talentos ════════════════════════════════ */
         #lista-talentos { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
-        .talento-card { background: rgba(14,10,5,0.82); border: 1px solid rgba(160,120,40,0.28); border-radius: 6px; padding: 14px; transition: border-color 0.3s, opacity 0.3s; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        .talento-card { background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 14px; transition: border-color 0.3s, opacity 0.3s; }
         .talento-card.ativo  { border-color: #4CAF50; }
         .talento-card.inativo { opacity: 0.5; border-color: #2a2a2a; }
 
@@ -136,25 +154,14 @@
         .btn-salvar { flex: 1; background: #4CAF50; color: white; border: none; padding: 14px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 15px; transition: background 0.2s; min-height: 48px; }
         .btn-salvar:hover { background: #45a049; }
 
-        #toast {
-            position: fixed;
-            bottom: 24px; left: 16px;
-            background: #1a1a1a; border: 1px solid #c8aa6e;
-            color: #c8aa6e; padding: 12px 18px; border-radius: 6px;
-            font-weight: bold; font-size: 14px;
-            opacity: 0; transform: translateY(8px);
-            transition: opacity 0.3s, transform 0.3s;
-            pointer-events: none; z-index: 9995;
-            max-width: calc(100vw - 32px);
-        }
+        #toast { position: fixed; bottom: 24px; right: 16px; background: #1a1a1a; border: 1px solid #c8aa6e; color: #c8aa6e; padding: 12px 18px; border-radius: 6px; font-weight: bold; font-size: 14px; opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 999; }
         #toast.show { opacity: 1; transform: translateY(0); }
 
         /* ══ Barra de Pesquisa ══════════════════════════════════ */
         .pesquisa-bar {
             display: flex; flex-direction: column; gap: 10px;
-            background: rgba(10,6,20,0.78); border: 1px solid rgba(130,80,220,0.35); border-radius: 6px;
+            background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
             padding: 14px; margin-bottom: 16px;
-            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         }
         .pesquisa-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .pesquisa-label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
@@ -1315,6 +1322,5 @@ function filtrarTalentos() {
     if (rpgWindow) { rpgWindow.style.transition = 'opacity 0.25s'; rpgWindow.style.opacity = '1'; }
 })();
 </script>
-<script src="ui-enhancements.js"></script>
 </body>
 </html>
