@@ -2,50 +2,25 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Ficha RPG - Inventário</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ══ TEMA: Torre Medieval Anime — Dia Ensolarado (Foto 3) ══
-           Paleta: verdes naturais, pedra clara, céu azul
-        ══════════════════════════════════════════════════════ */
-        :root {
-            --theme-accent:  #5d8a3c;
-            --theme-accent2: #8fbc5a;
-            --theme-glow:    rgba(93,138,60,0.45);
-            --theme-panel:   rgba(8,12,6,0.78);
-            --theme-border:  rgba(80,130,50,0.45);
-        }
-
+        /* ── Fundo temático: Torre Medieval Clássica ── */
         body {
             background-image:
                 linear-gradient(to bottom,
-                    rgba(4,8,3,0.12) 0%,
-                    rgba(5,10,4,0.06) 45%,
-                    rgba(4,8,3,0.18) 100%
+                    rgba(4,4,2,0.40) 0%,
+                    rgba(5,5,3,0.32) 50%,
+                    rgba(4,4,2,0.48) 100%
                 ),
                 url('torre_itens.png');
-            background-size: 72%;
-            background-position: center top;
+            background-size: cover;
+            background-position: center center;
             background-attachment: fixed;
             background-repeat: no-repeat;
         }
-
-        /* Decorações: natureza */
-        body::before { content: '🌿'; opacity: 0.22; filter: drop-shadow(0 0 20px rgba(93,138,60,0.7)); font-size: 150px; }
-        body::after  { content: '🪨'; opacity: 0.18; filter: drop-shadow(0 0 15px rgba(80,130,50,0.5)); font-size: 150px; }
-
-        /* Painel verde-escuro natural */
-        .rpg-window { background: var(--theme-panel); border-top-color: var(--theme-accent); border-color: var(--theme-border); }
-        .rpg-window::before, .rpg-window::after { content: '🌿'; filter: drop-shadow(0 0 6px var(--theme-glow)); }
-        nav::after { background: linear-gradient(90deg, transparent, var(--theme-accent), transparent); }
-        nav::before { content: '🗡️'; filter: drop-shadow(0 0 6px var(--theme-glow)); }
-        nav a:hover, nav a.active { background: rgba(93,138,60,0.18); border-color: var(--theme-accent2); color: var(--theme-accent2); text-shadow: 0 0 14px var(--theme-glow); }
-        h2 { color: var(--theme-accent2); text-shadow: 0 0 10px var(--theme-glow); }
-        h2::before { background: linear-gradient(90deg, var(--theme-accent), transparent); }
-        .item-card { border-left-color: var(--theme-accent); }
-        .item-card:hover { border-left-color: var(--theme-accent2); }
-        .item-info h3 { color: var(--theme-accent2); text-shadow: 0 0 10px var(--theme-glow); }
 
         .crop-controls input[type="range"] { height:36px; accent-color:#c8aa6e; cursor:pointer; }
         .file-input { display:block; width:100%; padding:10px 0; font-size:15px; }
@@ -53,8 +28,12 @@
         /* Toolbar busca + contador */
         .inv-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
         .inv-busca-wrap { flex:1; min-width:160px; position:relative; }
-        .inv-busca-wrap input { padding-left:32px; font-size:14px; }
-        .inv-busca-wrap::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:13px; pointer-events:none; }
+        .inv-busca-wrap input { padding-left:36px; font-size:14px; }
+        .inv-busca-icone {
+            position:absolute; left:10px; top:50%; transform:translateY(-50%);
+            font-size:14px; pointer-events:none; z-index:1; line-height:1;
+            color: var(--ink-dim, #9a8e6e);
+        }
         .inv-count { font-size:12px; color:#555; white-space:nowrap; align-self:center; }
 
         /* Filtros de categoria */
@@ -87,18 +66,22 @@
             padding:10px 18px; border-radius:5px; cursor:pointer; font-size:14px;
             font-weight:bold; font-family:inherit; width:100%; text-align:left;
             display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
+            transition: background 0.2s;
         }
         .form-toggle-btn:hover { background:rgba(200,170,110,.15); }
-        .form-collapse { transition:max-height .3s ease, opacity .3s; overflow:hidden; }
-        .form-collapse.fechado { max-height:0; opacity:0; pointer-events:none; }
-        .form-collapse.aberto  { max-height:9999px; opacity:1; }
+        .form-collapse {
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+        }
+        .form-collapse.fechado { max-height: 0; opacity: 0; pointer-events: none; }
+        .form-collapse.aberto  { max-height: 1200px; opacity: 1; }
 
         /* Skeleton loader */
-        .skeleton-card { display:flex; gap:14px; padding:14px; background:#111; border:1px solid #1e1e1e; border-radius:8px; margin-bottom:12px; animation:skel 1.4s ease-in-out infinite; }
-        .skeleton-line { background:#222; border-radius:4px; }
-        .skeleton-img  { width:90px; height:90px; background:#222; border-radius:6px; flex-shrink:0; }
-        .skeleton-body { flex:1; display:flex; flex-direction:column; gap:8px; }
-        @keyframes skel { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .skeleton-card { display:flex; gap:14px; padding:14px; background:rgba(14,10,5,0.78); border:1px solid rgba(160,120,40,0.3); border-radius:4px; margin-bottom:12px; }
+        .skeleton-line { background:rgba(255,255,255,0.07); border-radius:4px; animation:skel 1.6s ease-in-out infinite; }
+        .skeleton-img  { width:110px; height:110px; background:rgba(255,255,255,0.07); border-radius:4px; flex-shrink:0; animation:skel 1.6s ease-in-out infinite; }
+        .skeleton-body { flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center; }
+        @keyframes skel { 0%,100%{opacity:0.6} 50%{opacity:0.25} }
 
         @media (max-width:750px) {
             .inv-cat-btn { padding:5px 8px; font-size:11px; }
@@ -205,6 +188,7 @@
     <!-- Busca + contador -->
     <div class="inv-toolbar">
         <div class="inv-busca-wrap">
+            <span class="inv-busca-icone">🔍</span>
             <input type="text" id="inv-busca"
                 placeholder="Buscar por nome ou descrição..."
                 oninput="_renderizarInventarioLocal(); _atualizarCount()">
@@ -295,5 +279,6 @@
         _atualizarCount();
     };
 </script>
+<script src="ui-enhancements.js"></script>
 </body>
 </html>
