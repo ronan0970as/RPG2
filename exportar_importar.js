@@ -1,11 +1,17 @@
 // ════════════════════════════════════════════════════════════
-//  exportar_importar.js
+//  exportar_importar.js  (v2 — corrigido)
 //  Exporta e importa fichas RPG em JSON (completo) e CSV (resumo)
 //
-//  COMO USAR:
-//  Adicione este script nas páginas que quiser o botão:
-//  <script src="exportar_importar.js"></script>
-//  O painel de exportação/importação é injetado automaticamente.
+//  CORREÇÕES v2:
+//  [FIX-1] Injeção do painel ocorre APÓS ui-enhancements criar o
+//          .ui-ambient-panel, usando requestAnimationFrame + fallback.
+//  [FIX-2] Aguarda window._supaClient estar disponível antes de usar
+//          (polling com limite de tentativas).
+//  [FIX-3] importarFicha() no painel de fichas agora usa o sistema
+//          real de importação JSON em vez de alert().
+//  [FIX-4] Painel injetado dentro do .rpg-window para garantir
+//          enquadramento correto em mobile.
+//  [FIX-5] CSS mobile-first com margens corretas em telas pequenas.
 // ════════════════════════════════════════════════════════════
 
 (function () {
@@ -15,6 +21,14 @@
     function onReady(fn) {
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
         else fn();
+    }
+
+    // ── [FIX-2] Aguarda _supaClient estar disponível ───────
+    function aguardarSupa(callback, tentativas) {
+        tentativas = tentativas || 0;
+        if (window._supaClient) { callback(window._supaClient); return; }
+        if (tentativas > 40) { console.error('[exp-imp] _supaClient não encontrado após 4s.'); return; }
+        setTimeout(() => aguardarSupa(callback, tentativas + 1), 100);
     }
 
     // ── Helpers de download ────────────────────────────────
@@ -40,8 +54,8 @@
         if (!fichaId) throw new Error('Nenhuma ficha ativa encontrada.');
 
         const supa = window._supaClient;
+        if (!supa) throw new Error('Cliente Supabase não disponível.');
 
-        // Busca dados da ficha (nome, classe, img, genero)
         const { data: fichaInfo, error: erroFicha } = await supa
             .from('fichas')
             .select('*')
@@ -50,7 +64,6 @@
 
         if (erroFicha) throw new Error('Erro ao buscar ficha: ' + erroFicha.message);
 
-        // Busca status, talentos e inventário
         const { data: fichasDados, error: erroDados } = await supa
             .from('fichas_dados')
             .select('tipo, valor')
@@ -103,8 +116,7 @@
     }
 
     // ════════════════════════════════════════════════════════
-    //  EXPORTAR CSV — tabela para Excel/Sheets
-    //  Gera 3 abas em arquivos separados: status, talentos, inventário
+    //  EXPORTAR CSV
     // ════════════════════════════════════════════════════════
     async function exportarCSV() {
         mostrarLoadingBtn('btn-exp-csv', '⏳ Exportando...');
@@ -114,7 +126,6 @@
             const data     = new Date().toISOString().slice(0, 10);
             const s        = dados.status || {};
 
-            // ── CSV 1: Status ──────────────────────────────
             const linhasStatus = [
                 ['Campo', 'Valor'],
                 ['Nome',          fichaInfo.nome   || ''],
@@ -144,13 +155,8 @@
                 ['Furtividade Bônus', s.furtBonus  || '0'],
                 ['Habilidades Ativas', s.habilidades || ''],
             ];
-            baixarArquivo(
-                linhasParaCSV(linhasStatus),
-                `${nomeFich}_status_${data}.csv`,
-                'text/csv;charset=utf-8;'
-            );
+            baixarArquivo(linhasParaCSV(linhasStatus), `${nomeFich}_status_${data}.csv`, 'text/csv;charset=utf-8;');
 
-            // ── CSV 2: Talentos ────────────────────────────
             const talentos = dados.talentos || [];
             const linhasTalentos = [
                 ['Nome', 'Categoria', 'Tipo', 'Raça', 'Classe', 'Ativo', 'Descrição',
@@ -173,13 +179,8 @@
                     t.buffs?.furtividade  || '',
                 ])
             ];
-            baixarArquivo(
-                linhasParaCSV(linhasTalentos),
-                `${nomeFich}_talentos_${data}.csv`,
-                'text/csv;charset=utf-8;'
-            );
+            baixarArquivo(linhasParaCSV(linhasTalentos), `${nomeFich}_talentos_${data}.csv`, 'text/csv;charset=utf-8;');
 
-            // ── CSV 3: Inventário ──────────────────────────
             const inventario = dados.inventario || [];
             const linhasInv = [
                 ['Nome', 'Categoria', 'Quantidade', 'Descrição'],
@@ -190,11 +191,7 @@
                     i.descricao  || '',
                 ])
             ];
-            baixarArquivo(
-                linhasParaCSV(linhasInv),
-                `${nomeFich}_inventario_${data}.csv`,
-                'text/csv;charset=utf-8;'
-            );
+            baixarArquivo(linhasParaCSV(linhasInv), `${nomeFich}_inventario_${data}.csv`, 'text/csv;charset=utf-8;');
 
             mostrarToastExp('✅ 3 arquivos CSV exportados!', '#4CAF50');
         } catch (e) {
@@ -204,7 +201,6 @@
         }
     }
 
-    // ── Converte array de linhas para string CSV ───────────
     function linhasParaCSV(linhas) {
         return '\uFEFF' + linhas.map(linha =>
             linha.map(celula => {
@@ -218,8 +214,8 @@
     //  IMPORTAR JSON — restaura ficha completa
     // ════════════════════════════════════════════════════════
     function importarJSON() {
-        const input = document.createElement('input');
-        input.type  = 'file';
+        const input  = document.createElement('input');
+        input.type   = 'file';
         input.accept = '.json,application/json';
         input.onchange = async (e) => {
             const file = e.target.files[0];
@@ -230,7 +226,6 @@
                 const texto = await file.text();
                 const dados = JSON.parse(texto);
 
-                // Validação básica
                 if (!dados._app || dados._app !== 'Ficha RPG') {
                     throw new Error('Arquivo inválido. Use um JSON exportado por esta aplicação.');
                 }
@@ -243,14 +238,15 @@
                     `⚠️ Isso vai SUBSTITUIR todos os dados da ficha atual.\n` +
                     `Exportado em: ${new Date(dados._exportadoEm).toLocaleString('pt-BR')}`
                 );
-                if (!confirmou) return;
+                if (!confirmou) { restaurarBtn('btn-imp-json', '📂 Importar JSON'); return; }
+
+                // [FIX-2] Garante supa disponível
+                const supa = window._supaClient;
+                if (!supa) throw new Error('Cliente Supabase não disponível. Recarregue a página.');
 
                 const fichaId = typeof getFichaId === 'function' ? getFichaId() : null;
-                if (!fichaId) throw new Error('Nenhuma ficha ativa.');
+                if (!fichaId) throw new Error('Nenhuma ficha ativa. Selecione uma ficha primeiro.');
 
-                const supa = window._supaClient;
-
-                // Atualiza ficha (nome, classe, genero, img)
                 await supa.from('fichas').update({
                     nome:   dados.ficha.nome   || '',
                     classe: dados.ficha.classe || '',
@@ -258,15 +254,15 @@
                     img:    dados.ficha.img    || ''
                 }).eq('id', fichaId);
 
-                // Salva cada tipo de dado
                 const tipos = ['status', 'talentos', 'inventario'];
                 for (const tipo of tipos) {
                     if (dados[tipo] === undefined) continue;
-                    await supa.from('fichas_dados').upsert({
+                    const { error } = await supa.from('fichas_dados').upsert({
                         ficha_id: fichaId,
                         tipo,
                         valor: JSON.stringify(dados[tipo])
                     }, { onConflict: 'ficha_id,tipo' });
+                    if (error) throw new Error(`Erro ao salvar ${tipo}: ${error.message}`);
                 }
 
                 mostrarToastExp('✅ Ficha importada! Recarregando...', '#4CAF50');
@@ -282,7 +278,7 @@
     }
 
     // ════════════════════════════════════════════════════════
-    //  IMPORTAR CSV — apenas status (CSV é limitado)
+    //  IMPORTAR CSV — apenas status
     // ════════════════════════════════════════════════════════
     function importarCSV() {
         const input   = document.createElement('input');
@@ -294,10 +290,9 @@
 
             mostrarLoadingBtn('btn-imp-csv', '⏳ Importando...');
             try {
-                const texto = await file.text();
+                const texto  = await file.text();
                 const linhas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
 
-                // Detecta se é CSV de status (2 colunas: Campo, Valor)
                 const cabecalho = linhas[0].split(',').map(c => c.replace(/"/g, '').trim());
                 if (cabecalho[0] !== 'Campo' || cabecalho[1] !== 'Valor') {
                     throw new Error(
@@ -306,7 +301,6 @@
                     );
                 }
 
-                // Monta objeto de dados a partir das linhas
                 const mapa = {};
                 linhas.slice(1).forEach(linha => {
                     const partes = parsarLinhaCSV(linha);
@@ -339,11 +333,13 @@
                     'Habilidades Ativas':    'habilidades',
                 };
 
-                // Carrega status atual e mescla com os dados do CSV
+                // [FIX-2] Garante supa disponível
+                const supa = window._supaClient;
+                if (!supa) throw new Error('Cliente Supabase não disponível. Recarregue a página.');
+
                 const fichaId = typeof getFichaId === 'function' ? getFichaId() : null;
                 if (!fichaId) throw new Error('Nenhuma ficha ativa.');
 
-                const supa = window._supaClient;
                 const { data: atual } = await supa
                     .from('fichas_dados')
                     .select('valor')
@@ -358,7 +354,6 @@
                     if (mapa[campo] !== undefined) statusAtual[chave] = mapa[campo];
                 });
 
-                // Atualiza também nome/classe na tabela fichas se existirem no CSV
                 const updates = {};
                 if (mapa['Nome'])   updates.nome   = mapa['Nome'];
                 if (mapa['Classe']) updates.classe = mapa['Classe'];
@@ -367,11 +362,13 @@
                     await supa.from('fichas').update(updates).eq('id', fichaId);
                 }
 
-                await supa.from('fichas_dados').upsert({
+                const { error: erroUpsert } = await supa.from('fichas_dados').upsert({
                     ficha_id: fichaId,
                     tipo: 'status',
                     valor: JSON.stringify(statusAtual)
                 }, { onConflict: 'ficha_id,tipo' });
+
+                if (erroUpsert) throw new Error('Erro ao salvar status: ' + erroUpsert.message);
 
                 mostrarToastExp('✅ Status importado via CSV! Recarregando...', '#4CAF50');
                 setTimeout(() => window.location.reload(), 1500);
@@ -385,7 +382,7 @@
         input.click();
     }
 
-    // ── Parser simples de linha CSV (respeita aspas) ───────
+    // ── Parser simples de linha CSV ────────────────────────
     function parsarLinhaCSV(linha) {
         const resultado = [];
         let campo = '';
@@ -408,9 +405,16 @@
 
     // ════════════════════════════════════════════════════════
     //  UI — Painel injetado na página
+    //  [FIX-1] Usa requestAnimationFrame para aguardar o
+    //          ui-ambient-panel ser criado primeiro.
+    //  [FIX-4] Injetado dentro do .rpg-window para mobile.
+    //  [FIX-5] CSS mobile-first completo.
     // ════════════════════════════════════════════════════════
     function injetarPainel() {
         if (document.getElementById('exp-imp-painel')) return;
+
+        // Determina se é página de fichas (sem rpg-window)
+        const isPainelFichas = !!document.querySelector('.grid-personagens, #gridPersonagens');
 
         const painel = document.createElement('section');
         painel.id = 'exp-imp-painel';
@@ -426,6 +430,14 @@
                     border-radius: 6px;
                     box-shadow: 0 10px 30px rgba(0,0,0,0.38);
                     backdrop-filter: blur(6px);
+                    -webkit-backdrop-filter: blur(6px);
+                    box-sizing: border-box;
+                }
+                /* Dentro do rpg-window não precisa de max-width */
+                .rpg-window #exp-imp-painel {
+                    max-width: none;
+                    margin-left: 0;
+                    margin-right: 0;
                 }
                 .exp-imp-titulo {
                     font-family: var(--font-heading, serif);
@@ -435,6 +447,9 @@
                     letter-spacing: 1.4px;
                     text-transform: uppercase;
                     margin-bottom: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
                 }
                 .exp-imp-grid {
                     display: grid;
@@ -462,8 +477,9 @@
                 }
                 .exp-imp-btn {
                     flex: 1;
-                    min-height: 38px;
-                    padding: 7px 10px;
+                    min-width: 0;
+                    min-height: 40px;
+                    padding: 8px 10px;
                     border: 1px solid var(--gold-dark, #a07828);
                     border-radius: 5px;
                     background: rgba(20,16,8,0.78);
@@ -476,6 +492,8 @@
                     text-transform: uppercase;
                     transition: border-color 0.2s, background 0.2s, color 0.2s;
                     white-space: nowrap;
+                    -webkit-tap-highlight-color: transparent;
+                    touch-action: manipulation;
                 }
                 .exp-imp-btn:hover {
                     border-color: var(--gold-light, #f5d06e);
@@ -490,7 +508,10 @@
                     margin-top: 7px;
                     font-size: 11px;
                     color: var(--ink-dim, #9a8e6e);
-                    line-height: 1.4;
+                    line-height: 1.45;
+                }
+                .exp-imp-nota strong {
+                    color: var(--gold, #d4a943);
                 }
                 #exp-imp-toast {
                     display: none;
@@ -499,10 +520,36 @@
                     border-radius: 5px;
                     font-size: 13px;
                     font-weight: bold;
+                    word-break: break-word;
+                }
+                /* ── Responsividade mobile ── */
+                @media (max-width: 750px) {
+                    #exp-imp-painel {
+                        margin-left: 0;
+                        margin-right: 0;
+                        padding: 10px 12px;
+                    }
                 }
                 @media (max-width: 520px) {
-                    .exp-imp-grid { grid-template-columns: 1fr; }
-                    .exp-imp-btn { font-size: 10px; }
+                    #exp-imp-painel {
+                        padding: 10px;
+                        border-radius: 4px;
+                    }
+                    .exp-imp-grid {
+                        grid-template-columns: 1fr;
+                        gap: 8px;
+                    }
+                    .exp-imp-btn {
+                        font-size: 10px;
+                        min-height: 38px;
+                        padding: 7px 8px;
+                    }
+                    .exp-imp-nota {
+                        font-size: 10px;
+                    }
+                }
+                @media (max-width: 360px) {
+                    .exp-imp-btn { font-size: 9px; letter-spacing: 0.4px; }
                 }
             </style>
 
@@ -514,16 +561,16 @@
                 <div class="exp-imp-grupo">
                     <div class="exp-imp-grupo-titulo">📤 Exportar</div>
                     <div class="exp-imp-btns">
-                        <button id="btn-exp-json" class="exp-imp-btn" onclick="window._expImp.exportarJSON()">
+                        <button id="btn-exp-json" class="exp-imp-btn" type="button">
                             📦 Exportar JSON
                         </button>
-                        <button id="btn-exp-csv" class="exp-imp-btn" onclick="window._expImp.exportarCSV()">
+                        <button id="btn-exp-csv" class="exp-imp-btn" type="button">
                             📊 Exportar CSV
                         </button>
                     </div>
                     <div class="exp-imp-nota">
-                        <strong style="color:var(--gold,#d4a943)">JSON</strong> — backup completo (status, talentos, inventário, foto).<br>
-                        <strong style="color:var(--gold,#d4a943)">CSV</strong> — 3 arquivos para Excel/Sheets (sem foto).
+                        <strong>JSON</strong> — backup completo (status, talentos, inventário, foto).<br>
+                        <strong>CSV</strong> — 3 arquivos para Excel/Sheets (sem foto).
                     </div>
                 </div>
 
@@ -531,16 +578,16 @@
                 <div class="exp-imp-grupo">
                     <div class="exp-imp-grupo-titulo">📥 Importar</div>
                     <div class="exp-imp-btns">
-                        <button id="btn-imp-json" class="exp-imp-btn" onclick="window._expImp.importarJSON()">
+                        <button id="btn-imp-json" class="exp-imp-btn" type="button">
                             📂 Importar JSON
                         </button>
-                        <button id="btn-imp-csv" class="exp-imp-btn" onclick="window._expImp.importarCSV()">
+                        <button id="btn-imp-csv" class="exp-imp-btn" type="button">
                             📋 Importar CSV
                         </button>
                     </div>
                     <div class="exp-imp-nota">
-                        <strong style="color:var(--gold,#d4a943)">JSON</strong> — restaura tudo (substitui ficha atual).<br>
-                        <strong style="color:var(--gold,#d4a943)">CSV</strong> — importa apenas o arquivo de <em>status</em>.
+                        <strong>JSON</strong> — restaura tudo (substitui ficha atual).<br>
+                        <strong>CSV</strong> — importa apenas o arquivo de <em>status</em>.
                     </div>
                 </div>
 
@@ -549,10 +596,51 @@
             <div id="exp-imp-toast"></div>
         `;
 
-        // Injeta após o painel de ambiente (ui-ambient-panel) ou no início do rpg-window
-        const anchor = document.querySelector('.ui-ambient-panel') || document.querySelector('.rpg-window');
-        if (anchor) anchor.insertAdjacentElement('afterend', painel);
-        else document.body.appendChild(painel);
+        // Vincula eventos (sem onclick inline para evitar CSP issues)
+        painel.querySelector('#btn-exp-json').addEventListener('click', exportarJSON);
+        painel.querySelector('#btn-exp-csv').addEventListener('click', exportarCSV);
+        painel.querySelector('#btn-imp-json').addEventListener('click', importarJSON);
+        painel.querySelector('#btn-imp-csv').addEventListener('click', importarCSV);
+
+        _injetarPainelNoDOM(painel, isPainelFichas);
+    }
+
+    // ── [FIX-1] Injeção inteligente com retry ─────────────
+    function _injetarPainelNoDOM(painel, isPainelFichas) {
+        // 1) Dentro do rpg-window — antes do botão salvar ou no final
+        const rpgWindow = document.querySelector('.rpg-window');
+        if (rpgWindow) {
+            const saveBtn = rpgWindow.querySelector('.save-btn');
+            if (saveBtn) {
+                saveBtn.insertAdjacentElement('beforebegin', painel);
+            } else {
+                rpgWindow.appendChild(painel);
+            }
+            return;
+        }
+
+        // 2) Página de fichas — após o painel de ambiente ou antes do grid
+        if (isPainelFichas) {
+            const ambientPanel = document.querySelector('.ui-ambient-panel');
+            if (ambientPanel) {
+                ambientPanel.insertAdjacentElement('afterend', painel);
+                return;
+            }
+            // Se ainda não existe, tenta novamente após o ui-enhancements
+            const grid = document.querySelector('#gridPersonagens, .grid-personagens');
+            if (grid) {
+                grid.insertAdjacentElement('beforebegin', painel);
+                return;
+            }
+        }
+
+        // 3) Fallback: após ui-ambient-panel ou no body
+        const ambientPanel = document.querySelector('.ui-ambient-panel');
+        if (ambientPanel) {
+            ambientPanel.insertAdjacentElement('afterend', painel);
+        } else {
+            document.body.appendChild(painel);
+        }
     }
 
     // ── Feedback visual nos botões ─────────────────────────
@@ -573,19 +661,25 @@
     function mostrarToastExp(msg, cor) {
         const toast = document.getElementById('exp-imp-toast');
         if (!toast) return;
-        toast.textContent   = msg;
-        toast.style.display = 'block';
-        toast.style.background  = cor === '#4CAF50' ? 'rgba(76,175,80,0.12)' : 'rgba(231,76,60,0.12)';
-        toast.style.border      = `1px solid ${cor}`;
-        toast.style.color       = cor;
+        toast.textContent        = msg;
+        toast.style.display      = 'block';
+        toast.style.background   = cor === '#4CAF50' ? 'rgba(76,175,80,0.12)' : 'rgba(231,76,60,0.12)';
+        toast.style.border       = `1px solid ${cor}`;
+        toast.style.color        = cor;
         clearTimeout(toast._timer);
-        toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 5000);
     }
 
     // ── Expõe funções globalmente ──────────────────────────
     window._expImp = { exportarJSON, exportarCSV, importarJSON, importarCSV };
 
-    // ── Inicia ─────────────────────────────────────────────
-    onReady(injetarPainel);
+    // ── [FIX-1] Inicia após DOM + pequena espera para ui-enhancements ──
+    onReady(() => {
+        // Usa requestAnimationFrame para garantir que ui-enhancements.js
+        // já rodou e criou o .ui-ambient-panel
+        requestAnimationFrame(() => {
+            setTimeout(injetarPainel, 80);
+        });
+    });
 
 })();
