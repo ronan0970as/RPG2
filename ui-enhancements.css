@@ -197,9 +197,17 @@ body {
 
 .dice-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 84px;
+    grid-template-columns: minmax(80px, 1fr) 84px;
     gap: 8px;
     margin-bottom: 8px;
+}
+
+#dice-expression {
+    min-width: 0;
+    width: 100%;
+    font-size: 14px;
+    text-align: center;
+    letter-spacing: 1px;
 }
 
 .dice-presets {
@@ -324,7 +332,7 @@ body {
 
     /* Dados: expressão e botão em linha, presets em 3 colunas */
     .dice-controls {
-        grid-template-columns: minmax(0, 1fr) 76px;
+        grid-template-columns: minmax(80px, 1fr) 76px;
         gap: 7px;
     }
     .dice-presets {
