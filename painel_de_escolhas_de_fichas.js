@@ -418,3 +418,86 @@ async function excluirFichaAtual() {
     fichaContextoId = null;
     renderizar();
 }
+// ── Downloads de Templates (CSV e TXT) ─────────────────────
+
+// Função auxiliar para forçar o download no navegador
+function dispararDownloadArquivo(conteudo, nomeArquivo, tipoMime) {
+    const blob = new Blob([conteudo], { type: tipoMime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    a.style.display = 'none';
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // Pequeno delay para garantir que funcione em todos os navegadores
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 2000);
+}
+
+// Gera e baixa o Template CSV
+window.baixarTemplateCSV = function() {
+    // Cabeçalho e campos baseados no importador do exportar_importar.js
+    const cabecalho = "Campo,Valor\n";
+    const linhas = [
+        "Nome,",
+        "Classe,",
+        "Gênero,",
+        "Jogador,",
+        "Personagem,",
+        "Raça,",
+        "Idade,",
+        "Nível,1",
+        "Vida Atual,10",
+        "Mana Atual,10",
+        "Sanidade,10",
+        "Força Base,0",
+        "Velocidade Base,0",
+        "Inteligência Base,0",
+        "Defesa Base,0",
+        "Pontaria Base,0",
+        "Carisma Base,0",
+        "Furtividade Base,0",
+        "Habilidades Ativas,"
+    ];
+    
+    // O \uFEFF garante que o Excel leia os acentos (UTF-8 com BOM) corretamente
+    const csvContent = "\uFEFF" + cabecalho + linhas.join("\n");
+    
+    dispararDownloadArquivo(csvContent, "template_importacao_status.csv", "text/csv;charset=utf-8;");
+    if (typeof _mostrarToastPainel === 'function') _mostrarToastPainel('✅ Template CSV baixado!', '#4CAF50');
+};
+
+// Gera e baixa o Template TXT
+window.baixarTemplateTXT = function() {
+    const txtContent = `=== TEMPLATE DE FICHA RPG ===
+Preencha os dados abaixo e importe no sistema (se suportado).
+
+Nome: 
+Classe: 
+Gênero: 
+Jogador: 
+Personagem: 
+Raça: 
+Idade: 
+Nível: 1
+Vida Atual: 10
+Mana Atual: 10
+Sanidade: 10
+Força Base: 0
+Velocidade Base: 0
+Inteligência Base: 0
+Defesa Base: 0
+Pontaria Base: 0
+Carisma Base: 0
+Furtividade Base: 0
+Habilidades Ativas: 
+`;
+
+    dispararDownloadArquivo(txtContent, "template_ficha.txt", "text/plain;charset=utf-8;");
+    if (typeof _mostrarToastPainel === 'function') _mostrarToastPainel('✅ Template TXT baixado!', '#4CAF50');
+};
