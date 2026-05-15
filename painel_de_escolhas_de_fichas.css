@@ -47,20 +47,22 @@ body::before {
     content: '💎';
     position: fixed;
     top: 60px; right: -20px;
-    font-size: 200px; opacity: 0.18;
+    font-size: 140px; opacity: 0.14;
     transform: scaleX(-1) rotate(-8deg);
     pointer-events: none; z-index: 0;
     filter: drop-shadow(0 0 40px rgba(140,80,220,0.9));
     animation: crystalFloat 9s ease-in-out infinite;
+    max-width: 40vw; overflow: hidden;
 }
 /* Magia decorativa */
 body::after {
     content: '🔮';
     position: fixed;
     bottom: -15px; left: -15px;
-    font-size: 200px; opacity: 0.16;
+    font-size: 140px; opacity: 0.13;
     pointer-events: none; z-index: 0;
     filter: drop-shadow(0 0 30px rgba(130,60,200,0.7));
+    max-width: 40vw; overflow: hidden;
 }
 @keyframes crystalFloat {
     0%,100% { transform: scaleX(-1) rotate(-8deg) translateY(0); }
@@ -250,8 +252,8 @@ body::after {
     background: rgba(8,6,3,0.75);
     border: 1px solid var(--ink-faint); color: var(--parchment);
     padding: 10px 14px; border-radius: 3px; font-family: var(--font-body);
-    font-size: 16px; width: 200px; outline: none; transition: all 0.2s;
-    min-height: 40px; -webkit-appearance: none;
+    font-size: 16px; width: 100%; max-width: 260px; outline: none; transition: all 0.2s;
+    min-height: 40px; -webkit-appearance: none; flex: 1 1 160px;
 }
 #inputBusca::placeholder { color: var(--ink-faint); font-style: italic; }
 #inputBusca:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,169,67,0.15); }
@@ -272,7 +274,7 @@ body::after {
 /* ─── GRID DE CARDS ─── */
 .grid-personagens {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 14px;
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
     position: relative; z-index: 1;
@@ -442,17 +444,37 @@ body::after {
 
 /* ─── RESPONSIVO ─── */
 @media (max-width: 600px) {
-    .painel-topo { padding: 0 12px; gap: 8px; }
+    .painel-topo { padding: 0 10px; gap: 6px; }
     .btn-acao-label { display: none; }
-    .grid-personagens { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 12px; }
-    #inputBusca { width: 100%; }
-    .painel-filtros-busca { padding: 8px 12px; gap: 8px; overflow-x: hidden; }
-    .filtros { gap: 4px; flex-wrap: wrap; }
-    .btn-filtro { padding: 6px 9px; font-size: 9px; }
-    body::before { font-size: 120px; opacity: 0.14; }
-    body::after  { font-size: 120px; opacity: 0.12; }
+    .painel-topo-titulo { font-size: 12px; letter-spacing: 1.5px; }
+    .grid-personagens {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+        padding: 12px 10px;
+    }
+    #inputBusca { max-width: 100%; }
+    .painel-filtros-busca {
+        padding: 8px 10px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .filtros { gap: 4px; flex-wrap: wrap; width: 100%; }
+    .btn-filtro { padding: 6px 8px; font-size: 9px; flex: 1 1 auto; text-align: center; }
+    body::before { font-size: 90px; opacity: 0.10; }
+    body::after  { font-size: 90px; opacity: 0.09; }
 }
-@media (max-width: 380px) {
-    .grid-personagens { grid-template-columns: repeat(2, 1fr); }
-    .btn-acao { padding: 0 10px; font-size: 11px; }
+@media (max-width: 400px) {
+    .grid-personagens {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 10px 8px;
+    }
+    .btn-acao { padding: 0 8px; font-size: 10px; }
+    .painel-topo-titulo { font-size: 11px; letter-spacing: 1px; }
+    body::before { font-size: 70px; }
+    body::after  { font-size: 70px; }
+}
+@media (max-width: 360px) {
+    .grid-personagens { grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 6px; }
+    .btn-filtro { padding: 5px 6px; font-size: 8px; }
 }

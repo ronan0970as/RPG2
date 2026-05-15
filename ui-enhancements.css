@@ -307,15 +307,17 @@ body {
     .ui-ambient-panel {
         margin-top: 0;
         padding: 8px;
+        /* evita que o painel vaze lateralmente */
+        width: calc(100% - 0px);
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     /* Tema: 2 colunas no tablet */
     .tower-theme-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .tower-theme-btn {
-        min-height: 60px;
-    }
+    .tower-theme-btn { min-height: 60px; }
     .tower-theme-btn span { font-size: 9px; }
 
     /* Painel de ferramentas → coluna única */
@@ -324,17 +326,18 @@ body {
         gap: 10px;
     }
 
-    /* Ações rápidas mantém 2 colunas */
+    /* Ações rápidas: 2 colunas */
     .quick-actions-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 7px;
     }
 
-    /* Dados: expressão e botão em linha, proporção igual */
+    /* Dados: input+botão em coluna */
     .dice-controls {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 7px;
     }
+    #dice-roll-btn { width: 100%; }
     .dice-presets {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 5px;
@@ -352,8 +355,8 @@ body {
         border-radius: 4px;
     }
     .painel-page .ui-ambient-panel {
-        margin-left: 8px;
-        margin-right: 8px;
+        margin-left: 6px;
+        margin-right: 6px;
     }
 
     .ui-ambient-title {
@@ -367,47 +370,21 @@ body {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
     }
-    .tower-theme-btn { min-height: 52px; }
-    .tower-theme-btn span { font-size: 9px; letter-spacing: 0.4px; }
+    .tower-theme-btn { min-height: 50px; }
+    .tower-theme-btn span { font-size: 8px; letter-spacing: 0.3px; }
 
-    /* Barras de status no painel */
-    .status-bar {
-        align-items: stretch;
-        flex-wrap: wrap;
-    }
-    .status-bar label {
-        width: 100%;
-        min-width: 0;
-    }
-    .status-bar input[type="number"] {
-        flex: 1 1 60px;
-    }
-    .status-bar .mod-input {
-        flex: 1 1 80px;
-    }
-    .status-bar .calc-btn {
-        width: 38px;
-        padding-left: 0;
-        padding-right: 0;
-    }
-
-    /* Ações rápidas — 2 colunas com botão Descanso em span 2 */
+    /* Ações rápidas */
     .quick-actions-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
     }
-    .ui-action-btn { font-size: 9px; min-height: 38px; padding: 6px 8px; }
+    .ui-action-btn { font-size: 9px; min-height: 38px; padding: 6px 6px; }
 
-    /* Dados: input+botão empilhados verticalmente */
-    .dice-controls {
-        grid-template-columns: 1fr;
-        gap: 6px;
-    }
+    /* Dados */
+    .dice-controls { grid-template-columns: 1fr; gap: 6px; }
     #dice-roll-btn { width: 100%; }
-
-    /* Presets: 2 por linha */
     .dice-presets {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 5px;
     }
 
@@ -423,8 +400,9 @@ body {
 }
 
 @media (max-width: 360px) {
-    .tower-theme-btn { min-height: 46px; }
+    .tower-theme-btn { min-height: 44px; }
     .tower-theme-btn span { font-size: 8px; }
-    .ui-action-btn { font-size: 8px; min-height: 34px; letter-spacing: 0.4px; }
+    .ui-action-btn { font-size: 8px; min-height: 34px; letter-spacing: 0.3px; padding: 5px 4px; }
     .dice-presets { gap: 4px; }
+    .dice-presets .ui-action-btn { font-size: 8px; }
 }

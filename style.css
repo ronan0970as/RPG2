@@ -27,6 +27,12 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Garante que nenhum elemento estoure a largura da tela no mobile */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     /* Fundo base escuro — será sobrescrito por cada página */
     background-color: #0f0d09;
@@ -465,14 +471,14 @@ body { padding-top: 60px; }
 ::selection { background: rgba(212,169,67,0.3); color: var(--gold-light); }
 
 /* ══════════════════════════════════════════════════════════════
-   RESPONSIVIDADE MOBILE
+   RESPONSIVIDADE MOBILE — revisado
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Tablet largo (≤ 900px) ─────────────────────────────── */
 @media (max-width: 900px) {
     .grid-container {
-        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
 }
 
@@ -482,16 +488,20 @@ body { padding-top: 60px; }
         padding: 0 8px 24px;
         padding-top: 56px;
     }
-    body::before { font-size: 90px; opacity: 0.10; right: -8px; top: 56px; }
-    body::after  { font-size: 90px; opacity: 0.08; }
+    body::before { font-size: 80px; opacity: 0.08; right: -6px; top: 56px; }
+    body::after  { font-size: 80px; opacity: 0.07; }
 
     /* Janela principal */
     .rpg-window {
         padding: 14px 12px;
         border-radius: 6px;
+        /* garante que não estoure a tela */
+        overflow-x: hidden;
+        width: 100%;
+        box-sizing: border-box;
     }
 
-    /* Nav — sticky, linha única com scroll horizontal se precisar */
+    /* Nav — sticky, scroll horizontal se necessário */
     nav {
         gap: 4px;
         margin-top: 6px;
@@ -500,23 +510,25 @@ body { padding-top: 60px; }
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         padding-bottom: 2px;
+        width: 100%;
     }
     nav::-webkit-scrollbar { display: none; }
     nav a {
         flex: 1 0 auto;
-        min-width: 72px;
+        min-width: 68px;
         font-size: 10px;
-        padding: 10px 8px;
+        padding: 10px 6px;
         white-space: nowrap;
+        letter-spacing: 0.8px;
     }
 
-    /* Grid de colunas → coluna única */
+    /* Grid de colunas → sempre coluna única no mobile */
     .grid-container {
         grid-template-columns: 1fr;
         gap: 12px;
     }
 
-    /* Card de foto → linha horizontal compacta */
+    /* Card de foto → horizontal compacto */
     .char-card-col {
         flex-direction: row;
         width: 100%;
@@ -530,34 +542,41 @@ body { padding-top: 60px; }
         flex: 1;
         width: 100%;
     }
-    .char-foto-card::before { font-size: 20px; bottom: 4px; right: 4px; }
-    .char-foto-wrap { width: 68px; height: 86px; flex-shrink: 0; }
-    .char-foto-placeholder { font-size: 26px; }
-    .char-foto-nome { font-size: 10px; letter-spacing: 1px; }
+    .char-foto-card::before { font-size: 18px; bottom: 4px; right: 4px; }
+    .char-foto-wrap { width: 64px; height: 82px; flex-shrink: 0; }
+    .char-foto-placeholder { font-size: 24px; }
+    .char-foto-nome { font-size: 10px; letter-spacing: 0.8px; }
     .char-foto-classe { font-size: 10px; }
     .char-foto-btn { font-size: 10px; padding: 7px 8px; }
 
     /* Labels e inputs */
-    label { width: 84px; font-size: 10px; }
-    input, textarea, select { font-size: 15px; }
-    input[type="number"] { width: 54px; min-width: 44px; font-size: 14px; }
-    .mod-input { width: 64px; min-width: 52px; }
+    label { width: 80px; font-size: 10px; }
+    input, textarea, select { font-size: 16px; } /* 16px evita zoom no iOS */
+    input[type="number"] { width: 52px; min-width: 42px; font-size: 14px; }
+    .mod-input { width: 60px; min-width: 50px; }
 
-    /* Barras de status */
+    /* Barras de status — empilha em coluna para evitar overflow */
     .status-bar {
-        gap: 5px;
-        padding: 8px 8px 8px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
     }
-    .status-bar label { min-width: 76px; font-size: 10px; }
-    .status-bar .highlight { font-size: 12px; }
-    .status-bar .calc-btn { padding: 8px 10px; font-size: 10px; min-height: 38px; }
+    .status-bar label { width: 100%; min-width: 0; margin-bottom: 0; font-size: 10px; }
+    .status-bar input[type="number"] { flex: 1 1 56px; max-width: 80px; }
+    .status-bar .highlight { font-size: 12px; white-space: nowrap; }
+    .status-bar .mod-input { flex: 1 1 80px; }
+    .status-bar .calc-btn { flex-shrink: 0; padding: 8px 12px; font-size: 10px; min-height: 40px; }
 
-    /* Linhas de atributo */
-    .attr-row { gap: 4px; padding: 5px 8px; }
-    .attr-row label { width: 86px; font-size: 10px; }
-    .attr-row input[type="number"] { width: 50px; }
-    .attr-row .mod-input { width: 54px; }
-    .attr-row .total-stat { font-size: 12px; }
+    /* Linhas de atributo — empilha label */
+    .attr-row {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px 8px;
+    }
+    .attr-row label { width: 100%; margin-bottom: 2px; font-size: 10px; }
+    .attr-row input[type="number"] { flex: 1 1 50px; max-width: 70px; }
+    .attr-row .mod-input { flex: 1 1 60px; }
+    .attr-row .total-stat { margin-left: auto; font-size: 12px; }
 
     /* Cards de inventário */
     .item-card {
@@ -578,7 +597,7 @@ body { padding-top: 60px; }
     .btn-remover-item { width: 100%; text-align: center; }
 
     /* Títulos */
-    h2 { font-size: 11px; letter-spacing: 2px; margin-top: 14px; margin-bottom: 10px; }
+    h2 { font-size: 11px; letter-spacing: 1.5px; margin-top: 14px; margin-bottom: 10px; }
 }
 
 /* ── Mobile pequeno (≤ 480px) ────────────────────────────── */
@@ -586,49 +605,45 @@ body { padding-top: 60px; }
     body { padding-left: 6px; padding-right: 6px; }
 
     .rpg-window { padding: 12px 10px; }
-    .rpg-window::before, .rpg-window::after { font-size: 20px; }
+    .rpg-window::before, .rpg-window::after { font-size: 18px; }
 
-    nav a { min-width: 64px; font-size: 9px; padding: 9px 6px; letter-spacing: 0.8px; }
+    nav {
+        margin-left: -6px;
+        margin-right: -6px;
+        padding-left: 6px;
+        padding-right: 6px;
+        width: calc(100% + 12px);
+    }
+    nav a { min-width: 62px; font-size: 9px; padding: 9px 5px; letter-spacing: 0.6px; }
 
-    /* Card de foto ainda menor */
-    .char-foto-wrap { width: 58px; height: 74px; }
-    .char-foto-placeholder { font-size: 22px; }
+    /* Card de foto */
+    .char-foto-wrap { width: 54px; height: 70px; }
+    .char-foto-placeholder { font-size: 20px; }
     .char-foto-btn { font-size: 9px; padding: 6px; }
 
     /* Labels */
-    label { width: 78px; font-size: 9px; }
-    input[type="number"] { width: 48px; min-width: 40px; }
-    .mod-input { width: 56px; min-width: 46px; }
-
-    /* Status bar — empilha label em linha própria */
-    .status-bar { flex-wrap: wrap; }
-    .status-bar label { width: 100%; min-width: 0; margin-bottom: 2px; }
-    .status-bar input[type="number"] { flex: 1 1 60px; }
-    .status-bar .mod-input { flex: 1 1 80px; }
-    .status-bar .calc-btn { width: 38px; padding: 0; }
-
-    /* Atributos — label em linha própria em telas muito pequenas */
-    .attr-row { flex-wrap: wrap; }
-    .attr-row label { width: 100%; margin-bottom: 2px; }
-    .attr-row input[type="number"] { flex: 1 1 50px; }
-    .attr-row .mod-input { flex: 1 1 60px; }
-    .attr-row .total-stat { margin-left: auto; font-size: 12px; }
+    label { width: 76px; font-size: 9px; }
+    input[type="number"] { width: 46px; min-width: 38px; }
+    .mod-input { width: 54px; min-width: 44px; }
 
     /* Inventário */
-    .item-img-container { height: 140px; }
+    .item-img-container { height: 130px; }
 
-    /* Botões de ação */
-    .save-btn { font-size: 11px; letter-spacing: 1.5px; padding: 12px; }
+    /* Botões */
+    .save-btn { font-size: 11px; letter-spacing: 1px; padding: 12px; }
     .calc-btn { min-height: 36px; }
 }
 
 /* ── Mobile muito pequeno (≤ 360px) ─────────────────────── */
 @media (max-width: 360px) {
-    nav { gap: 3px; }
-    nav a { font-size: 9px; padding: 8px 5px; min-width: 58px; letter-spacing: 0.5px; }
-    label { width: 70px; font-size: 9px; }
-    input[type="number"] { width: 44px; min-width: 36px; font-size: 13px; }
-    .mod-input { width: 50px; min-width: 42px; }
-    .char-foto-wrap { width: 52px; height: 66px; }
-    .char-foto-placeholder { font-size: 20px; }
+    body { padding-left: 4px; padding-right: 4px; }
+    nav { margin-left: -4px; margin-right: -4px; padding-left: 4px; padding-right: 4px; width: calc(100% + 8px); }
+    nav a { font-size: 9px; padding: 8px 4px; min-width: 56px; letter-spacing: 0.4px; }
+    label { width: 68px; font-size: 9px; }
+    input[type="number"] { width: 42px; min-width: 34px; font-size: 13px; }
+    .mod-input { width: 48px; min-width: 40px; }
+    .char-foto-wrap { width: 48px; height: 62px; }
+    .char-foto-placeholder { font-size: 18px; }
+    .rpg-window { padding: 10px 8px; }
+    h2 { font-size: 10px; letter-spacing: 1px; }
 }
