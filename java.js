@@ -222,19 +222,37 @@ function _lerBasesDoDOM() {
 }
 
 // ─────────────────────────────────────────────────────────
+//  Cache em memória de talentos — evita chamada ao Supabase
+//  a cada keystroke. Invalidado ao salvar talentos.
+// ─────────────────────────────────────────────────────────
+let _talentosCache = null;
+let _talentosUltimaFicha = null;
+
+async function _getTalentos() {
+    const fichaId = getFichaId();
+    if (_talentosCache !== null && _talentosUltimaFicha === fichaId) {
+        return _talentosCache;
+    }
+    let talentos;
+    try {
+        talentos = await carregarDaNuvem('talentos')
+            || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
+        if (!Array.isArray(talentos)) talentos = [];
+    } catch(e) { talentos = []; }
+    _talentosCache = talentos;
+    _talentosUltimaFicha = fichaId;
+    return talentos;
+}
+
+// ─────────────────────────────────────────────────────────
 //  calcularStatus() — ponto único de cálculo na aba Status.
 //  Usa calcularTodosBuffs() (iterativo) do buffs.js.
 // ─────────────────────────────────────────────────────────
 async function calcularStatus() {
     const bases = _lerBasesDoDOM();
 
-    // Carrega talentos (nuvem ou cache local)
-    let talentos = [];
-    try {
-        talentos = await carregarDaNuvem('talentos')
-            || JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]');
-        if (!Array.isArray(talentos)) talentos = [];
-    } catch(e) { talentos = []; }
+    // Carrega talentos do cache em memória (evita chamada de rede a cada keystroke)
+    const talentos = await _getTalentos();
 
     const nivel    = parseInt(document.getElementById('nivel')?.value) || 0;
     const sanidade = parseInt(document.getElementById('sanidade-atual')?.value) || 0;
@@ -392,12 +410,10 @@ function notificarMudancaStatus(tipo, anterior, novo) {
 
     document.body.appendChild(toast);
 
-    // Anima entrada
+    // Anima entrada — um único rAF é suficiente após appendChild
     requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            toast.style.opacity   = '1';
-            toast.style.transform = 'translateX(-50%) translateY(0)';
-        });
+        toast.style.opacity   = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
     });
 
     // Anima saída após 3s
@@ -622,7 +638,9 @@ const CATEGORIAS_INV = {
 };
 function _catInfo(cat) { return CATEGORIAS_INV[cat] || CATEGORIAS_INV.geral; }
 function _norm_inv(txt) {
-    return String(txt).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const s = String(txt).toLowerCase();
+    try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    catch(e) { return s; } // fallback para navegadores antigos
 }
 
 // ── Alterar quantidade de um item diretamente no card ────────────────
@@ -775,6 +793,7 @@ async function removerItemInventario(id) {
 
 // ── Salvar talentos (chamado do talentos.html) ─────────────
 async function salvarTalentosNuvem(talentos) {
+    _talentosCache = null; // invalida cache em memória
     localStorage.setItem(k('rpg_talentos'), JSON.stringify(talentos));
     await salvarNuvem('talentos', talentos);
 }

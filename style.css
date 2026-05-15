@@ -3,7 +3,14 @@
    Fundo visível + painéis semitransparentes
 ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
+/* NOTA: @import removido — as fontes agora são carregadas via <link>
+   com preconnect em cada HTML para melhor performance de renderização.
+   Adicionar no <head> de cada página ANTES dos <link rel="stylesheet">:
+
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+*/
 
 :root {
     --gold:        #d4a943;
@@ -31,6 +38,11 @@
 html, body {
     max-width: 100%;
     overflow-x: hidden;
+}
+
+/* iOS Safari: background-attachment:fixed causa flickering */
+@supports (-webkit-overflow-scrolling: touch) {
+    body { background-attachment: scroll; }
 }
 
 body {

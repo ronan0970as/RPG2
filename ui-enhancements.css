@@ -11,6 +11,11 @@ body {
     background-repeat: no-repeat;
 }
 
+/* iOS Safari: background-attachment:fixed causa flickering */
+@supports (-webkit-overflow-scrolling: touch) {
+    body { background-attachment: scroll; }
+}
+
 .ui-ambient-panel {
     width: 100%;
     max-width: 900px;
@@ -279,6 +284,8 @@ body {
     color: var(--gold-light, #f5d06e);
     box-shadow: 0 12px 30px rgba(0,0,0,0.55);
     pointer-events: none;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
     transition: opacity 0.22s ease, transform 0.22s ease;
 }
 

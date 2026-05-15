@@ -52,8 +52,9 @@ const FORMULAS_STATUS = {
 //  Normalização de texto
 // ─────────────────────────────────────────────────────────
 function _norm(txt) {
-    return String(txt).toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const s = String(txt).toLowerCase();
+    try { return s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    catch(e) { return s; } // fallback para navegadores sem suporte a normalize
 }
 
 // ─────────────────────────────────────────────────────────
