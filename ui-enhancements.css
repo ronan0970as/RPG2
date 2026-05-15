@@ -11,11 +11,6 @@ body {
     background-repeat: no-repeat;
 }
 
-/* iOS Safari: background-attachment:fixed causa flickering */
-@supports (-webkit-overflow-scrolling: touch) {
-    body { background-attachment: scroll; }
-}
-
 .ui-ambient-panel {
     width: 100%;
     max-width: 900px;
@@ -284,8 +279,6 @@ body {
     color: var(--gold-light, #f5d06e);
     box-shadow: 0 12px 30px rgba(0,0,0,0.55);
     pointer-events: none;
-    -webkit-backdrop-filter: blur(6px);
-    backdrop-filter: blur(6px);
     transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
@@ -306,8 +299,10 @@ body {
     }
 
     nav {
+        /* [MOB-3] top:0 porque body já tem padding-top:56px (espaço do widget).
+           top:8px causava sobreposição com o widget de usuário (também top:8px). */
         position: sticky;
-        top: 8px;
+        top: 0;
         z-index: 20;
     }
 

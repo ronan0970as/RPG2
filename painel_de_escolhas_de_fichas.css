@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    DRAGÕES & TORRES — Painel de Fichas v5.0
    Fundo visível + painéis semitransparentes
+   NOTA: @import de fontes removido — carregado via <link> no HTML
+         com preconnect para não bloquear a renderização.
 ═══════════════════════════════════════════════════════════════ */
-
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
 
 :root {
     /* ── Tema: Torre de Cristais Roxa ── */

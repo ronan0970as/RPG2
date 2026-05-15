@@ -116,6 +116,9 @@ function _mostrarSpinnerAuth() {
                 display: flex; flex-direction: column;
                 align-items: center; justify-content: center;
                 z-index: 99999; gap: 16px;
+                /* [MOB-2] opacity em vez de visibility para compatibilidade iOS */
+                opacity: 1;
+                pointer-events: all;
             }
             #_spinner-auth .sp-anel {
                 width: 40px; height: 40px;
@@ -134,7 +137,14 @@ function _mostrarSpinnerAuth() {
         <div class="sp-anel"></div>
         <div class="sp-txt">Verificando sessão...</div>
     `;
-    document.body.appendChild(el);
+    // Garante que o body exista antes de tentar inserir
+    if (document.body) {
+        document.body.appendChild(el);
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!document.getElementById('_spinner-auth')) document.body.appendChild(el);
+        });
+    }
 }
 
 function _removerSpinnerAuth() {
@@ -143,20 +153,42 @@ function _removerSpinnerAuth() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  [BUG-1 + UX-8] Proteção de página — corrigida
+//  [BUG-1 + UX-8 + MOBILE-FIX] Proteção de página
+//  CORREÇÕES MOBILE:
+//  [MOB-1] Timeout de segurança: se a verificação demorar mais
+//          de 8s (conexão lenta no mobile), restaura visibilidade
+//          e redireciona para login em vez de travar infinito.
+//  [MOB-2] visibility:hidden substituído por opacity:0 +
+//          pointer-events:none para evitar tela preta no iOS
+//          quando o spinner ainda não renderizou.
 // ════════════════════════════════════════════════════════════
 async function exigirLogin() {
-    // Mostra spinner em vez de tela invisível
-    document.documentElement.style.visibility = 'hidden';
+    // [MOB-2] Usa opacity em vez de visibility — mais seguro no iOS Safari
+    // visibility:hidden pode causar tela completamente preta antes do spinner aparecer
+    document.documentElement.style.opacity = '0';
+    document.documentElement.style.pointerEvents = 'none';
     _mostrarSpinnerAuth();
 
+    // [MOB-1] Timeout de segurança: 8s máximo para verificar sessão
+    // Em conexões 3G/4G lentas o Supabase pode demorar ou timeout
     let logado = false;
     try {
-        logado = await sincronizarSessao();
+        const _timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 8000)
+        );
+        logado = await Promise.race([sincronizarSessao(), _timeoutPromise]);
     } catch(e) {
-        console.error('exigirLogin: falha crítica', e);
+        if (e.message === 'timeout') {
+            console.warn('exigirLogin: timeout de verificação de sessão (conexão lenta?)');
+        } else {
+            console.error('exigirLogin: falha crítica', e);
+        }
         logado = false;
     }
+
+    // Sempre restaura visibilidade antes de redirecionar ou exibir
+    document.documentElement.style.opacity = '';
+    document.documentElement.style.pointerEvents = '';
 
     if (!logado) {
         window.location.replace(AUTH_PAGE);
@@ -164,7 +196,6 @@ async function exigirLogin() {
     }
 
     _removerSpinnerAuth();
-    document.documentElement.style.visibility = '';
 }
 
 // ════════════════════════════════════════════════════════════

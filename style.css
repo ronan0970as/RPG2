@@ -3,14 +3,7 @@
    Fundo visível + painéis semitransparentes
 ═══════════════════════════════════════════════════════════════ */
 
-/* NOTA: @import removido — as fontes agora são carregadas via <link>
-   com preconnect em cada HTML para melhor performance de renderização.
-   Adicionar no <head> de cada página ANTES dos <link rel="stylesheet">:
-
-   <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
-*/
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
 
 :root {
     --gold:        #d4a943;
@@ -38,11 +31,6 @@
 html, body {
     max-width: 100%;
     overflow-x: hidden;
-}
-
-/* iOS Safari: background-attachment:fixed causa flickering */
-@supports (-webkit-overflow-scrolling: touch) {
-    body { background-attachment: scroll; }
 }
 
 body {
@@ -472,8 +460,13 @@ textarea { height: 100px; resize: vertical; line-height: 1.6; }
 .item-card:hover .item-img-container { border-color: var(--gold-light); box-shadow: 0 0 20px rgba(212,169,67,0.2); }
 .item-img-container img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ─── WIDGET DE USUÁRIO — espaço para o nav fixo do auth.js ─── */
+/* ─── WIDGET DE USUÁRIO — espaço para o widget fixo do auth.js ─── */
+/* O widget fica em position:fixed top:8px, altura ~40px → ocupa até ~48px do topo */
 body { padding-top: 60px; }
+
+/* No mobile, o widget fica menor mas a nav fica sticky abaixo dele */
+/* Garante que o nav não seja ocultado pelo widget */
+nav { margin-top: 0; }
 
 /* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -498,6 +491,7 @@ body { padding-top: 60px; }
 @media (max-width: 750px) {
     body {
         padding: 0 8px 24px;
+        /* [MOB-3] 56px → widget(~48px) + 8px folga. Nav fica ABAIXO do widget via sticky */
         padding-top: 56px;
     }
     body::before { font-size: 80px; opacity: 0.08; right: -6px; top: 56px; }
