@@ -1,26 +1,18 @@
 // ════════════════════════════════════════════════════════════
-//  exportar_importar.js  (v3 — download corrigido)
-//  Exporta e importa fichas RPG em JSON (completo) e CSV (resumo)
+//  exportar_importar.js  (v4 — CSV e TXT corrigidos)
+//  Exporta e importa fichas RPG em JSON (completo), CSV e TXT
 //
-//  CORREÇÕES v2:
-//  [FIX-1] Injeção do painel ocorre APÓS ui-enhancements criar o
-//          .ui-ambient-panel, usando requestAnimationFrame + fallback.
-//  [FIX-2] Aguarda window._supaClient estar disponível antes de usar
-//          (polling com limite de tentativas).
-//  [FIX-3] importarFicha() no painel de fichas agora usa o sistema
-//          real de importação JSON em vez de alert().
-//  [FIX-4] Painel injetado dentro do .rpg-window para garantir
-//          enquadramento correto em mobile.
-//  [FIX-5] CSS mobile-first com margens corretas em telas pequenas.
-//
-//  CORREÇÕES v3 — downloads:
-//  [FIX-DOWNLOAD-1] revokeObjectURL adiado 2 s — evita cancelar o
-//          download antes de ele iniciar (Firefox/Safari desktop).
-//  [FIX-DOWNLOAD-2] iOS Safari: usa data-URI base64 + window.open
-//          (único método aceito); fallback com link visível na tela
-//          quando popup é bloqueado.
-//  [FIX-DOWNLOAD-3] Delay de 600 ms entre os 3 CSVs exportados —
-//          evita múltiplos window.open simultâneos bloqueados pelo iOS.
+//  CORREÇÕES v4:
+//  [FIX-CSV-1] importarCSV: normalização robusta de acentos e BOM
+//              no cabeçalho e nos nomes de campo.
+//  [FIX-CSV-2] importarCSV: aceita CSV gerado pelo baixarTemplateCSV
+//              do painel (sem colunas de bônus opcionais).
+//  [FIX-CSV-3] importarCSV: feedback de erro mais descritivo,
+//              mostrando o cabeçalho recebido vs. esperado.
+//  [FIX-TXT-1] importarTXT: nova função que lê o template gerado
+//              por baixarTemplateTXT() e salva no Supabase.
+//  [FIX-UI-1]  Expõe importarCSV e importarTXT em window._expImp
+//              para que o painel principal possa chamá-las.
 // ════════════════════════════════════════════════════════════
 
 (function () {
@@ -41,36 +33,24 @@
     }
 
     // ── Helpers de download ────────────────────────────────
-    //
-    //  [FIX-DOWNLOAD-1] revokeObjectURL não é mais imediato:
-    //    aguarda 2 s para o navegador iniciar o download antes de liberar a URL.
-    //  [FIX-DOWNLOAD-2] iOS Safari bloqueia blob URL + a.click() programático;
-    //    usa data-URI base64 + window.open, com fallback de link visível.
-    //
     function baixarArquivo(conteudo, nomeArquivo, tipo) {
         const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
         if (isIOS) {
-            // iOS: única abordagem aceita pelo Safari mobile é data-URI em nova aba.
-            // O usuário usa "Compartilhar → Salvar em Arquivos" para guardar.
             try {
                 const base64  = btoa(unescape(encodeURIComponent(conteudo)));
                 const mime    = tipo.includes('json') ? 'application/json' : 'text/csv';
                 const dataURI = `data:${mime};charset=utf-8;base64,${base64}`;
                 const win     = window.open(dataURI, '_blank');
                 if (!win) {
-                    // Popup bloqueado → exibe link clicável na tela
                     _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo);
                 }
             } catch (err) {
-                // Fallback seguro se btoa falhar (conteúdo muito grande)
                 _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo);
             }
             return;
         }
 
-        // Desktop e Android: blob URL + <a download>
-        // Não revoga imediatamente — aguarda 2 s para evitar falha no Firefox/Safari desktop
         const blob = new Blob([conteudo], { type: tipo });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
@@ -85,7 +65,6 @@
         }, 2000);
     }
 
-    // Exibe link clicável para quando window.open for bloqueado (iOS popup-blocker)
     function _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo) {
         const blob = new Blob([conteudo], { type: tipo });
         const url  = URL.createObjectURL(blob);
@@ -117,12 +96,21 @@
         if (toast) toast.insertAdjacentElement('afterend', a);
         else document.body.appendChild(a);
 
-        // Remove após 60 s e libera URL
         setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 60000);
     }
 
     function nomeArquivoSeguro(nome) {
         return (nome || 'ficha').replace(/[^a-zA-Z0-9À-ÿ\s_-]/g, '').trim().replace(/\s+/g, '_') || 'ficha';
+    }
+
+    // ── Normaliza string: remove BOM, trim, e normaliza unicode ─
+    // [FIX-CSV-1] Necessário porque Excel/LibreOffice podem salvar
+    // acentos em NFC ou NFD, e o BOM pode persistir em campos.
+    function normalizar(str) {
+        return String(str || '')
+            .replace(/^\uFEFF/, '')   // remove BOM se estiver no campo
+            .normalize('NFC')         // padroniza acentos (NFD → NFC)
+            .trim();
     }
 
     // ── Carregar todos os dados da ficha ativa do Supabase ─
@@ -256,8 +244,6 @@
                     t.buffs?.furtividade  || '',
                 ])
             ];
-            // [FIX-DOWNLOAD-3] Delay entre downloads — evita bloqueio de
-            // múltiplos window.open simultâneos no iOS/Safari
             await new Promise(r => setTimeout(r, 600));
             baixarArquivo(linhasParaCSV(linhasTalentos), `${nomeFich}_talentos_${data}.csv`, 'text/csv;charset=utf-8;');
 
@@ -321,7 +307,6 @@
                 );
                 if (!confirmou) { restaurarBtn('btn-imp-json', '📂 Importar JSON'); return; }
 
-                // [FIX-2] Garante supa disponível
                 const supa = window._supaClient;
                 if (!supa) throw new Error('Cliente Supabase não disponível. Recarregue a página.');
 
@@ -360,11 +345,15 @@
 
     // ════════════════════════════════════════════════════════
     //  IMPORTAR CSV — apenas status
+    //  [FIX-CSV-1] Normaliza BOM, acentos e espaços extras
+    //  [FIX-CSV-2] Aceita template gerado pelo painel (sem bônus)
+    //  [FIX-CSV-3] Mensagem de erro descritiva com cabeçalho recebido
     // ════════════════════════════════════════════════════════
     function importarCSV() {
         const input   = document.createElement('input');
         input.type    = 'file';
-        input.accept  = '.csv,text/csv';
+        // [FIX: accept agora inclui .csv de forma abrangente]
+        input.accept  = '.csv,text/csv,text/plain,application/vnd.ms-excel';
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -372,22 +361,41 @@
             mostrarLoadingBtn('btn-imp-csv', '⏳ Importando...');
             try {
                 const texto  = await file.text();
-                const linhas = texto.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
 
-                const cabecalho = linhas[0].split(',').map(c => c.replace(/"/g, '').trim());
+                // [FIX-CSV-1] Remove BOM global e normaliza quebras de linha
+                const textoLimpo = texto.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const linhas = textoLimpo.split('\n').filter(l => l.trim());
+
+                if (linhas.length < 2) {
+                    throw new Error('Arquivo CSV vazio ou com apenas o cabeçalho. Preencha os dados antes de importar.');
+                }
+
+                // [FIX-CSV-1] Normaliza o cabeçalho (NFC + trim + remove BOM residual por campo)
+                const cabecalho = parsarLinhaCSV(linhas[0]).map(normalizar);
+
+                // [FIX-CSV-3] Mensagem clara com o cabeçalho recebido
                 if (cabecalho[0] !== 'Campo' || cabecalho[1] !== 'Valor') {
                     throw new Error(
-                        'Use apenas o CSV de Status para importar.\n' +
-                        'CSVs de Talentos e Inventário são apenas para visualização no Excel.'
+                        `Cabeçalho inválido. Esperado: "Campo, Valor"\n` +
+                        `Recebido: "${cabecalho.join(', ')}"\n\n` +
+                        `Use apenas o CSV de Status gerado por esta aplicação ou pelo template de importação.\n` +
+                        `CSVs de Talentos e Inventário não podem ser importados por aqui.`
                     );
                 }
 
+                // Monta mapa Campo → Valor (normaliza chave)
                 const mapa = {};
                 linhas.slice(1).forEach(linha => {
                     const partes = parsarLinhaCSV(linha);
-                    if (partes.length >= 2) mapa[partes[0].trim()] = partes[1].trim();
+                    if (partes.length >= 2) {
+                        const chave = normalizar(partes[0]);
+                        const valor = normalizar(partes[1]);
+                        mapa[chave] = valor;
+                    }
                 });
 
+                // [FIX-CSV-2] Mapeamento completo: campo CSV → chave JS
+                // Inclui todas as variantes do template + exportação com bônus
                 const CAMPO_PARA_CHAVE = {
                     'Jogador':               'jogador',
                     'Personagem':            'personagem',
@@ -414,13 +422,13 @@
                     'Habilidades Ativas':    'habilidades',
                 };
 
-                // [FIX-2] Garante supa disponível
                 const supa = window._supaClient;
                 if (!supa) throw new Error('Cliente Supabase não disponível. Recarregue a página.');
 
                 const fichaId = typeof getFichaId === 'function' ? getFichaId() : null;
                 if (!fichaId) throw new Error('Nenhuma ficha ativa.');
 
+                // Carrega status atual para fazer merge (não sobrescreve campos ausentes)
                 const { data: atual } = await supa
                     .from('fichas_dados')
                     .select('valor')
@@ -431,16 +439,26 @@
                 let statusAtual = {};
                 try { statusAtual = JSON.parse(atual?.valor || '{}'); } catch(e) {}
 
+                // Aplica cada campo mapeado ao status
                 Object.entries(CAMPO_PARA_CHAVE).forEach(([campo, chave]) => {
-                    if (mapa[campo] !== undefined) statusAtual[chave] = mapa[campo];
+                    // [FIX-CSV-1] Normaliza a chave do mapa antes de buscar
+                    const valorCSV = mapa[normalizar(campo)];
+                    if (valorCSV !== undefined && valorCSV !== '') {
+                        statusAtual[chave] = valorCSV;
+                    }
                 });
 
+                // Atualiza tabela fichas (nome, classe, gênero)
                 const updates = {};
-                if (mapa['Nome'])   updates.nome   = mapa['Nome'];
-                if (mapa['Classe']) updates.classe = mapa['Classe'];
-                if (mapa['Gênero']) updates.genero = mapa['Gênero'];
+                if (mapa['Nome'])    updates.nome   = mapa['Nome'];
+                if (mapa['Classe'])  updates.classe = mapa['Classe'];
+                if (mapa['Gênero']) updates.genero  = mapa['Gênero'];
+                // Fallback sem acento (caso Excel remova)
+                if (!updates.genero && mapa['Genero']) updates.genero = mapa['Genero'];
+
                 if (Object.keys(updates).length > 0) {
-                    await supa.from('fichas').update(updates).eq('id', fichaId);
+                    const { error: erroFicha } = await supa.from('fichas').update(updates).eq('id', fichaId);
+                    if (erroFicha) throw new Error('Erro ao atualizar dados da ficha: ' + erroFicha.message);
                 }
 
                 const { error: erroUpsert } = await supa.from('fichas_dados').upsert({
@@ -455,7 +473,7 @@
                 setTimeout(() => window.location.reload(), 1500);
 
             } catch (e) {
-                mostrarToastExp('❌ Erro: ' + e.message, '#e74c3c');
+                mostrarToastExp('❌ ' + e.message, '#e74c3c');
             } finally {
                 restaurarBtn('btn-imp-csv', '📋 Importar CSV');
             }
@@ -463,7 +481,138 @@
         input.click();
     }
 
-    // ── Parser simples de linha CSV ────────────────────────
+    // ════════════════════════════════════════════════════════
+    //  IMPORTAR TXT — campos básicos da ficha
+    //  [FIX-TXT-1] Nova função: lê o template gerado por
+    //  baixarTemplateTXT() e salva nas tabelas fichas e fichas_dados
+    //
+    //  Formato esperado (cada linha):
+    //    Chave: Valor
+    //  Linhas que comecem com "=" ou "Preencha" são ignoradas.
+    // ════════════════════════════════════════════════════════
+    function importarTXT() {
+        const input  = document.createElement('input');
+        input.type   = 'file';
+        // [FIX: accept abrangente para .txt em todos os SOs]
+        input.accept = '.txt,text/plain';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Verifica extensão explicitamente (Windows às vezes ignora accept)
+            if (!file.name.toLowerCase().endsWith('.txt')) {
+                mostrarToastExp('❌ Selecione um arquivo .txt válido.', '#e74c3c');
+                return;
+            }
+
+            mostrarLoadingBtn('btn-imp-txt', '⏳ Importando...');
+            try {
+                const texto = await file.text();
+
+                // Remove BOM e normaliza quebras de linha
+                const textoLimpo = texto.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                const linhas = textoLimpo.split('\n');
+
+                // Mapa de campos TXT → objeto de dados
+                const mapa = {};
+                linhas.forEach(linha => {
+                    linha = linha.trim();
+                    // Ignora linhas de cabeçalho/comentário
+                    if (!linha || linha.startsWith('=') || linha.startsWith('Preencha')) return;
+
+                    // Formato: "Chave: Valor" — divide apenas no primeiro ":"
+                    const idx = linha.indexOf(':');
+                    if (idx === -1) return;
+
+                    const chave = normalizar(linha.slice(0, idx));
+                    const valor = normalizar(linha.slice(idx + 1));
+                    if (chave) mapa[chave] = valor;
+                });
+
+                if (Object.keys(mapa).length === 0) {
+                    throw new Error('Nenhum campo encontrado no arquivo TXT. Verifique se o formato é "Campo: Valor" em cada linha.');
+                }
+
+                // Mapeamento: rótulo TXT → chave JS do status
+                const CAMPO_PARA_CHAVE_TXT = {
+                    'Jogador':               'jogador',
+                    'Personagem':            'personagem',
+                    'Raça':                  'raca',
+                    'Idade':                 'idade',
+                    'Nível':                 'nivel',
+                    'Vida Atual':            'vidaAtual',
+                    'Mana Atual':            'manaAtual',
+                    'Sanidade':              'sanAtual',
+                    'Força Base':            'forcaBase',
+                    'Velocidade Base':       'velBase',
+                    'Inteligência Base':     'intBase',
+                    'Defesa Base':           'defBase',
+                    'Pontaria Base':         'pontBase',
+                    'Carisma Base':          'carBase',
+                    'Furtividade Base':      'furtBase',
+                    'Habilidades Ativas':    'habilidades',
+                };
+
+                const supa = window._supaClient;
+                if (!supa) throw new Error('Cliente Supabase não disponível. Recarregue a página.');
+
+                const fichaId = typeof getFichaId === 'function' ? getFichaId() : null;
+                if (!fichaId) throw new Error('Nenhuma ficha ativa. Selecione uma ficha primeiro.');
+
+                // Carrega status atual para fazer merge
+                const { data: atual } = await supa
+                    .from('fichas_dados')
+                    .select('valor')
+                    .eq('ficha_id', fichaId)
+                    .eq('tipo', 'status')
+                    .maybeSingle();
+
+                let statusAtual = {};
+                try { statusAtual = JSON.parse(atual?.valor || '{}'); } catch(err) {}
+
+                // Aplica campos de status mapeados
+                Object.entries(CAMPO_PARA_CHAVE_TXT).forEach(([campo, chave]) => {
+                    const valor = mapa[normalizar(campo)];
+                    if (valor !== undefined && valor !== '') {
+                        statusAtual[chave] = valor;
+                    }
+                });
+
+                // Atualiza tabela fichas com campos de identificação
+                const updates = {};
+                if (mapa['Nome'])    updates.nome   = mapa['Nome'];
+                if (mapa['Classe'])  updates.classe = mapa['Classe'];
+                if (mapa['Gênero']) updates.genero  = mapa['Gênero'];
+                if (!updates.genero && mapa['Genero']) updates.genero = mapa['Genero'];
+
+                if (Object.keys(updates).length > 0) {
+                    const { error: erroFicha } = await supa.from('fichas').update(updates).eq('id', fichaId);
+                    if (erroFicha) throw new Error('Erro ao atualizar dados da ficha: ' + erroFicha.message);
+                }
+
+                // Salva status via upsert
+                const { error: erroUpsert } = await supa.from('fichas_dados').upsert({
+                    ficha_id: fichaId,
+                    tipo: 'status',
+                    valor: JSON.stringify(statusAtual)
+                }, { onConflict: 'ficha_id,tipo' });
+
+                if (erroUpsert) throw new Error('Erro ao salvar status: ' + erroUpsert.message);
+
+                const nomeFicha = mapa['Nome'] || mapa['Personagem'] || 'a ficha';
+                mostrarToastExp(`✅ "${nomeFicha}" importada via TXT! Recarregando...`, '#4CAF50');
+                setTimeout(() => window.location.reload(), 1500);
+
+            } catch (e) {
+                mostrarToastExp('❌ ' + e.message, '#e74c3c');
+            } finally {
+                restaurarBtn('btn-imp-txt', '📄 Importar TXT');
+            }
+        };
+        input.click();
+    }
+
+    // ── Parser simples de linha CSV (RFC 4180) ─────────────
     function parsarLinhaCSV(linha) {
         const resultado = [];
         let campo = '';
@@ -486,15 +635,10 @@
 
     // ════════════════════════════════════════════════════════
     //  UI — Painel injetado na página
-    //  [FIX-1] Usa requestAnimationFrame para aguardar o
-    //          ui-ambient-panel ser criado primeiro.
-    //  [FIX-4] Injetado dentro do .rpg-window para mobile.
-    //  [FIX-5] CSS mobile-first completo.
     // ════════════════════════════════════════════════════════
     function injetarPainel() {
         if (document.getElementById('exp-imp-painel')) return;
 
-        // Determina se é página de fichas (sem rpg-window)
         const isPainelFichas = !!document.querySelector('.grid-personagens, #gridPersonagens');
 
         const painel = document.createElement('section');
@@ -514,7 +658,6 @@
                     -webkit-backdrop-filter: blur(6px);
                     box-sizing: border-box;
                 }
-                /* Dentro do rpg-window não precisa de max-width */
                 .rpg-window #exp-imp-painel {
                     max-width: none;
                     margin-left: 0;
@@ -602,32 +745,16 @@
                     font-size: 13px;
                     font-weight: bold;
                     word-break: break-word;
+                    white-space: pre-line;
                 }
-                /* ── Responsividade mobile ── */
                 @media (max-width: 750px) {
-                    #exp-imp-painel {
-                        margin-left: 0;
-                        margin-right: 0;
-                        padding: 10px 12px;
-                    }
+                    #exp-imp-painel { margin-left: 0; margin-right: 0; padding: 10px 12px; }
                 }
                 @media (max-width: 520px) {
-                    #exp-imp-painel {
-                        padding: 10px;
-                        border-radius: 4px;
-                    }
-                    .exp-imp-grid {
-                        grid-template-columns: 1fr;
-                        gap: 8px;
-                    }
-                    .exp-imp-btn {
-                        font-size: 10px;
-                        min-height: 38px;
-                        padding: 7px 8px;
-                    }
-                    .exp-imp-nota {
-                        font-size: 10px;
-                    }
+                    #exp-imp-painel { padding: 10px; border-radius: 4px; }
+                    .exp-imp-grid { grid-template-columns: 1fr; gap: 8px; }
+                    .exp-imp-btn { font-size: 10px; min-height: 38px; padding: 7px 8px; }
+                    .exp-imp-nota { font-size: 10px; }
                 }
                 @media (max-width: 360px) {
                     .exp-imp-btn { font-size: 9px; letter-spacing: 0.4px; }
@@ -665,10 +792,14 @@
                         <button id="btn-imp-csv" class="exp-imp-btn" type="button">
                             📋 Importar CSV
                         </button>
+                        <button id="btn-imp-txt" class="exp-imp-btn" type="button">
+                            📄 Importar TXT
+                        </button>
                     </div>
                     <div class="exp-imp-nota">
                         <strong>JSON</strong> — restaura tudo (substitui ficha atual).<br>
-                        <strong>CSV</strong> — importa apenas o arquivo de <em>status</em>.
+                        <strong>CSV</strong> — importa o arquivo de <em>status</em>.<br>
+                        <strong>TXT</strong> — importa o template <em>.txt</em> preenchido.
                     </div>
                 </div>
 
@@ -677,18 +808,17 @@
             <div id="exp-imp-toast"></div>
         `;
 
-        // Vincula eventos (sem onclick inline para evitar CSP issues)
         painel.querySelector('#btn-exp-json').addEventListener('click', exportarJSON);
         painel.querySelector('#btn-exp-csv').addEventListener('click', exportarCSV);
         painel.querySelector('#btn-imp-json').addEventListener('click', importarJSON);
         painel.querySelector('#btn-imp-csv').addEventListener('click', importarCSV);
+        painel.querySelector('#btn-imp-txt').addEventListener('click', importarTXT);
 
         _injetarPainelNoDOM(painel, isPainelFichas);
     }
 
     // ── [FIX-1] Injeção inteligente com retry ─────────────
     function _injetarPainelNoDOM(painel, isPainelFichas) {
-        // 1) Dentro do rpg-window — antes do botão salvar ou no final
         const rpgWindow = document.querySelector('.rpg-window');
         if (rpgWindow) {
             const saveBtn = rpgWindow.querySelector('.save-btn');
@@ -700,14 +830,12 @@
             return;
         }
 
-        // 2) Página de fichas — após o painel de ambiente ou antes do grid
         if (isPainelFichas) {
             const ambientPanel = document.querySelector('.ui-ambient-panel');
             if (ambientPanel) {
                 ambientPanel.insertAdjacentElement('afterend', painel);
                 return;
             }
-            // Se ainda não existe, tenta novamente após o ui-enhancements
             const grid = document.querySelector('#gridPersonagens, .grid-personagens');
             if (grid) {
                 grid.insertAdjacentElement('beforebegin', painel);
@@ -715,7 +843,6 @@
             }
         }
 
-        // 3) Fallback: após ui-ambient-panel ou no body
         const ambientPanel = document.querySelector('.ui-ambient-panel');
         if (ambientPanel) {
             ambientPanel.insertAdjacentElement('afterend', painel);
@@ -748,16 +875,15 @@
         toast.style.border       = `1px solid ${cor}`;
         toast.style.color        = cor;
         clearTimeout(toast._timer);
-        toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 5000);
+        toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 8000);
     }
 
-    // ── Expõe funções globalmente ──────────────────────────
-    window._expImp = { exportarJSON, exportarCSV, importarJSON, importarCSV };
+    // ── [FIX-UI-1] Expõe funções globalmente ──────────────
+    // importarTXT agora faz parte da API pública do módulo
+    window._expImp = { exportarJSON, exportarCSV, importarJSON, importarCSV, importarTXT };
 
-    // ── [FIX-1] Inicia após DOM + pequena espera para ui-enhancements ──
+    // ── Inicia após DOM ────────────────────────────────────
     onReady(() => {
-        // Usa requestAnimationFrame para garantir que ui-enhancements.js
-        // já rodou e criou o .ui-ambient-panel
         requestAnimationFrame(() => {
             setTimeout(injetarPainel, 80);
         });
