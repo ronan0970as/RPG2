@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════
-//  exportar_importar.js  (v2 — corrigido)
+//  exportar_importar.js  (v3 — download corrigido)
 //  Exporta e importa fichas RPG em JSON (completo) e CSV (resumo)
 //
 //  CORREÇÕES v2:
@@ -12,6 +12,15 @@
 //  [FIX-4] Painel injetado dentro do .rpg-window para garantir
 //          enquadramento correto em mobile.
 //  [FIX-5] CSS mobile-first com margens corretas em telas pequenas.
+//
+//  CORREÇÕES v3 — downloads:
+//  [FIX-DOWNLOAD-1] revokeObjectURL adiado 2 s — evita cancelar o
+//          download antes de ele iniciar (Firefox/Safari desktop).
+//  [FIX-DOWNLOAD-2] iOS Safari: usa data-URI base64 + window.open
+//          (único método aceito); fallback com link visível na tela
+//          quando popup é bloqueado.
+//  [FIX-DOWNLOAD-3] Delay de 600 ms entre os 3 CSVs exportados —
+//          evita múltiplos window.open simultâneos bloqueados pelo iOS.
 // ════════════════════════════════════════════════════════════
 
 (function () {
@@ -32,16 +41,84 @@
     }
 
     // ── Helpers de download ────────────────────────────────
+    //
+    //  [FIX-DOWNLOAD-1] revokeObjectURL não é mais imediato:
+    //    aguarda 2 s para o navegador iniciar o download antes de liberar a URL.
+    //  [FIX-DOWNLOAD-2] iOS Safari bloqueia blob URL + a.click() programático;
+    //    usa data-URI base64 + window.open, com fallback de link visível.
+    //
     function baixarArquivo(conteudo, nomeArquivo, tipo) {
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+        if (isIOS) {
+            // iOS: única abordagem aceita pelo Safari mobile é data-URI em nova aba.
+            // O usuário usa "Compartilhar → Salvar em Arquivos" para guardar.
+            try {
+                const base64  = btoa(unescape(encodeURIComponent(conteudo)));
+                const mime    = tipo.includes('json') ? 'application/json' : 'text/csv';
+                const dataURI = `data:${mime};charset=utf-8;base64,${base64}`;
+                const win     = window.open(dataURI, '_blank');
+                if (!win) {
+                    // Popup bloqueado → exibe link clicável na tela
+                    _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo);
+                }
+            } catch (err) {
+                // Fallback seguro se btoa falhar (conteúdo muito grande)
+                _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo);
+            }
+            return;
+        }
+
+        // Desktop e Android: blob URL + <a download>
+        // Não revoga imediatamente — aguarda 2 s para evitar falha no Firefox/Safari desktop
         const blob = new Blob([conteudo], { type: tipo });
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
-        a.href     = url;
-        a.download = nomeArquivo;
+        a.href          = url;
+        a.download      = nomeArquivo;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 2000);
+    }
+
+    // Exibe link clicável para quando window.open for bloqueado (iOS popup-blocker)
+    function _baixarViaLinkVisivel(conteudo, nomeArquivo, tipo) {
+        const blob = new Blob([conteudo], { type: tipo });
+        const url  = URL.createObjectURL(blob);
+
+        const antigo = document.getElementById('_download-fallback-link');
+        if (antigo) antigo.remove();
+
+        const a = document.createElement('a');
+        a.id          = '_download-fallback-link';
+        a.href        = url;
+        a.download    = nomeArquivo;
+        a.textContent = `⬇️ Toque aqui para baixar: ${nomeArquivo}`;
+        a.style.cssText = [
+            'display:block',
+            'margin:10px 0',
+            'padding:12px 14px',
+            'background:rgba(76,175,80,0.15)',
+            'border:1px solid #4CAF50',
+            'border-radius:6px',
+            'color:#4CAF50',
+            'font-weight:bold',
+            'font-size:13px',
+            'text-align:center',
+            'text-decoration:none',
+            'word-break:break-all',
+        ].join(';');
+
+        const toast = document.getElementById('exp-imp-toast');
+        if (toast) toast.insertAdjacentElement('afterend', a);
+        else document.body.appendChild(a);
+
+        // Remove após 60 s e libera URL
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 60000);
     }
 
     function nomeArquivoSeguro(nome) {
@@ -179,6 +256,9 @@
                     t.buffs?.furtividade  || '',
                 ])
             ];
+            // [FIX-DOWNLOAD-3] Delay entre downloads — evita bloqueio de
+            // múltiplos window.open simultâneos no iOS/Safari
+            await new Promise(r => setTimeout(r, 600));
             baixarArquivo(linhasParaCSV(linhasTalentos), `${nomeFich}_talentos_${data}.csv`, 'text/csv;charset=utf-8;');
 
             const inventario = dados.inventario || [];
@@ -191,6 +271,7 @@
                     i.descricao  || '',
                 ])
             ];
+            await new Promise(r => setTimeout(r, 600));
             baixarArquivo(linhasParaCSV(linhasInv), `${nomeFich}_inventario_${data}.csv`, 'text/csv;charset=utf-8;');
 
             mostrarToastExp('✅ 3 arquivos CSV exportados!', '#4CAF50');
