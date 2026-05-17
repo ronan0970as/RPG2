@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
-   DRAGÕES & TORRES — Tema Medieval Épico v5.1 (OPTIMIZADO)
-   Melhorias: performance, acessibilidade, touch targets, layout
+   DRAGÕES & TORRES — Tema Medieval Épico v5.0
+   Fundo visível + painéis semitransparentes
 ═══════════════════════════════════════════════════════════════ */
 
-/* [PERF] Font já carregada via <link> no HTML — evita duplicação */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap');
 
 :root {
     --gold:        #d4a943;
@@ -15,6 +15,7 @@
     --ink:         #d4c8a0;
     --ink-dim:     #9a8e6e;
     --ink-faint:   #4a4230;
+    /* Painéis com transparência — imagem aparece por trás */
     --panel-bg:    rgba(14,11,7,0.78);
     --panel-bg-mid:rgba(14,11,7,0.70);
     --panel-border:rgba(160,120,40,0.55);
@@ -22,52 +23,30 @@
     --font-title:  'Cinzel Decorative', serif;
     --font-heading:'Cinzel', serif;
     --font-body:   'IM Fell English', serif;
-    /* [A11Y] Foco visível consistente */
-    --focus-ring:  0 0 0 3px rgba(212,169,67,0.55);
-    /* [PERF] Dimensões reutilizáveis */
-    --nav-height:  48px;
-    --widget-height: 52px;
-    --content-max: 900px;
 }
 
-/* [RESET] Mínimo seguro */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
+/* Garante que nenhum elemento estoure a largura da tela no mobile */
+html, body {
+    max-width: 100%;
     overflow-x: hidden;
-    /* [MOB] Evita zoom indesejado em double-tap no iOS */
-    touch-action: manipulation;
-    /* [PERF] Smooth scroll nativo */
-    scroll-behavior: smooth;
 }
-
-html, body { max-width: 100%; overflow-x: hidden; }
 
 body {
+    /* Fundo base escuro — será sobrescrito por cada página */
     background-color: #0f0d09;
     color: var(--parchment);
     font-family: var(--font-body);
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* [MOB] padding-top deixa espaço para widget fixo de auth */
-    padding: var(--widget-height) 10px 24px;
+    padding: 0 10px 10px;
     min-height: 100vh;
-    min-height: 100dvh; /* [MOB] dvh evita problema com barra de endereços no iOS/Android */
     -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
 }
 
-/* [A11Y] Foco visível para navegação por teclado */
-:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 2px;
-    box-shadow: var(--focus-ring);
-}
-/* Remove outline padrão feio apenas quando não é teclado */
-:focus:not(:focus-visible) { outline: none; }
-
-/* ── Decorações flutuantes (dragão + castelo) ── */
+/* Dragão fixo decorativo — visível mas não atrapalha */
 body::before {
     content: '🐉';
     position: fixed;
@@ -78,12 +57,9 @@ body::before {
     pointer-events: none;
     z-index: 0;
     filter: drop-shadow(0 0 30px rgba(220,80,10,0.7));
-    /* [PERF] will-change só em elementos que animam continuamente */
-    will-change: transform;
     animation: dragonFloat 8s ease-in-out infinite;
+    overflow: hidden;
     max-width: 50vw;
-    /* [A11Y] Decorações não devem ser anunciadas por leitores */
-    aria-hidden: true;
 }
 body::after {
     content: '🏰';
@@ -95,23 +71,16 @@ body::after {
     z-index: 0;
     filter: drop-shadow(0 0 20px rgba(212,169,67,0.5));
     max-width: 50vw;
+    overflow: hidden;
 }
-
-/* [A11Y] Respeita preferência por movimento reduzido */
-@media (prefers-reduced-motion: reduce) {
-    body::before { animation: none; }
-    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
-}
-
 @keyframes dragonFloat {
     0%,100% { transform: scaleX(-1) rotate(-5deg) translateY(0); }
     50%      { transform: scaleX(-1) rotate(-3deg) translateY(-12px); }
 }
 
-/* ─── JANELA PRINCIPAL ─── */
+/* ─── JANELA PRINCIPAL — semitransparente ─── */
 .rpg-window {
     background: var(--panel-bg);
-    /* [PERF] backdrop-filter é custoso — limitar ao necessário */
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
     border: 1px solid var(--panel-border);
@@ -119,7 +88,7 @@ body::after {
     border-radius: 4px;
     padding: 20px;
     width: 100%;
-    max-width: var(--content-max);
+    max-width: 900px;
     box-shadow:
         0 0 0 1px rgba(212,169,67,0.15),
         0 0 40px rgba(212,169,67,0.07),
@@ -127,8 +96,6 @@ body::after {
         inset 0 1px 0 rgba(212,169,67,0.10);
     position: relative;
     z-index: 1;
-    /* [MOB] Evita overflow horizontal */
-    overflow-x: hidden;
 }
 .rpg-window::before {
     content: '⚜️';
@@ -136,7 +103,6 @@ body::after {
     top: 6px; left: 10px;
     font-size: 26px; opacity: 0.7; line-height: 1;
     filter: drop-shadow(0 0 6px var(--gold-glow));
-    pointer-events: none;
 }
 .rpg-window::after {
     content: '⚜️';
@@ -145,16 +111,15 @@ body::after {
     font-size: 26px; opacity: 0.7; line-height: 1;
     filter: drop-shadow(0 0 6px var(--gold-glow));
     transform: scaleX(-1);
-    pointer-events: none;
 }
 
-/* ─── NAVEGAÇÃO ─── */
+/* ─── NAVEGAÇÃO — semitransparente ─── */
 nav {
     margin-bottom: 10px;
     margin-top: 10px;
     display: flex; gap: 4px; flex-wrap: wrap;
     justify-content: center;
-    width: 100%; max-width: var(--content-max);
+    width: 100%; max-width: 900px;
     position: relative; z-index: 1;
 }
 nav::before {
@@ -185,14 +150,11 @@ nav a {
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     border-radius: 3px;
-    transition: background 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s;
+    transition: all 0.25s;
     text-align: center; flex: 1; min-width: 90px;
-    /* [A11Y] Touch target mínimo 44px */
     min-height: 44px;
     display: flex; align-items: center; justify-content: center;
     position: relative; overflow: hidden;
-    /* [PERF] GPU layer para hover suave */
-    will-change: auto;
 }
 nav a::before {
     content: '';
@@ -215,6 +177,13 @@ nav a:hover, nav a.active {
     grid-template-columns: 180px 1fr 1fr;
     gap: 20px; align-items: start;
     width: 100%;
+}
+
+@media (max-width: 900px) {
+    .grid-container {
+        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px;
+    }
 }
 
 /* ─── CARD DE FOTO DO PERSONAGEM ─── */
@@ -266,10 +235,7 @@ nav a:hover, nav a.active {
     border: 1px solid var(--gold-dark); color: var(--ink-dim);
     padding: 8px 10px; border-radius: 3px; cursor: pointer;
     font-family: var(--font-heading); font-size: 10px; font-weight: 600;
-    letter-spacing: 0.5px; transition: background 0.2s, border-color 0.2s, color 0.2s;
-    width: 100%; text-align: center; margin-top: 2px;
-    /* [A11Y] Touch target */
-    min-height: 40px; display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0.5px; transition: all 0.2s; width: 100%; text-align: center; margin-top: 2px;
 }
 .char-foto-btn:hover {
     background: rgba(212,169,67,0.15); border-color: var(--gold-light);
@@ -303,21 +269,18 @@ label {
     font-weight: 600; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
 }
 
-/* ─── INPUTS ─── */
+/* ─── INPUTS — fundo translúcido ─── */
 input, textarea, select {
     background: var(--input-bg);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
     border: 1px solid var(--ink-faint);
     color: var(--parchment);
-    /* [MOB] 16px mínimo no iOS para não disparar zoom */
     padding: 8px; border-radius: 3px;
     font-family: var(--font-body); font-size: 16px;
     width: 100%; outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     -webkit-appearance: none; appearance: none;
-    /* [MOB] Garante altura de toque adequada */
-    min-height: 40px;
 }
 input:focus, textarea:focus, select:focus {
     border-color: var(--gold);
@@ -327,26 +290,9 @@ input::placeholder, textarea::placeholder { color: var(--ink-faint); font-style:
 input[type="number"] {
     width: 64px; min-width: 48px; text-align: center; padding: 8px 4px; flex-shrink: 0;
     font-family: var(--font-heading); font-size: 14px; color: var(--gold-light);
-    /* [MOB] Remove spinners desnecessários no mobile */
-    -moz-appearance: textfield;
-}
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    opacity: 0.5; /* Visível mas discreto */
 }
 .mod-input { width: 72px; min-width: 56px; flex-shrink: 0; font-size: 14px; }
-textarea { height: 100px; resize: vertical; line-height: 1.6; min-height: 60px; }
-
-/* [MOB] Select com ícone nativo visível */
-select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a07828' stroke-width='2' fill='none'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    padding-right: 32px;
-    -webkit-appearance: none;
-    appearance: none;
-    cursor: pointer;
-}
+textarea { height: 100px; resize: vertical; line-height: 1.6; }
 
 .highlight {
     font-family: var(--font-heading); color: var(--gold-light); font-weight: 700; font-size: 13px;
@@ -364,7 +310,7 @@ select {
     display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     margin-bottom: 10px;
     background: rgba(212,169,67,0.06);
-    border-left: 3px solid var(--gold); padding: 8px 8px 8px 10px;
+    border-left: 3px solid var(--gold); padding-left: 10px;
     border-radius: 0 3px 3px 0;
 }
 .status-bar label { width: auto; min-width: 90px; flex-shrink: 0; }
@@ -375,10 +321,7 @@ select {
     color: var(--ink-dim); border: 1px solid var(--gold-dark);
     padding: 8px 12px; cursor: pointer; border-radius: 3px;
     font-family: var(--font-heading); font-weight: 700; font-size: 11px;
-    transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
-    white-space: nowrap;
-    /* [A11Y] Touch target 44px */
-    min-height: 44px; min-width: 40px;
+    transition: all 0.2s; white-space: nowrap; min-height: 40px;
 }
 .calc-btn:hover {
     background: rgba(212,169,67,0.2); border-color: var(--gold-light);
@@ -407,11 +350,8 @@ select {
     padding: 14px; cursor: pointer; border-radius: 3px;
     font-family: var(--font-heading); font-weight: 700; font-size: 12px;
     letter-spacing: 2px; text-transform: uppercase;
-    width: 100%; margin-top: 15px;
-    /* [A11Y] Touch target generoso */
-    min-height: 52px;
-    transition: background 0.25s, box-shadow 0.25s, border-color 0.25s;
-    position: relative; overflow: hidden;
+    width: 100%; margin-top: 15px; min-height: 48px;
+    transition: all 0.25s; position: relative; overflow: hidden;
     box-shadow: 0 0 20px rgba(60,160,60,0.12);
 }
 .save-btn::before {
@@ -420,19 +360,10 @@ select {
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
     transition: left 0.4s;
 }
-/* [MOB] Hover só em dispositivos com pointer fino (mouse) */
-@media (hover: hover) and (pointer: fine) {
-    .save-btn:hover::before { left: 100%; }
-    .save-btn:hover {
-        background: rgba(60,120,60,0.90);
-        box-shadow: 0 0 28px rgba(80,200,80,0.25); border-color: #6ab46a;
-    }
-}
-/* [MOB] Active state para touch */
-.save-btn:active {
+.save-btn:hover::before { left: 100%; }
+.save-btn:hover {
     background: rgba(60,120,60,0.90);
     box-shadow: 0 0 28px rgba(80,200,80,0.25); border-color: #6ab46a;
-    transform: scale(0.98);
 }
 
 .btn-remover-item {
@@ -440,17 +371,11 @@ select {
     border: 1px solid rgba(200,60,50,0.5); padding: 10px 14px; border-radius: 3px;
     cursor: pointer; font-family: var(--font-heading); font-size: 11px;
     font-weight: 700; letter-spacing: 0.5px; align-self: center;
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-    min-height: 44px;
+    transition: all 0.2s; min-height: 44px;
 }
-@media (hover: hover) and (pointer: fine) {
-    .btn-remover-item:hover {
-        background: rgba(200,60,50,0.20); border-color: #e05050;
-        box-shadow: 0 0 14px rgba(200,60,50,0.2);
-    }
-}
-.btn-remover-item:active {
+.btn-remover-item:hover {
     background: rgba(200,60,50,0.20); border-color: #e05050;
+    box-shadow: 0 0 14px rgba(200,60,50,0.2);
 }
 
 /* ─── FORMULÁRIO DE ITENS ─── */
@@ -468,7 +393,6 @@ select {
 .file-input {
     background: transparent; border: none; padding: 0;
     color: var(--ink-dim); cursor: pointer; font-size: 14px;
-    min-height: 0;
 }
 .file-input::file-selector-button {
     background: rgba(20,16,8,0.85);
@@ -476,8 +400,7 @@ select {
     padding: 8px 12px; border-radius: 3px;
     font-family: var(--font-heading); font-weight: 700;
     font-size: 10px; letter-spacing: 0.5px; cursor: pointer; margin-right: 10px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    min-height: 36px;
+    transition: all 0.2s;
 }
 .file-input::file-selector-button:hover { border-color: var(--gold-light); box-shadow: 0 0 8px rgba(212,169,67,0.2); }
 .crop-controls {
@@ -488,7 +411,7 @@ select {
 .crop-controls label { font-size: 10px; color: var(--gold); width: 100%; letter-spacing: 1px; }
 .crop-controls input[type="range"] { width: 100%; cursor: pointer; height: 32px; accent-color: var(--gold); }
 
-/* ─── CARDS DO INVENTÁRIO ─── */
+/* ─── CARDS DO INVENTÁRIO — semitransparentes ─── */
 .grid-itens { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
 
 .item-card {
@@ -498,21 +421,17 @@ select {
     border: 1px solid var(--panel-border); border-left: 4px solid var(--gold);
     border-radius: 3px; padding: 14px; gap: 14px; align-items: stretch;
     box-shadow: 0 3px 14px rgba(0,0,0,0.5);
-    transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s, background 0.25s;
-    position: relative; overflow: hidden;
+    transition: all 0.25s; position: relative; overflow: hidden;
 }
 .item-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, var(--gold), transparent); opacity: 0.5;
 }
-/* [MOB] Hover com transform apenas em desktop com mouse */
-@media (hover: hover) and (pointer: fine) {
-    .item-card:hover {
-        border-left-color: var(--gold-light); border-color: var(--gold-dark);
-        box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,169,67,0.15);
-        transform: translateX(3px);
-        background: rgba(20,14,6,0.82);
-    }
+.item-card:hover {
+    border-left-color: var(--gold-light); border-color: var(--gold-dark);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,169,67,0.15);
+    transform: translateX(3px);
+    background: rgba(20,14,6,0.82);
 }
 .preview-card { border-left-color: #4a9a4a; border-color: rgba(74,154,74,0.5); opacity: 0.9; }
 .item-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; width: 100%; }
@@ -536,60 +455,60 @@ select {
     border: 2px solid var(--gold-dark);
     background: rgba(10,8,4,0.6);
     flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
-    transition: border-color 0.25s, box-shadow 0.25s;
+    transition: all 0.25s;
 }
-@media (hover: hover) and (pointer: fine) {
-    .item-card:hover .item-img-container { border-color: var(--gold-light); box-shadow: 0 0 20px rgba(212,169,67,0.2); }
-}
+.item-card:hover .item-img-container { border-color: var(--gold-light); box-shadow: 0 0 20px rgba(212,169,67,0.2); }
 .item-img-container img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ─── WIDGET DE USUÁRIO (auth.js) ─── */
-body { padding-top: var(--widget-height); }
+/* ─── WIDGET DE USUÁRIO — espaço para o widget fixo do auth.js ─── */
+/* O widget fica em position:fixed top:8px, altura ~40px → ocupa até ~48px do topo */
+body { padding-top: 60px; }
+
+/* No mobile, o widget fica menor mas a nav fica sticky abaixo dele */
+/* Garante que o nav não seja ocultado pelo widget */
 nav { margin-top: 0; }
 
 /* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(15,12,8,0.5); }
-::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 ::selection { background: rgba(212,169,67,0.3); color: var(--gold-light); }
 
 /* ══════════════════════════════════════════════════════════════
-   RESPONSIVIDADE — Mobile-first progressivo
+   RESPONSIVIDADE MOBILE — revisado
 ══════════════════════════════════════════════════════════════ */
 
 /* ── Tablet largo (≤ 900px) ─────────────────────────────── */
 @media (max-width: 900px) {
     .grid-container {
-        grid-template-columns: 160px minmax(0, 1fr) minmax(0, 1fr);
-        gap: 14px;
+        grid-template-columns: 1fr;
+        gap: 12px;
     }
-    .rpg-window { max-width: 100%; }
 }
 
 /* ── Tablet / Mobile grande (≤ 750px) ───────────────────── */
 @media (max-width: 750px) {
     body {
         padding: 0 8px 24px;
+        /* [MOB-3] 56px → widget(~48px) + 8px folga. Nav fica ABAIXO do widget via sticky */
         padding-top: 56px;
-        /* [MOB] background-attachment:fixed causa flickering no iOS */
-        background-attachment: scroll !important;
     }
     body::before { font-size: 80px; opacity: 0.08; right: -6px; top: 56px; }
     body::after  { font-size: 80px; opacity: 0.07; }
 
+    /* Janela principal */
     .rpg-window {
         padding: 14px 12px;
         border-radius: 6px;
+        /* garante que não estoure a tela */
         overflow-x: hidden;
         width: 100%;
+        box-sizing: border-box;
     }
 
-    /* Nav sticky com scroll horizontal */
+    /* Nav — sticky, scroll horizontal se necessário */
     nav {
-        position: sticky;
-        top: 0;
-        z-index: 20;
         gap: 4px;
         margin-top: 6px;
         flex-wrap: nowrap;
@@ -598,10 +517,6 @@ nav { margin-top: 0; }
         scrollbar-width: none;
         padding-bottom: 2px;
         width: 100%;
-        /* [MOB] Fundo opaco para não deixar conteúdo vazar por baixo */
-        background: rgba(10,8,4,0.92);
-        padding: 6px 8px;
-        margin-left: 0; margin-right: 0;
     }
     nav::-webkit-scrollbar { display: none; }
     nav a {
@@ -611,19 +526,27 @@ nav { margin-top: 0; }
         padding: 10px 6px;
         white-space: nowrap;
         letter-spacing: 0.8px;
-        background: transparent;
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
     }
 
-    .grid-container { grid-template-columns: 1fr; gap: 12px; }
+    /* Grid de colunas → sempre coluna única no mobile */
+    .grid-container {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 
-    /* Card de foto horizontal compacto */
-    .char-card-col { flex-direction: row; width: 100%; }
+    /* Card de foto → horizontal compacto */
+    .char-card-col {
+        flex-direction: row;
+        width: 100%;
+    }
     .char-foto-card {
-        flex-direction: row; align-items: center;
-        gap: 12px; padding: 10px 12px;
-        position: static; flex: 1; width: 100%;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        position: static;
+        flex: 1;
+        width: 100%;
     }
     .char-foto-card::before { font-size: 18px; bottom: 4px; right: 4px; }
     .char-foto-wrap { width: 64px; height: 82px; flex-shrink: 0; }
@@ -632,63 +555,89 @@ nav { margin-top: 0; }
     .char-foto-classe { font-size: 10px; }
     .char-foto-btn { font-size: 10px; padding: 7px 8px; }
 
+    /* Labels e inputs */
     label { width: 80px; font-size: 10px; }
-    /* [MOB] 16px obrigatório para evitar zoom automático no iOS */
-    input, textarea, select { font-size: 16px; }
-    input[type="number"] { width: 52px; min-width: 42px; font-size: 16px; }
+    input, textarea, select { font-size: 16px; } /* 16px evita zoom no iOS */
+    input[type="number"] { width: 52px; min-width: 42px; font-size: 14px; }
     .mod-input { width: 60px; min-width: 50px; }
 
+    /* Barras de status — empilha em coluna para evitar overflow */
     .status-bar {
-        flex-wrap: wrap; gap: 6px; padding: 8px 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
     }
     .status-bar label { width: 100%; min-width: 0; margin-bottom: 0; font-size: 10px; }
     .status-bar input[type="number"] { flex: 1 1 56px; max-width: 80px; }
     .status-bar .highlight { font-size: 12px; white-space: nowrap; }
     .status-bar .mod-input { flex: 1 1 80px; }
-    .status-bar .calc-btn { flex-shrink: 0; padding: 8px 12px; font-size: 10px; min-height: 44px; }
+    .status-bar .calc-btn { flex-shrink: 0; padding: 8px 12px; font-size: 10px; min-height: 40px; }
 
-    .attr-row { flex-wrap: wrap; gap: 4px; padding: 6px 8px; }
+    /* Linhas de atributo — empilha label */
+    .attr-row {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 6px 8px;
+    }
     .attr-row label { width: 100%; margin-bottom: 2px; font-size: 10px; }
     .attr-row input[type="number"] { flex: 1 1 50px; max-width: 70px; }
     .attr-row .mod-input { flex: 1 1 60px; }
     .attr-row .total-stat { margin-left: auto; font-size: 12px; }
 
-    /* Cards inventário → coluna */
+    /* Cards de inventário */
     .item-card {
-        flex-direction: column; align-items: flex-start;
-        text-align: left; transform: none !important; gap: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        transform: none !important;
+        gap: 10px;
     }
-    .item-img-container { width: 100%; max-width: 100%; height: 160px; border-radius: 4px; }
+    .item-card:hover { transform: none !important; }
+    .item-img-container {
+        width: 100%;
+        max-width: 100%;
+        height: 160px;
+        border-radius: 4px;
+    }
     .item-info { width: 100%; }
     .btn-remover-item { width: 100%; text-align: center; }
 
+    /* Títulos */
     h2 { font-size: 11px; letter-spacing: 1.5px; margin-top: 14px; margin-bottom: 10px; }
 }
 
 /* ── Mobile pequeno (≤ 480px) ────────────────────────────── */
 @media (max-width: 480px) {
     body { padding-left: 6px; padding-right: 6px; }
+
     .rpg-window { padding: 12px 10px; }
     .rpg-window::before, .rpg-window::after { font-size: 18px; }
 
     nav {
-        margin-left: -8px; margin-right: -8px;
-        padding-left: 6px; padding-right: 6px;
-        width: calc(100% + 16px);
+        margin-left: -6px;
+        margin-right: -6px;
+        padding-left: 6px;
+        padding-right: 6px;
+        width: calc(100% + 12px);
     }
     nav a { min-width: 62px; font-size: 9px; padding: 9px 5px; letter-spacing: 0.6px; }
 
+    /* Card de foto */
     .char-foto-wrap { width: 54px; height: 70px; }
     .char-foto-placeholder { font-size: 20px; }
     .char-foto-btn { font-size: 9px; padding: 6px; }
 
+    /* Labels */
     label { width: 76px; font-size: 9px; }
     input[type="number"] { width: 46px; min-width: 38px; }
     .mod-input { width: 54px; min-width: 44px; }
+
+    /* Inventário */
     .item-img-container { height: 130px; }
 
+    /* Botões */
     .save-btn { font-size: 11px; letter-spacing: 1px; padding: 12px; }
-    .calc-btn { min-height: 44px; }
+    .calc-btn { min-height: 36px; }
 }
 
 /* ── Mobile muito pequeno (≤ 360px) ─────────────────────── */
@@ -697,20 +646,10 @@ nav { margin-top: 0; }
     nav { margin-left: -4px; margin-right: -4px; padding-left: 4px; padding-right: 4px; width: calc(100% + 8px); }
     nav a { font-size: 9px; padding: 8px 4px; min-width: 56px; letter-spacing: 0.4px; }
     label { width: 68px; font-size: 9px; }
-    input[type="number"] { width: 42px; min-width: 34px; font-size: 14px; }
+    input[type="number"] { width: 42px; min-width: 34px; font-size: 13px; }
     .mod-input { width: 48px; min-width: 40px; }
     .char-foto-wrap { width: 48px; height: 62px; }
     .char-foto-placeholder { font-size: 18px; }
     .rpg-window { padding: 10px 8px; }
     h2 { font-size: 10px; letter-spacing: 1px; }
 }
-
-/* ── PC grande (≥ 1200px) ────────────────────────────────── */
-@media (min-width: 1200px) {
-    body { padding-left: 20px; padding-right: 20px; }
-    .grid-container { gap: 24px; }
-    .rpg-window { padding: 24px 28px; }
-}
-
-/* ── Modo escuro do sistema já é padrão ──
-   Se o usuário tiver preferência por claro (raro), mantemos o tema escuro por ser parte do design */

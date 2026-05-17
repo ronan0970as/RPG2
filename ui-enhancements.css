@@ -1,24 +1,16 @@
-/* ══════════════════════════════════════════════════════
-   ui-enhancements.css — Melhorias de Interface v1.1
-   Otimizações: touch targets, performance, acessibilidade
-══════════════════════════════════════════════════════ */
+/* Shared interface upgrades */
 
-html { overflow-x: hidden; }
+html {
+    overflow-x: hidden;
+}
 
 body {
     background-size: cover;
     background-position: center;
-    /* [MOB] background-attachment:fixed desativado por padrão para iOS */
-    background-attachment: scroll;
+    background-attachment: fixed;
     background-repeat: no-repeat;
 }
 
-/* [MOB] Apenas desktop usa background fixo */
-@media (hover: hover) and (pointer: fine) {
-    body { background-attachment: fixed; }
-}
-
-/* ── Painel de Ambiente ── */
 .ui-ambient-panel {
     width: 100%;
     max-width: 900px;
@@ -32,9 +24,6 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.38);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    /* [MOB] Evita overflow */
-    overflow: hidden;
-    box-sizing: border-box;
 }
 
 .painel-page .ui-ambient-panel {
@@ -65,7 +54,6 @@ body {
     text-transform: none;
 }
 
-/* ── Grid de temas ── */
 .tower-theme-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -85,41 +73,29 @@ body {
     background-position: center;
     box-shadow: inset 0 -44px 30px rgba(0,0,0,0.64);
     transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    /* [A11Y] Touch target */
-    -webkit-tap-highlight-color: transparent;
 }
 
-/* [MOB] Hover com transform apenas em dispositivos com mouse */
-@media (hover: hover) and (pointer: fine) {
-    .tower-theme-btn:hover,
-    .tower-theme-btn.active {
-        border-color: var(--gold-light, #f5d06e);
-        box-shadow: inset 0 -44px 30px rgba(0,0,0,0.54), 0 0 0 1px rgba(245,208,110,0.22);
-        transform: translateY(-1px);
-    }
-}
-
-/* [MOB] Active state para touch */
-.tower-theme-btn:active,
+.tower-theme-btn:hover,
 .tower-theme-btn.active {
     border-color: var(--gold-light, #f5d06e);
     box-shadow: inset 0 -44px 30px rgba(0,0,0,0.54), 0 0 0 1px rgba(245,208,110,0.22);
+    transform: translateY(-1px);
 }
 
 .tower-theme-btn span {
     position: absolute;
-    left: 8px; right: 8px; bottom: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
     font-family: var(--font-heading, serif);
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.7px; text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.7px;
+    text-align: left;
     text-transform: uppercase;
     text-shadow: 0 1px 5px #000;
-    /* [A11Y] Não selecionar texto ao toque */
-    user-select: none;
-    -webkit-user-select: none;
 }
 
-/* ── Barras de vida/mana/sanidade ── */
 .status-bar .stat-meter {
     flex-basis: 100%;
     height: 8px;
@@ -127,8 +103,6 @@ body {
     border-radius: 4px;
     background: rgba(0,0,0,0.48);
     border: 1px solid rgba(255,255,255,0.06);
-    /* [PERF] Garante que a barra não cause reflow */
-    contain: strict;
 }
 
 .stat-meter-fill {
@@ -139,8 +113,6 @@ body {
     background: var(--meter-color, var(--gold, #d4a943));
     box-shadow: 0 0 16px var(--meter-glow, rgba(212,169,67,0.3));
     transition: width 0.24s ease;
-    /* [PERF] GPU layer para animação suave */
-    will-change: width;
 }
 
 .status-bar[data-status-kind="vida"] .stat-meter-fill {
@@ -162,7 +134,6 @@ body {
     border-color: rgba(226,83,65,0.35);
 }
 
-/* ── Painel inteligente de status ── */
 .status-smart-panel {
     margin: 14px 0 18px;
     padding: 12px;
@@ -190,11 +161,12 @@ body {
     margin-bottom: 8px;
     font-family: var(--font-heading, serif);
     color: var(--gold-light, #f5d06e);
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 1.1px; text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
 }
 
-/* ── Ações rápidas ── */
 .quick-actions-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -202,8 +174,7 @@ body {
 }
 
 .ui-action-btn {
-    /* [A11Y] Touch target mínimo */
-    min-height: 44px;
+    min-height: 40px;
     padding: 8px 10px;
     border: 1px solid var(--gold-dark, #a07828);
     border-radius: 5px;
@@ -211,29 +182,19 @@ body {
     color: var(--ink, #d4c8a0);
     cursor: pointer;
     font-family: var(--font-heading, serif);
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 0.8px; text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
     transition: border-color 0.2s, background 0.2s, color 0.2s;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-    .ui-action-btn:hover {
-        border-color: var(--gold-light, #f5d06e);
-        background: rgba(212,169,67,0.16);
-        color: var(--gold-light, #f5d06e);
-    }
-}
-.ui-action-btn:active {
+.ui-action-btn:hover {
     border-color: var(--gold-light, #f5d06e);
     background: rgba(212,169,67,0.16);
     color: var(--gold-light, #f5d06e);
-    transform: scale(0.96);
 }
 
-/* ── Dados (Dice) ── */
 .dice-controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -242,8 +203,11 @@ body {
 }
 
 #dice-expression {
-    min-width: 0; width: 100%;
-    font-size: 14px; text-align: center; letter-spacing: 1px;
+    min-width: 0;
+    width: 100%;
+    font-size: 14px;
+    text-align: center;
+    letter-spacing: 1px;
 }
 
 .dice-presets {
@@ -259,7 +223,8 @@ body {
     border-radius: 5px;
     background: rgba(0,0,0,0.28);
     color: var(--parchment, #f5e8c0);
-    font-size: 14px; line-height: 1.35;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
 .dice-result strong {
@@ -268,7 +233,10 @@ body {
 }
 
 .dice-history {
-    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
 }
 
 .dice-history span {
@@ -280,19 +248,26 @@ body {
     font-size: 12px;
 }
 
-/* ── Notas rápidas ── */
-.quick-notes { margin-top: 12px; }
-.quick-notes textarea { min-height: 82px; }
-.quick-notes-footer {
-    min-height: 18px; margin-top: 5px;
-    color: var(--ink-dim, #9a8e6e);
-    font-size: 12px; text-align: right;
+.quick-notes {
+    margin-top: 12px;
 }
 
-/* ── Toast de notificação ── */
+.quick-notes textarea {
+    min-height: 82px;
+}
+
+.quick-notes-footer {
+    min-height: 18px;
+    margin-top: 5px;
+    color: var(--ink-dim, #9a8e6e);
+    font-size: 12px;
+    text-align: right;
+}
+
 .ui-mini-toast {
     position: fixed;
-    left: 50%; bottom: 26px;
+    left: 50%;
+    bottom: 26px;
     z-index: 9999;
     transform: translateX(-50%) translateY(12px);
     opacity: 0;
@@ -305,8 +280,6 @@ body {
     box-shadow: 0 12px 30px rgba(0,0,0,0.55);
     pointer-events: none;
     transition: opacity 0.22s ease, transform 0.22s ease;
-    /* [MOB] Garante que fique acima de tudo */
-    -webkit-tap-highlight-color: transparent;
 }
 
 .ui-mini-toast.show {
@@ -314,16 +287,20 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
-/* ══════════════════════════════════════════════════════
-   RESPONSIVIDADE
-══════════════════════════════════════════════════════ */
-
 @media (max-width: 900px) {
-    .rpg-window { max-width: 100%; }
+    .rpg-window {
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 750px) {
+    body {
+        background-attachment: scroll;
+    }
+
     nav {
+        /* [MOB-3] top:0 porque body já tem padding-top:56px (espaço do widget).
+           top:8px causava sobreposição com o widget de usuário (também top:8px). */
         position: sticky;
         top: 0;
         z-index: 20;
@@ -332,69 +309,102 @@ body {
     .ui-ambient-panel {
         margin-top: 0;
         padding: 8px;
-        width: 100%;
+        /* evita que o painel vaze lateralmente */
+        width: calc(100% - 0px);
         box-sizing: border-box;
         overflow: hidden;
     }
 
-    /* Tema: 2 colunas */
-    .tower-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    /* Tema: 2 colunas no tablet */
+    .tower-theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .tower-theme-btn { min-height: 60px; }
     .tower-theme-btn span { font-size: 9px; }
 
-    /* Ferramentas → coluna única */
-    .status-smart-grid { grid-template-columns: 1fr; gap: 10px; }
+    /* Painel de ferramentas → coluna única */
+    .status-smart-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
 
-    /* Ações: 2 colunas */
-    .quick-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    /* Ações rápidas: 2 colunas */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
 
-    /* Dados */
-    .dice-controls { grid-template-columns: 1fr; gap: 7px; }
+    /* Dados: input+botão em coluna */
+    .dice-controls {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
     #dice-roll-btn { width: 100%; }
-    .dice-presets { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .dice-presets {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+    }
 
+    /* Notas rápidas */
     .quick-notes textarea { min-height: 70px; }
 }
 
 @media (max-width: 520px) {
     .ui-ambient-panel {
-        margin-left: 0; margin-right: 0;
-        padding: 8px; border-radius: 4px;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 8px;
+        border-radius: 4px;
     }
-    .painel-page .ui-ambient-panel { margin-left: 6px; margin-right: 6px; }
+    .painel-page .ui-ambient-panel {
+        margin-left: 6px;
+        margin-right: 6px;
+    }
 
-    .ui-ambient-title { align-items: flex-start; flex-direction: column; gap: 2px; }
+    .ui-ambient-title {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 2px;
+    }
 
-    /* Tema compacto */
-    .tower-theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    /* Tema: 2 colunas compactas */
+    .tower-theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
     .tower-theme-btn { min-height: 50px; }
     .tower-theme-btn span { font-size: 8px; letter-spacing: 0.3px; }
 
-    /* Ações */
-    .quick-actions-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-    .ui-action-btn { font-size: 9px; min-height: 44px; padding: 6px; }
+    /* Ações rápidas */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+    .ui-action-btn { font-size: 9px; min-height: 38px; padding: 6px 6px; }
 
     /* Dados */
     .dice-controls { grid-template-columns: 1fr; gap: 6px; }
     #dice-roll-btn { width: 100%; }
-    .dice-presets { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+    .dice-presets {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+    }
+
     .dice-result { font-size: 13px; padding: 7px 9px; }
     .dice-history span { font-size: 11px; padding: 2px 7px; }
 
+    /* Notas */
     .quick-notes textarea { min-height: 64px; font-size: 14px; }
     .quick-notes-footer { font-size: 11px; }
+
+    /* Toast */
     .ui-mini-toast { font-size: 13px; padding: 9px 14px; }
 }
 
 @media (max-width: 360px) {
     .tower-theme-btn { min-height: 44px; }
     .tower-theme-btn span { font-size: 8px; }
-    .ui-action-btn { font-size: 8px; min-height: 40px; letter-spacing: 0.3px; padding: 5px 4px; }
+    .ui-action-btn { font-size: 8px; min-height: 34px; letter-spacing: 0.3px; padding: 5px 4px; }
     .dice-presets { gap: 4px; }
     .dice-presets .ui-action-btn { font-size: 8px; }
-}
-
-/* ── Telas muito grandes (≥ 1400px) ── */
-@media (min-width: 1400px) {
-    .ui-ambient-panel { max-width: 900px; }
 }
