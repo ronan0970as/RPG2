@@ -1,52 +1,52 @@
 /* ═══════════════════════════════════════════════════════════════
-   DRAGÕES & TORRES — Painel de Fichas v5.1 (otimizado PC + Mobile)
-   ─ hover com transform isolado em pointer:fine
-   ─ active states para feedback touch em todos os botões
-   ─ transition:all substituído por propriedades específicas
-   ─ safe-area-inset para iPhones com notch/home bar
-   ─ @import de font removido (carregado via <link> no HTML)
+   DRAGÕES & TORRES — Painel de Fichas v5.0
+   Fundo visível + painéis semitransparentes
+   NOTA: @import de fontes removido — carregado via <link> no HTML
+         com preconnect para não bloquear a renderização.
 ═══════════════════════════════════════════════════════════════ */
 
 :root {
     /* ── Tema: Torre de Cristais Roxa ── */
-    --gold:         #b06ee8;
-    --gold-light:   #d4a8f5;
-    --gold-dark:    #7c3aed;
-    --gold-glow:    rgba(176,110,232,0.50);
-    --blood-light:  #e74c3c;
-    --parchment:    #ede0ff;
-    --ink:          #c9b8e8;
-    --ink-dim:      #9a82c0;
-    --ink-faint:    #3d2a5a;
-    --panel-bg:     rgba(10,5,20,0.82);
-    --panel-border: rgba(130,80,220,0.50);
-    --input-bg:     rgba(6,3,14,0.75);
-    --font-title:   'Cinzel Decorative', serif;
-    --font-heading: 'Cinzel', serif;
-    --font-body:    'IM Fell English', serif;
-    --t:            0.2s ease;
+    --gold:        #b06ee8;
+    --gold-light:  #d4a8f5;
+    --gold-dark:   #7c3aed;
+    --gold-glow:   rgba(176,110,232,0.50);
+    --blood-light: #e74c3c;
+    --parchment:   #ede0ff;
+    --ink:         #c9b8e8;
+    --ink-dim:     #9a82c0;
+    --ink-faint:   #3d2a5a;
+    --panel-bg:    rgba(10,5,20,0.82);
+    --panel-border:rgba(130,80,220,0.50);
+    --input-bg:    rgba(6,3,14,0.75);
+    --font-title:  'Cinzel Decorative', serif;
+    --font-heading:'Cinzel', serif;
+    --font-body:   'IM Fell English', serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { overflow-x: hidden; max-width: 100%; touch-action: manipulation; }
+html {
+    overflow-x: hidden;
+    max-width: 100%;
+}
 
 body {
     background-color: #0a0806;
     color: var(--parchment);
     font-family: var(--font-body);
     min-height: 100vh;
-    min-height: 100dvh;
     padding: 0;
     -webkit-text-size-adjust: 100%;
     overflow-x: hidden;
     width: 100%;
 }
 
-/* ─── Decorações ──────────────────────────────────────────── */
+/* Cristal decorativo */
 body::before {
     content: '💎';
-    position: fixed; top: 60px; right: -20px;
+    position: fixed;
+    top: 60px; right: -20px;
     font-size: 140px; opacity: 0.14;
     transform: scaleX(-1) rotate(-8deg);
     pointer-events: none; z-index: 0;
@@ -54,9 +54,11 @@ body::before {
     animation: crystalFloat 9s ease-in-out infinite;
     max-width: 40vw; overflow: hidden;
 }
+/* Magia decorativa */
 body::after {
     content: '🔮';
-    position: fixed; bottom: -15px; left: -15px;
+    position: fixed;
+    bottom: -15px; left: -15px;
     font-size: 140px; opacity: 0.13;
     pointer-events: none; z-index: 0;
     filter: drop-shadow(0 0 30px rgba(130,60,200,0.7));
@@ -66,23 +68,9 @@ body::after {
     0%,100% { transform: scaleX(-1) rotate(-8deg) translateY(0); }
     50%      { transform: scaleX(-1) rotate(-5deg) translateY(-15px); }
 }
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* ─── Foco visível ────────────────────────────────────────── */
-:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 3px;
-    box-shadow: 0 0 0 3px rgba(176,110,232,0.4);
-}
-:focus:not(:focus-visible) { outline: none; }
 
 /* ════════════════════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR — semitransparente
 ════════════════════════════════════════════════════════════ */
 .sidebar-overlay {
     position: fixed; inset: 0;
@@ -96,8 +84,6 @@ body::after {
 .sidebar {
     position: fixed; top: 0; left: 0;
     height: 100%; width: 280px;
-    /* safe-area para iPhones com notch */
-    padding-left: env(safe-area-inset-left, 0);
     background: rgba(8,4,18,0.90);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--panel-border);
@@ -107,8 +93,17 @@ body::after {
     box-shadow: 4px 0 40px rgba(0,0,0,0.8);
     overflow: hidden;
 }
-.sidebar::before { content: '💜'; position: absolute; bottom: 55px; right: 8px; font-size: 90px; opacity: 0.12; pointer-events: none; filter: drop-shadow(0 0 15px rgba(212,169,67,0.4)); }
-.sidebar::after  { content: '✨'; position: absolute; top: 70px; right: 12px; font-size: 50px; opacity: 0.10; pointer-events: none; }
+.sidebar::before {
+    content: '💜';
+    position: absolute; bottom: 55px; right: 8px;
+    font-size: 90px; opacity: 0.12; pointer-events: none;
+    filter: drop-shadow(0 0 15px rgba(212,169,67,0.4));
+}
+.sidebar::after {
+    content: '✨';
+    position: absolute; top: 70px; right: 12px;
+    font-size: 50px; opacity: 0.10; pointer-events: none;
+}
 .sidebar.aberta { transform: translateX(0); }
 
 .sidebar-header {
@@ -126,18 +121,11 @@ body::after {
 }
 .sidebar-fechar {
     background: transparent; border: 1px solid var(--gold-dark); color: var(--ink-dim);
-    width: 36px; height: 36px; /* touch target aumentado */
-    border-radius: 3px; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 3px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    transition: border-color var(--t), color var(--t);
-    flex-shrink: 0;
-    -webkit-tap-highlight-color: transparent;
+    font-size: 16px; transition: 0.2s; flex-shrink: 0;
 }
-@media (hover: hover) and (pointer: fine) {
-    .sidebar-fechar:hover { border-color: var(--gold-light); color: var(--gold-light); }
-}
-.sidebar-fechar:active { border-color: var(--gold-light); color: var(--gold-light); }
+.sidebar-fechar:hover { border-color: var(--gold-light); color: var(--gold-light); }
 
 .sidebar-usuario {
     padding: 14px 20px; border-bottom: 1px solid var(--ink-faint);
@@ -154,8 +142,7 @@ body::after {
 .sidebar-user-info { flex: 1; min-width: 0; }
 .sidebar-user-nome {
     font-family: var(--font-heading); font-size: 12px; font-weight: 700;
-    color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    letter-spacing: 0.5px;
+    color: var(--parchment); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px;
 }
 .sidebar-user-sub { font-family: var(--font-body); font-style: italic; font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
 
@@ -169,38 +156,26 @@ body::after {
     color: var(--ink-dim); text-decoration: none;
     font-family: var(--font-heading); font-size: 12px; font-weight: 600;
     letter-spacing: 0.5px; text-transform: uppercase;
-    transition: background var(--t), color var(--t), border-left-color var(--t);
-    border-left: 3px solid transparent;
-    min-height: 48px; cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s; border-left: 3px solid transparent; min-height: 48px; cursor: pointer;
 }
-@media (hover: hover) and (pointer: fine) {
-    .sidebar-link:hover { background: rgba(212,169,67,0.08); color: var(--gold-light); border-left-color: var(--gold-dark); }
-}
-.sidebar-link:active { background: rgba(212,169,67,0.10); color: var(--gold-light); }
+.sidebar-link:hover { background: rgba(212,169,67,0.08); color: var(--gold-light); border-left-color: var(--gold-dark); }
 .sidebar-link.ativo { background: rgba(212,169,67,0.12); color: var(--gold-light); border-left-color: var(--gold); }
 .sidebar-link-icone { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
 .sidebar-separador { height: 1px; background: var(--ink-faint); margin: 8px 20px; opacity: 0.5; }
 
-.sidebar-footer { padding: 12px 16px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--ink-faint); flex-shrink: 0; }
+.sidebar-footer { padding: 12px 16px 20px; border-top: 1px solid var(--ink-faint); flex-shrink: 0; }
 .sidebar-btn-logout {
     display: flex; align-items: center; gap: 10px; width: 100%;
     padding: 12px 16px; background: transparent;
     border: 1px solid var(--ink-faint); border-radius: 3px;
     color: var(--ink-dim); font-family: var(--font-heading);
     font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
-    cursor: pointer;
-    transition: border-color var(--t), color var(--t), background var(--t);
-    min-height: 48px; text-align: left;
-    -webkit-tap-highlight-color: transparent;
+    cursor: pointer; transition: all 0.2s; min-height: 48px; text-align: left;
 }
-@media (hover: hover) and (pointer: fine) {
-    .sidebar-btn-logout:hover { border-color: var(--blood-light); color: var(--blood-light); background: rgba(192,57,43,0.08); }
-}
-.sidebar-btn-logout:active { border-color: var(--blood-light); color: var(--blood-light); background: rgba(192,57,43,0.08); }
+.sidebar-btn-logout:hover { border-color: var(--blood-light); color: var(--blood-light); background: rgba(192,57,43,0.08); }
 
 /* ════════════════════════════════════════════════════════════
-   TOPO
+   TOPO — semitransparente
 ════════════════════════════════════════════════════════════ */
 .painel-topo {
     background: rgba(8,4,18,0.88);
@@ -216,19 +191,14 @@ body::after {
     background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--gold) 70%, transparent 100%);
     opacity: 0.4;
 }
+
 .btn-menu-hamburguer {
     background: transparent; border: 1px solid var(--gold-dark); color: var(--ink-dim);
-    width: 44px; height: 44px; /* touch target 44px */
-    border-radius: 3px; cursor: pointer;
+    width: 40px; height: 40px; border-radius: 3px; cursor: pointer;
     display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 5px;
-    flex-shrink: 0;
-    transition: border-color var(--t), color var(--t), background var(--t);
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+    flex-shrink: 0; transition: all 0.2s; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
 }
-@media (hover: hover) and (pointer: fine) {
-    .btn-menu-hamburguer:hover { border-color: var(--gold-light); color: var(--gold-light); background: rgba(212,169,67,0.08); }
-}
-.btn-menu-hamburguer:active { border-color: var(--gold-light); color: var(--gold-light); background: rgba(212,169,67,0.10); }
+.btn-menu-hamburguer:hover { border-color: var(--gold-light); color: var(--gold-light); background: rgba(212,169,67,0.08); }
 .btn-menu-hamburguer span { display: block; width: 18px; height: 2px; background: currentColor; border-radius: 1px; }
 
 .painel-topo-titulo {
@@ -245,35 +215,24 @@ body::after {
     color: var(--ink); border: 1px solid var(--gold-dark); padding: 0 16px;
     border-radius: 3px; cursor: pointer; font-family: var(--font-heading);
     font-weight: 700; font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;
-    transition: background var(--t), border-color var(--t), color var(--t), box-shadow var(--t);
-    display: flex; align-items: center; gap: 6px;
-    height: 40px; white-space: nowrap; /* height aumentado: era 38px */
-    min-width: 40px; /* touch target */
-    -webkit-tap-highlight-color: transparent;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    height: 38px; white-space: nowrap;
 }
-@media (hover: hover) and (pointer: fine) {
-    .btn-acao:hover {
-        background: rgba(212,169,67,0.18); border-color: var(--gold-light);
-        color: var(--gold-light); box-shadow: 0 0 14px rgba(212,169,67,0.15);
-    }
+.btn-acao:hover {
+    background: rgba(212,169,67,0.18); border-color: var(--gold-light);
+    color: var(--gold-light); box-shadow: 0 0 14px rgba(212,169,67,0.15);
 }
-.btn-acao:active { background: rgba(212,169,67,0.18); border-color: var(--gold-light); color: var(--gold-light); }
 .btn-acao.secundario { background: transparent; }
 
 .btn-usuario-topo {
     display: flex; align-items: center; gap: 8px;
     background: rgba(16,12,6,0.80); backdrop-filter: blur(4px);
     border: 1px solid var(--gold-dark); border-radius: 3px;
-    padding: 0 10px 0 6px; height: 40px; cursor: pointer;
-    transition: border-color var(--t), color var(--t);
+    padding: 0 10px 0 6px; height: 38px; cursor: pointer; transition: all 0.2s;
     color: var(--ink-dim); font-family: var(--font-heading); font-size: 11px;
     font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
-    -webkit-tap-highlight-color: transparent;
 }
-@media (hover: hover) and (pointer: fine) {
-    .btn-usuario-topo:hover { border-color: var(--gold-light); color: var(--gold-light); }
-}
-.btn-usuario-topo:active { border-color: var(--gold-light); color: var(--gold-light); }
+.btn-usuario-topo:hover { border-color: var(--gold-light); color: var(--gold-light); }
 .btn-usuario-topo .avatar-mini {
     width: 26px; height: 26px; border-radius: 50%;
     background: rgba(212,169,67,0.2);
@@ -282,7 +241,7 @@ body::after {
     font-size: 13px; flex-shrink: 0; box-shadow: 0 0 8px rgba(212,169,67,0.2);
 }
 
-/* ─── Busca e filtros ──────────────────────────────────────── */
+/* ─── Busca e filtros ─── */
 .painel-filtros-busca {
     background: rgba(10,7,4,0.82);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -293,10 +252,8 @@ body::after {
     background: rgba(8,6,3,0.75);
     border: 1px solid var(--ink-faint); color: var(--parchment);
     padding: 10px 14px; border-radius: 3px; font-family: var(--font-body);
-    font-size: 16px; /* ≥ 16px evita zoom no iOS */
-    width: 100%; max-width: 260px; outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
-    min-height: 44px; -webkit-appearance: none; flex: 1 1 160px;
+    font-size: 16px; width: 100%; max-width: 260px; outline: none; transition: all 0.2s;
+    min-height: 40px; -webkit-appearance: none; flex: 1 1 160px;
 }
 #inputBusca::placeholder { color: var(--ink-faint); font-style: italic; }
 #inputBusca:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,169,67,0.15); }
@@ -306,24 +263,15 @@ body::after {
     background: rgba(10,7,4,0.70); border: 1px solid var(--ink-faint); color: var(--ink-dim);
     padding: 7px 12px; border-radius: 3px; cursor: pointer;
     font-family: var(--font-heading); font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.8px;
-    transition: border-color var(--t), color var(--t), background var(--t), box-shadow var(--t);
-    min-height: 40px; backdrop-filter: blur(4px);
-    -webkit-tap-highlight-color: transparent;
+    text-transform: uppercase; letter-spacing: 0.8px; transition: all 0.2s; min-height: 36px;
+    backdrop-filter: blur(4px);
 }
-@media (hover: hover) and (pointer: fine) {
-    .btn-filtro:hover {
-        border-color: var(--gold-light); color: var(--gold-light);
-        background: rgba(212,169,67,0.12); box-shadow: 0 0 10px rgba(212,169,67,0.1);
-    }
-}
-.btn-filtro:active,
-.btn-filtro.active {
+.btn-filtro:hover, .btn-filtro.active {
     border-color: var(--gold-light); color: var(--gold-light);
     background: rgba(212,169,67,0.12); box-shadow: 0 0 10px rgba(212,169,67,0.1);
 }
 
-/* ─── GRID DE CARDS ────────────────────────────────────────── */
+/* ─── GRID DE CARDS ─── */
 .grid-personagens {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -332,50 +280,35 @@ body::after {
     position: relative; z-index: 1;
 }
 
-/* ─── CARD DE PERSONAGEM ───────────────────────────────────── */
+/* ─── CARD DE PERSONAGEM ─── */
 .card-personagem {
     position: relative;
     background: rgba(12,6,24,0.68);
     backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
     border: 1px solid var(--gold-dark);
     border-radius: 3px; overflow: hidden; cursor: pointer;
-    /* transition sem transform — desativado em mobile via media query */
-    transition: border-color var(--t), box-shadow var(--t), background var(--t);
-    aspect-ratio: 2/3;
+    transition: all 0.3s; aspect-ratio: 2/3;
     user-select: none; min-height: 150px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.55);
-    -webkit-tap-highlight-color: transparent;
 }
+/* Barra dourada no topo — sempre visível */
 .card-personagem::before {
     content: '';
     position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, var(--gold-dark), var(--gold-light), var(--gold-dark));
     z-index: 2; opacity: 0.85;
 }
-/* Hover com transform apenas em desktop/mouse */
-@media (hover: hover) and (pointer: fine) {
-    .card-personagem { transition: border-color var(--t), box-shadow var(--t), background var(--t), transform 0.3s; }
-    .card-personagem:hover {
-        border-color: var(--gold-light);
-        transform: translateY(-6px) scale(1.02);
-        box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,169,67,0.3), 0 0 30px rgba(212,169,67,0.1);
-        background: rgba(20,14,6,0.72);
-    }
-    .card-personagem:hover img { filter: brightness(1) sepia(0); transform: scale(1.05); }
-    .card-personagem:hover .btn-opcoes { opacity: 1; }
-}
-/* Active para touch */
-.card-personagem:active {
+.card-personagem:hover {
     border-color: var(--gold-light);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(212,169,67,0.2);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 14px 36px rgba(0,0,0,0.7), 0 0 0 1px rgba(212,169,67,0.3), 0 0 30px rgba(212,169,67,0.1);
     background: rgba(20,14,6,0.72);
 }
-
 .card-personagem img {
     width: 100%; height: 100%; object-fit: cover; display: block;
-    filter: brightness(0.85) sepia(0.08);
-    transition: filter 0.3s, transform 0.3s;
+    filter: brightness(0.85) sepia(0.08); transition: all 0.3s;
 }
+.card-personagem:hover img { filter: brightness(1) sepia(0); transform: scale(1.05); }
 .card-sem-img {
     width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     font-size: 52px; color: var(--gold-dark);
@@ -401,21 +334,17 @@ body::after {
 .btn-opcoes {
     position: absolute; top: 6px; right: 6px;
     background: rgba(6,4,2,0.82); border: 1px solid var(--gold-dark); color: var(--ink);
-    border-radius: 3px; width: 36px; height: 36px; font-size: 16px; /* touch target */
+    border-radius: 3px; width: 32px; height: 32px; font-size: 16px;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    opacity: 1; /* sempre visível em mobile */
-    transition: background var(--t), border-color var(--t), color var(--t);
-    z-index: 2;
-    -webkit-tap-highlight-color: transparent;
+    opacity: 1; transition: all 0.2s; z-index: 2;
 }
-/* Em desktop com mouse: oculta até hover no card */
-@media (hover: hover) and (pointer: fine) {
+@media (hover: hover) {
     .btn-opcoes { opacity: 0; }
-    .btn-opcoes:hover { background: rgba(212,169,67,0.25); border-color: var(--gold-light); color: var(--gold-light); }
+    .card-personagem:hover .btn-opcoes { opacity: 1; }
 }
-.btn-opcoes:active { background: rgba(212,169,67,0.25); border-color: var(--gold-light); color: var(--gold-light); }
+.btn-opcoes:hover { background: rgba(212,169,67,0.25); border-color: var(--gold-light); color: var(--gold-light); }
 
-/* ─── MENU DE CONTEXTO ─────────────────────────────────────── */
+/* ─── MENU DE CONTEXTO ─── */
 .ctx-menu {
     position: fixed;
     background: rgba(14,10,5,0.97);
@@ -429,25 +358,21 @@ body::after {
     transform-origin: top right;
     max-width: calc(100vw - 24px);
 }
-.ctx-menu.visivel { opacity: 1; pointer-events: all; transform: scale(1) translateY(0); }
+.ctx-menu.visivel {
+    opacity: 1; pointer-events: all;
+    transform: scale(1) translateY(0);
+}
 .ctx-menu button {
     display: block; width: 100%; background: transparent; border: none;
     color: var(--ink); padding: 11px 16px; text-align: left; cursor: pointer;
     font-family: var(--font-heading); font-size: 11px; font-weight: 600;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    transition: background var(--t), color var(--t);
-    min-height: 44px; /* touch target */
-    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.5px; text-transform: uppercase; transition: background 0.15s; min-height: 44px;
 }
-@media (hover: hover) and (pointer: fine) {
-    .ctx-menu button:hover { background: rgba(212,169,67,0.1); color: var(--gold-light); }
-    .ctx-menu button.danger:hover { background: rgba(192,57,43,0.12); }
-}
-.ctx-menu button:active { background: rgba(212,169,67,0.1); color: var(--gold-light); }
+.ctx-menu button:hover { background: rgba(212,169,67,0.1); color: var(--gold-light); }
 .ctx-menu button.danger { color: var(--blood-light); }
-.ctx-menu button.danger:active { background: rgba(192,57,43,0.12); }
+.ctx-menu button.danger:hover { background: rgba(192,57,43,0.12); }
 
-/* ─── ESTADO VAZIO ─────────────────────────────────────────── */
+/* ─── ESTADO VAZIO ─── */
 .estado-vazio {
     grid-column: 1 / -1; display: flex; flex-direction: column;
     align-items: center; justify-content: center;
@@ -457,7 +382,7 @@ body::after {
 .estado-vazio p { font-family: var(--font-heading); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-dim); }
 .estado-vazio small { font-family: var(--font-body); font-style: italic; font-size: 12px; }
 
-/* ─── MODAL ─────────────────────────────────────────────────── */
+/* ─── MODAL ─── */
 .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.75);
     display: none; align-items: flex-end; justify-content: center;
@@ -468,8 +393,7 @@ body::after {
     background: rgba(16,12,7,0.96);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--gold); border-radius: 12px 12px 0 0;
-    padding: 24px 20px calc(32px + env(safe-area-inset-bottom, 0px));
-    width: 100%; max-width: 500px;
+    padding: 24px 20px calc(32px + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 500px;
     display: flex; flex-direction: column; gap: 12px;
     max-height: 90dvh; overflow-y: auto;
     border-top: 3px solid var(--gold-light);
@@ -489,8 +413,7 @@ body::after {
     background: rgba(8,6,3,0.80);
     border: 1px solid var(--ink-faint); color: var(--parchment);
     padding: 12px; border-radius: 3px; font-family: var(--font-body);
-    font-size: 16px; width: 100%; outline: none;
-    transition: border-color var(--t), box-shadow var(--t);
+    font-size: 16px; width: 100%; outline: none; transition: all 0.2s;
     min-height: 48px; -webkit-appearance: none;
 }
 .modal-box input[type="text"]:focus,
@@ -502,59 +425,56 @@ body::after {
     color: var(--ink-dim); padding: 10px; border-radius: 3px; width: 100%; cursor: pointer; font-size: 14px;
 }
 .file-input::file-selector-button {
-    background: rgba(20,14,6,0.90); color: var(--gold-light);
-    border: 1px solid var(--gold-dark); padding: 8px 12px; border-radius: 3px;
-    cursor: pointer; font-family: var(--font-heading); font-weight: 700;
-    font-size: 10px; letter-spacing: 0.5px; margin-right: 10px;
+    background: rgba(20,14,6,0.90);
+    color: var(--gold-light); border: 1px solid var(--gold-dark);
+    padding: 8px 12px; border-radius: 3px; cursor: pointer;
+    font-family: var(--font-heading); font-weight: 700; font-size: 10px; letter-spacing: 0.5px; margin-right: 10px;
 }
 .modal-botoes { display: flex; gap: 10px; margin-top: 6px; }
 .modal-botoes .btn-acao { flex: 1; justify-content: center; min-height: 48px; }
 
 .card-genero { font-size: 11px; opacity: 0.7; margin-left: 2px; }
 
-/* ─── Scrollbar ─────────────────────────────────────────────── */
+/* ─── SCROLLBAR ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(10,7,4,0.5); }
 ::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
 ::selection { background: rgba(212,169,67,0.3); color: var(--gold-light); }
 
-/* ═══════════════════════════════════════════════════════════
-   RESPONSIVIDADE
-═══════════════════════════════════════════════════════════ */
+/* ─── RESPONSIVO ─── */
 @media (max-width: 600px) {
     .painel-topo { padding: 0 10px; gap: 6px; }
     .btn-acao-label { display: none; }
     .painel-topo-titulo { font-size: 12px; letter-spacing: 1.5px; }
     .grid-personagens {
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-        gap: 10px; padding: 12px 10px;
+        gap: 10px;
+        padding: 12px 10px;
     }
     #inputBusca { max-width: 100%; }
-    .painel-filtros-busca { padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
+    .painel-filtros-busca {
+        padding: 8px 10px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
     .filtros { gap: 4px; flex-wrap: wrap; width: 100%; }
     .btn-filtro { padding: 6px 8px; font-size: 9px; flex: 1 1 auto; text-align: center; }
     body::before { font-size: 90px; opacity: 0.10; }
     body::after  { font-size: 90px; opacity: 0.09; }
 }
-
 @media (max-width: 400px) {
-    .grid-personagens { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px 8px; }
+    .grid-personagens {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 10px 8px;
+    }
     .btn-acao { padding: 0 8px; font-size: 10px; }
     .painel-topo-titulo { font-size: 11px; letter-spacing: 1px; }
     body::before { font-size: 70px; }
     body::after  { font-size: 70px; }
 }
-
 @media (max-width: 360px) {
     .grid-personagens { grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 8px 6px; }
     .btn-filtro { padding: 5px 6px; font-size: 8px; }
-}
-
-/* ── PC grande (≥ 1200px) ──────────────────────────────── */
-@media (min-width: 1200px) {
-    .grid-personagens {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 16px; padding: 20px 24px;
-    }
 }
