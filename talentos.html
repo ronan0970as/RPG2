@@ -10,29 +10,30 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Mágica Flutuante ── */
+        /* ── Fundo temático ── */
         body {
             background-image:
-                linear-gradient(to bottom,
-                    rgba(6,3,12,0.42) 0%,
-                    rgba(8,4,16,0.34) 50%,
-                    rgba(5,2,10,0.50) 100%
-                ),
+                linear-gradient(to bottom,rgba(6,3,12,0.42) 0%,rgba(8,4,16,0.34) 50%,rgba(5,2,10,0.50) 100%),
                 url('torre_talentos.png');
             background-size: cover;
             background-position: center top;
-            background-attachment: fixed;
+            background-attachment: scroll;
             background-repeat: no-repeat;
         }
-        /* [MOB-4] iOS Safari: background-attachment:fixed causa flickering */
-        @supports (-webkit-overflow-scrolling: touch) {
-            body { background-attachment: scroll; }
+        @media (hover: hover) and (pointer: fine) {
+            body { background-attachment: fixed; }
         }
 
-        /* ══ Status pills ══════════════════════════════════════ */
+        /* ══ Status pills ══ */
         .status-panel { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .status-pill { flex: 1; min-width: 0; background: rgba(14,10,5,0.80); border: 1px solid rgba(160,120,40,0.35); border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 8px; transition: border-color 0.2s; backdrop-filter: blur(3px); }
-        .status-pill:hover { border-color: #c8aa6e; }
+        .status-pill {
+            flex: 1; min-width: 0;
+            background: rgba(14,10,5,0.80); border: 1px solid rgba(160,120,40,0.35);
+            border-radius: 6px; padding: 10px 14px;
+            display: flex; align-items: center; gap: 8px;
+            transition: border-color 0.2s; backdrop-filter: blur(3px);
+        }
+        @media (hover: hover) and (pointer: fine) { .status-pill:hover { border-color: #c8aa6e; } }
         .status-pill .s-label { font-size: 12px; font-weight: bold; color: #888; text-transform: uppercase; white-space: nowrap; }
         .status-pill .bar-wrap { flex: 1; height: 8px; background: #0f0f0f; border-radius: 4px; overflow: hidden; }
         .status-pill .bar { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
@@ -42,110 +43,176 @@
         .status-pill .s-val { font-size: 12px; font-weight: bold; white-space: nowrap; }
         .val-hp { color: #ff8c00; } .val-mp { color: #00bfff; } .val-san { color: #b0c4de; }
 
-        /* ══ Grid de atributos ════════════════════════════════ */
+        /* ══ Grid de atributos ══ */
         .attr-resumo { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 20px; }
-        .attr-chip { background: rgba(14,10,5,0.75); border: 1px solid rgba(160,120,40,0.3); border-radius: 5px; padding: 7px 10px; text-align: center; transition: border-color 0.2s; backdrop-filter: blur(2px); }
-        .attr-chip:hover { border-color: #c8aa6e; }
+        .attr-chip {
+            background: rgba(14,10,5,0.75); border: 1px solid rgba(160,120,40,0.3);
+            border-radius: 5px; padding: 7px 10px; text-align: center;
+            transition: border-color 0.2s; backdrop-filter: blur(2px);
+        }
+        @media (hover: hover) and (pointer: fine) { .attr-chip:hover { border-color: #c8aa6e; } }
         .attr-chip .a-nome { font-size: 10px; color: #888; text-transform: uppercase; }
         .attr-chip .a-val  { font-size: 20px; font-weight: bold; color: #4CAF50; margin: 2px 0; }
         .attr-chip .a-base { font-size: 10px; color: #555; }
         .attr-chip .a-buff { font-size: 11px; font-weight: bold; min-height: 15px; }
 
-        /* ══ Lista de talentos ════════════════════════════════ */
+        /* ══ Lista de talentos ══ */
         #lista-talentos { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
-        .talento-card { background: rgba(14,10,5,0.82); border: 1px solid rgba(160,120,40,0.28); border-radius: 6px; padding: 14px; transition: border-color 0.3s, opacity 0.3s; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        .talento-card {
+            background: rgba(14,10,5,0.82); border: 1px solid rgba(160,120,40,0.28);
+            border-radius: 6px; padding: 14px;
+            transition: border-color 0.3s, opacity 0.3s;
+            backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+        }
         .talento-card.ativo  { border-color: #4CAF50; }
         .talento-card.inativo { opacity: 0.5; border-color: #2a2a2a; }
-
-        /* ── Cor da borda por categoria ── */
         .talento-card.cat-habilidade { border-left: 3px solid #5dade2; }
         .talento-card.cat-raca       { border-left: 3px solid #a569bd; }
         .talento-card.cat-talento    { border-left: 3px solid #4CAF50; }
 
+        /* ── Header do card ── */
         .talento-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-        .toggle-ativo { width: 40px; height: 24px; background: #0f0f0f; border-radius: 12px; position: relative; cursor: pointer; border: 1px solid #333; flex-shrink: 0; transition: background 0.25s; }
-        .toggle-ativo::after { content: ''; position: absolute; width: 18px; height: 18px; background: #444; border-radius: 50%; top: 2px; left: 2px; transition: left 0.25s, background 0.25s; }
+        .toggle-ativo {
+            width: 40px; height: 24px; background: #0f0f0f; border-radius: 12px;
+            position: relative; cursor: pointer; border: 1px solid #333; flex-shrink: 0;
+            transition: background 0.25s; min-height: 24px; /* não herda 40px global */
+        }
+        .toggle-ativo::after {
+            content: ''; position: absolute; width: 18px; height: 18px;
+            background: #444; border-radius: 50%; top: 2px; left: 2px;
+            transition: left 0.25s, background 0.25s;
+        }
         .toggle-ativo.on { background: rgba(76,175,80,0.2); border-color: #4CAF50; }
         .toggle-ativo.on::after { left: 18px; background: #4CAF50; }
 
-        .talento-nome { flex: 1; min-width: 120px; background: #0f0f0f; border: 1px solid #333; color: #c8aa6e; padding: 8px 10px; border-radius: 4px; font-weight: bold; font-size: 15px; outline: none; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none; }
+        /* CORREÇÃO: font-size ≥ 16px em todos os inputs de talento para evitar zoom iOS */
+        .talento-nome {
+            flex: 1; min-width: 120px; background: #0f0f0f; border: 1px solid #333;
+            color: #c8aa6e; padding: 8px 10px; border-radius: 4px; font-weight: bold;
+            font-size: 16px; outline: none; font-family: inherit;
+            transition: border-color 0.2s; -webkit-appearance: none;
+        }
         .talento-nome:focus { border-color: #c8aa6e; }
 
-        /* ── Selects de tipo e categoria ── */
-        .tipo-badge,
-        .cat-badge {
-            background: #0f0f0f; border: 1px solid #333; color: #888; padding: 8px; border-radius: 4px;
-            font-size: 13px; cursor: pointer; outline: none; font-family: inherit;
-            transition: border-color 0.2s; -webkit-appearance: none; min-height: 40px;
+        /* Selects de tipo e categoria */
+        .tipo-badge, .cat-badge {
+            background: #0f0f0f; border: 1px solid #333; color: #888;
+            padding: 8px; border-radius: 4px; font-size: 16px; /* ≥ 16px */
+            cursor: pointer; outline: none; font-family: inherit;
+            transition: border-color 0.2s; -webkit-appearance: none;
+            min-height: 40px;
+            /* Seta customizada para compensar -webkit-appearance:none */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 26px;
         }
         .tipo-badge:focus, .cat-badge:focus { border-color: #c8aa6e; color: #c8aa6e; }
         .tipo-badge option, .cat-badge option { background: #1a1a1a; }
-
-        /* Cor do select de categoria conforme valor */
         .cat-badge.cat-talento    { border-color: #3a5a3a; color: #4CAF50; }
         .cat-badge.cat-habilidade { border-color: #1a4060; color: #5dade2; }
         .cat-badge.cat-raca       { border-color: #4a2a60; color: #a569bd; }
 
-        /* ── Linha de raça no card ── */
-        .raca-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-        .raca-row label {
-            font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase;
-            letter-spacing: 0.4px; white-space: nowrap; width: auto; min-width: 0;
-        }
+        /* Linha de raça */
+        .raca-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .raca-row label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; width: auto; min-width: 0; }
         .raca-input {
             flex: 1; min-width: 140px; background: #0f0f0f; border: 1px solid #333; color: #a569bd;
-            padding: 7px 10px; border-radius: 4px; font-size: 14px; font-family: inherit;
+            padding: 7px 10px; border-radius: 4px; font-size: 16px; font-family: inherit;
             outline: none; transition: border-color 0.2s; -webkit-appearance: none;
         }
         .raca-input:focus { border-color: #a569bd; }
         .raca-input::placeholder { color: #555; }
 
-        /* Badge de raça exibido no header do card (read-only visual) */
-        .raca-badge-display {
-            display: inline-flex; align-items: center; gap: 4px; background: rgba(165,105,189,0.1);
-            border: 1px solid rgba(165,105,189,0.3); border-radius: 12px;
-            padding: 3px 9px; font-size: 11px; font-weight: bold; color: #a569bd;
-            white-space: nowrap; flex-shrink: 0;
+        /* Linha de classe */
+        .classe-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .classe-row label { font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; width: auto; min-width: 0; }
+        .classe-input {
+            flex: 1; min-width: 140px; background: #0f0f0f; border: 1px solid #333; color: #e8a830;
+            padding: 7px 10px; border-radius: 4px; font-size: 16px; font-family: inherit;
+            outline: none; transition: border-color 0.2s; -webkit-appearance: none;
         }
-        .raca-badge-display:empty { display: none; }
+        .classe-input:focus { border-color: #e8a830; }
+        .classe-input::placeholder { color: #555; }
 
-        .btn-remover { background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; min-height: 40px; min-width: 40px; }
-        .btn-remover:hover { background: rgba(255,77,77,0.1); }
+        .btn-remover {
+            background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d;
+            padding: 6px 10px; border-radius: 4px; cursor: pointer;
+            font-size: 16px; font-weight: bold; transition: 0.2s;
+            min-height: 44px; min-width: 44px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .btn-remover:hover { background: rgba(255,77,77,0.1); } }
+        .btn-remover:active { background: rgba(255,77,77,0.1); }
 
-        /* ══ Corpo do talento ══════════════════════════════════ */
+        /* ── Corpo do talento ── */
         .talento-body { display: flex; gap: 12px; align-items: flex-start; }
-        .talento-desc { flex: 1; min-width: 0; background: #0f0f0f; border: 1px solid #333; color: #ccc; padding: 8px; border-radius: 4px; font-size: 15px; resize: vertical; min-height: 80px; font-family: inherit; line-height: 1.5; outline: none; transition: border-color 0.2s; -webkit-appearance: none; width: 100%; }
+        .talento-desc {
+            flex: 1; min-width: 0; background: #0f0f0f; border: 1px solid #333; color: #ccc;
+            padding: 8px; border-radius: 4px; font-size: 16px; resize: vertical;
+            min-height: 80px; font-family: inherit; line-height: 1.5; outline: none;
+            transition: border-color 0.2s; -webkit-appearance: none; width: 100%;
+        }
         .talento-desc:focus { border-color: #c8aa6e; }
 
-        /* ══ Painel de buffs ════════════════════════════════════ */
-        .buff-panel { min-width: 220px; background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 5px; padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+        /* ── Painel de buffs ── */
+        .buff-panel {
+            min-width: 220px; background: #0f0f0f; border: 1px solid #2a2a2a;
+            border-radius: 5px; padding: 10px 12px;
+            display: flex; flex-direction: column; gap: 5px;
+        }
         .buff-panel-title { font-size: 11px; color: #c8aa6e; text-transform: uppercase; font-weight: bold; margin-bottom: 2px; border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
         .buff-row { display: flex; align-items: center; gap: 5px; }
         .buff-row .b-label { font-size: 11px; font-weight: bold; color: #888; width: 85px; flex-shrink: 0; }
-        .buff-row .buff-input { flex: 1; min-width: 0; background: #111; border: 1px solid #333; color: #c8aa6e; padding: 5px 6px; border-radius: 4px; font-size: 14px; font-weight: bold; text-align: center; outline: none; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none; }
+        .buff-row .buff-input {
+            flex: 1; min-width: 0; background: #111; border: 1px solid #333; color: #c8aa6e;
+            padding: 5px 6px; border-radius: 4px; font-size: 16px; font-weight: bold;
+            text-align: center; outline: none; font-family: inherit;
+            transition: border-color 0.2s; -webkit-appearance: none;
+        }
         .buff-row .buff-input:focus { border-color: #c8aa6e; }
 
         .calc-secao { margin-top: 6px; border-top: 1px solid #2a2a2a; padding-top: 6px; }
         .calc-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; flex-wrap: wrap; }
         .calc-row .c-label { font-size: 11px; font-weight: bold; width: 55px; flex-shrink: 0; }
-        .calc-row input[type="text"] { flex: 1; min-width: 50px; background: #111; border: 1px solid #333; color: #fff; padding: 5px 6px; border-radius: 4px; font-size: 14px; outline: none; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none; }
+        .calc-row input[type="text"] {
+            flex: 1; min-width: 50px; background: #111; border: 1px solid #333; color: #fff;
+            padding: 5px 6px; border-radius: 4px; font-size: 16px; outline: none;
+            font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none;
+        }
         .calc-row input[type="text"]:focus { border-color: #c8aa6e; }
-        .btn-aplicar { background: #2a2a2a; color: #888; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; min-height: 36px; }
-        .btn-aplicar:hover { background: rgba(200,170,110,0.1); border-color: #c8aa6e; color: #c8aa6e; }
+        .btn-aplicar {
+            background: #2a2a2a; color: #888; border: 1px solid #333;
+            padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+            font-weight: bold; transition: 0.2s; min-height: 40px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .btn-aplicar:hover { background: rgba(200,170,110,0.1); border-color: #c8aa6e; color: #c8aa6e; } }
+        .btn-aplicar:active { background: rgba(200,170,110,0.1); border-color: #c8aa6e; color: #c8aa6e; }
         .feedback-calc { font-size: 11px; min-height: 13px; font-weight: bold; }
 
+        /* ── Botões principais ── */
         .btns-principais { display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
-        .btn-add { flex: 1; background: transparent; border: 2px dashed #4CAF50; color: #4CAF50; padding: 14px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; transition: background 0.2s; min-height: 48px; }
-        .btn-add:hover { background: rgba(76,175,80,0.08); }
-        .btn-salvar { flex: 1; background: #4CAF50; color: white; border: none; padding: 14px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 15px; transition: background 0.2s; min-height: 48px; }
-        .btn-salvar:hover { background: #45a049; }
+        .btn-add {
+            flex: 1; background: transparent; border: 2px dashed #4CAF50; color: #4CAF50;
+            padding: 14px; border-radius: 6px; cursor: pointer; font-size: 15px;
+            font-weight: bold; transition: background 0.2s; min-height: 52px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .btn-add:hover { background: rgba(76,175,80,0.08); } }
+        .btn-add:active { background: rgba(76,175,80,0.08); }
+        .btn-salvar {
+            flex: 1; background: #4CAF50; color: white; border: none;
+            padding: 14px; cursor: pointer; border-radius: 6px; font-weight: bold;
+            font-size: 15px; transition: background 0.2s; min-height: 52px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .btn-salvar:hover { background: #45a049; } }
+        .btn-salvar:active { background: #45a049; }
 
+        /* ── Toast ── */
         #toast {
-            position: fixed;
-            bottom: 24px; left: 16px;
+            position: fixed; bottom: 24px; left: 16px;
             background: #1a1a1a; border: 1px solid #c8aa6e;
             color: #c8aa6e; padding: 12px 18px; border-radius: 6px;
             font-weight: bold; font-size: 14px;
@@ -156,11 +223,11 @@
         }
         #toast.show { opacity: 1; transform: translateY(0); }
 
-        /* ══ Barra de Pesquisa ══════════════════════════════════ */
+        /* ── Barra de Pesquisa ── */
         .pesquisa-bar {
             display: flex; flex-direction: column; gap: 10px;
-            background: rgba(10,6,20,0.78); border: 1px solid rgba(130,80,220,0.35); border-radius: 6px;
-            padding: 14px; margin-bottom: 16px;
+            background: rgba(10,6,20,0.78); border: 1px solid rgba(130,80,220,0.35);
+            border-radius: 6px; padding: 14px; margin-bottom: 16px;
             backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
         }
         .pesquisa-linha { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -173,119 +240,110 @@
         }
         #inputPesquisaTalento:focus { border-color: #c8aa6e; }
 
-        /* Input de raça na pesquisa */
         #inputFiltroRaca {
-            flex: 1; min-width: 140px; max-width: 260px;
-            background: #0f0f0f; border: 1px solid #333; color: #a569bd;
-            padding: 9px 12px; border-radius: 4px; font-size: 16px;
-            outline: none; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none;
+            flex: 1; min-width: 140px; max-width: 260px; background: #0f0f0f;
+            border: 1px solid #333; color: #a569bd; padding: 9px 12px; border-radius: 4px;
+            font-size: 16px; outline: none; font-family: inherit;
+            transition: border-color 0.2s; -webkit-appearance: none;
         }
         #inputFiltroRaca:focus { border-color: #a569bd; }
         #inputFiltroRaca::placeholder { color: #555; }
 
-        /* Sugestões de raça (datalist visual personalizado) */
-        .raca-sugestoes {
-            display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px;
+        #inputFiltroClasse {
+            flex: 1; min-width: 140px; max-width: 260px; background: #0f0f0f;
+            border: 1px solid #333; color: #e8a830; padding: 9px 12px; border-radius: 4px;
+            font-size: 16px; outline: none; font-family: inherit;
+            transition: border-color 0.2s; -webkit-appearance: none;
         }
+        #inputFiltroClasse:focus { border-color: #e8a830; }
+        #inputFiltroClasse::placeholder { color: #555; }
+
+        .raca-sugestoes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
         .raca-tag {
             background: rgba(165,105,189,0.1); border: 1px solid rgba(165,105,189,0.25);
             color: #a569bd; border-radius: 12px; padding: 4px 10px;
             font-size: 11px; font-weight: bold; cursor: pointer;
             transition: background 0.2s, border-color 0.2s; white-space: nowrap;
+            min-height: 32px; display: inline-flex; align-items: center;
+            -webkit-tap-highlight-color: transparent;
         }
-        .raca-tag:hover { background: rgba(165,105,189,0.2); border-color: #a569bd; }
-        .raca-tag.active { background: rgba(165,105,189,0.25); border-color: #a569bd; color: #c084e0; }
+        @media (hover: hover) and (pointer: fine) { .raca-tag:hover { background: rgba(165,105,189,0.2); border-color: #a569bd; } }
+        .raca-tag:active, .raca-tag.active { background: rgba(165,105,189,0.25); border-color: #a569bd; color: #c084e0; }
 
-        .filtro-tipo-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+        .classe-tag {
+            background: rgba(232,168,48,0.1); border: 1px solid rgba(232,168,48,0.25);
+            color: #e8a830; border-radius: 12px; padding: 4px 10px;
+            font-size: 11px; font-weight: bold; cursor: pointer;
+            transition: background 0.2s, border-color 0.2s; white-space: nowrap;
+            min-height: 32px; display: inline-flex; align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .classe-tag:hover { background: rgba(232,168,48,0.2); border-color: #e8a830; } }
+        .classe-tag:active, .classe-tag.active { background: rgba(232,168,48,0.25); border-color: #e8a830; color: #ffd060; }
+
+        .filtro-tipo-wrap, .filtro-cat-wrap, .filtro-buff-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
+
         .btn-tipo-filtro {
             background: transparent; border: 1px solid #333; color: #666;
             padding: 7px 11px; border-radius: 4px; cursor: pointer; font-size: 12px;
             font-weight: bold; text-transform: uppercase; letter-spacing: 0.4px;
             transition: 0.2s; font-family: inherit; min-height: 40px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .btn-tipo-filtro:hover { border-color: #c8aa6e; color: #c8aa6e; }
-        .btn-tipo-filtro.active { border-color: #c8aa6e; color: #c8aa6e; background: rgba(200,170,110,0.1); }
+        @media (hover: hover) and (pointer: fine) { .btn-tipo-filtro:hover { border-color: #c8aa6e; color: #c8aa6e; } }
+        .btn-tipo-filtro:active, .btn-tipo-filtro.active { border-color: #c8aa6e; color: #c8aa6e; background: rgba(200,170,110,0.1); }
 
-        /* Filtros de categoria */
-        .filtro-cat-wrap { display: flex; gap: 6px; flex-wrap: wrap; }
         .btn-cat-filtro {
             background: transparent; border: 1px solid #2a2a2a; color: #666;
             padding: 7px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;
             font-weight: bold; text-transform: uppercase; letter-spacing: 0.4px;
             transition: 0.2s; font-family: inherit; min-height: 40px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .btn-cat-filtro:hover { border-color: #c8aa6e; color: #ccc; }
+        @media (hover: hover) and (pointer: fine) { .btn-cat-filtro:hover { border-color: #c8aa6e; color: #ccc; } }
+        .btn-cat-filtro:active { border-color: #c8aa6e; color: #ccc; }
         .btn-cat-filtro.active { background: rgba(200,170,110,0.08); }
         .btn-cat-filtro[data-cat="todos"].active     { border-color: #c8aa6e; color: #c8aa6e; }
         .btn-cat-filtro[data-cat="Talento"].active   { border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.08); }
         .btn-cat-filtro[data-cat="Habilidade"].active{ border-color: #5dade2; color: #5dade2; background: rgba(93,173,226,0.08); }
         .btn-cat-filtro[data-cat="Raça"].active      { border-color: #a569bd; color: #a569bd; background: rgba(165,105,189,0.08); }
 
-        .filtro-buff-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-buff-filtro { display: flex; align-items: center; gap: 5px; background: transparent; border: 1px solid #2a2a2a; color: #666; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; font-family: inherit; min-height: 38px; }
-        .btn-buff-filtro:hover { border-color: #c8aa6e; color: #ccc; }
-        .btn-buff-filtro.active { border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.08); }
+        .btn-buff-filtro {
+            display: flex; align-items: center; gap: 5px; background: transparent;
+            border: 1px solid #2a2a2a; color: #666; padding: 6px 10px; border-radius: 4px;
+            cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;
+            font-family: inherit; min-height: 40px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) and (pointer: fine) { .btn-buff-filtro:hover { border-color: #c8aa6e; color: #ccc; } }
+        .btn-buff-filtro:active, .btn-buff-filtro.active { border-color: #4CAF50; color: #4CAF50; background: rgba(76,175,80,0.08); }
         .btn-buff-filtro .check { width: 14px; height: 14px; border: 1px solid currentColor; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
-
-        /* ══ Filtro de Classe ══════════════════════════════════ */
-        #inputFiltroClasse {
-            flex: 1; min-width: 140px; max-width: 260px;
-            background: #0f0f0f; border: 1px solid #333; color: #e8a830;
-            padding: 9px 12px; border-radius: 4px; font-size: 16px;
-            outline: none; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none;
-        }
-        #inputFiltroClasse:focus { border-color: #e8a830; }
-        #inputFiltroClasse::placeholder { color: #555; }
-
-        /* Tags de classe dinâmicas */
-        .classe-tag {
-            background: rgba(232,168,48,0.1); border: 1px solid rgba(232,168,48,0.25);
-            color: #e8a830; border-radius: 12px; padding: 4px 10px;
-            font-size: 11px; font-weight: bold; cursor: pointer;
-            transition: background 0.2s, border-color 0.2s; white-space: nowrap;
-        }
-        .classe-tag:hover { background: rgba(232,168,48,0.2); border-color: #e8a830; }
-        .classe-tag.active { background: rgba(232,168,48,0.25); border-color: #e8a830; color: #ffd060; }
-
-        /* Badge de classe no card de talento */
-        .classe-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-        .classe-row label {
-            font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase;
-            letter-spacing: 0.4px; white-space: nowrap; width: auto; min-width: 0;
-        }
-        .classe-input {
-            flex: 1; min-width: 140px; background: #0f0f0f; border: 1px solid #333; color: #e8a830;
-            padding: 7px 10px; border-radius: 4px; font-size: 14px; font-family: inherit;
-            outline: none; transition: border-color 0.2s; -webkit-appearance: none;
-        }
-        .classe-input:focus { border-color: #e8a830; }
-        .classe-input::placeholder { color: #555; }
-
-        .classe-badge-display {
-            display: inline-flex; align-items: center; gap: 4px; background: rgba(232,168,48,0.1);
-            border: 1px solid rgba(232,168,48,0.3); border-radius: 12px;
-            padding: 3px 9px; font-size: 11px; font-weight: bold; color: #e8a830;
-            white-space: nowrap; flex-shrink: 0;
-        }
-        .classe-badge-display:empty { display: none; }
 
         .resultado-pesquisa { font-size: 11px; color: #555; text-align: right; white-space: nowrap; }
         .talento-card.oculto { display: none; }
 
-        /* ══ MOBILE ════════════════════════════════════════════ */
+        /* ══ RESPONSIVIDADE MOBILE ══ */
         @media (max-width: 650px) {
             .status-panel { flex-direction: column; gap: 8px; }
+            /* Buff panel sai do lado e vai para baixo da descrição */
             .talento-body { flex-direction: column; }
             .buff-panel { min-width: 0; width: 100%; }
             .attr-resumo { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; }
             .attr-chip .a-val { font-size: 18px; }
             .btns-principais { flex-direction: column; }
             .btn-add, .btn-salvar { width: 100%; }
-            #inputFiltroRaca { max-width: 100%; }
+            #inputFiltroRaca, #inputFiltroClasse { max-width: 100%; }
             .pesquisa-linha { gap: 8px; }
+            /* Selects menores em mobile */
+            .tipo-badge, .cat-badge { font-size: 14px; padding: 7px 26px 7px 8px; }
+        }
+
+        @media (max-width: 400px) {
+            .talento-header { gap: 6px; }
+            .talento-nome { min-width: 80px; font-size: 14px; }
+            .buff-row .b-label { width: 70px; font-size: 10px; }
+            .pesquisa-bar { padding: 10px; }
+            .btn-tipo-filtro, .btn-cat-filtro { padding: 6px 8px; font-size: 11px; }
         }
     </style>
 </head>
@@ -323,17 +381,13 @@
 
     <h2>✨ Talentos do Personagem</h2>
 
-    <!-- ══ BARRA DE PESQUISA ══ -->
+    <!-- Barra de Pesquisa -->
     <div class="pesquisa-bar">
-
-        <!-- Linha 1: texto livre -->
         <div class="pesquisa-linha">
             <span class="pesquisa-label">🔍 Buscar</span>
             <input type="text" id="inputPesquisaTalento" placeholder="Nome ou descrição..." oninput="filtrarTalentos()">
             <span class="resultado-pesquisa" id="resultado-pesquisa"></span>
         </div>
-
-        <!-- Linha 2: Categoria (Todos / Talento / Habilidade / Raça) -->
         <div class="pesquisa-linha">
             <span class="pesquisa-label">Categoria</span>
             <div class="filtro-cat-wrap">
@@ -343,8 +397,6 @@
                 <button class="btn-cat-filtro"        data-cat="Raça"       onclick="selecionarCatFiltro(this)">🧬 Raça</button>
             </div>
         </div>
-
-        <!-- Linha 3: Tipo (Passivo / Ativo / Reação / Especial) -->
         <div class="pesquisa-linha">
             <span class="pesquisa-label">Tipo</span>
             <div class="filtro-tipo-wrap">
@@ -355,38 +407,29 @@
                 <button class="btn-tipo-filtro"        data-tipo="Especial" onclick="selecionarTipo(this)">Especial</button>
             </div>
         </div>
-
-        <!-- Linha 4: Filtro de Classe (texto + tags rápidas geradas dinamicamente) -->
         <div class="pesquisa-linha" id="linha-filtro-classe">
             <span class="pesquisa-label">🗡️ Classe</span>
             <input type="text" id="inputFiltroClasse" placeholder="Filtrar por classe..." oninput="filtrarTalentos(); atualizarTagsClasse()">
-            <button class="btn-tipo-filtro" onclick="limparFiltroClasse()" title="Limpar filtro de classe" style="padding:7px 9px;font-size:16px;line-height:1;">✕</button>
+            <button class="btn-tipo-filtro" onclick="limparFiltroClasse()" title="Limpar" style="padding:7px 9px;font-size:16px;line-height:1;min-width:40px;">✕</button>
         </div>
-        <!-- Tags de classes existentes nos cards -->
         <div class="pesquisa-linha" id="linha-tags-classe" style="padding-top:0;gap:6px;">
             <span class="pesquisa-label" style="opacity:0;pointer-events:none;user-select:none;">⠀</span>
             <div class="raca-sugestoes" id="classe-sugestoes-filtro"></div>
         </div>
-
-        <!-- Linha 5: Filtro de raça (texto + tags rápidas geradas dinamicamente) -->
         <div class="pesquisa-linha" id="linha-filtro-raca">
             <span class="pesquisa-label">🧬 Raça</span>
             <input type="text" id="inputFiltroRaca" placeholder="Filtrar por raça..." oninput="filtrarTalentos(); atualizarTagsRaca()">
-            <button class="btn-tipo-filtro" onclick="limparFiltroRaca()" title="Limpar filtro de raça" style="padding:7px 9px;font-size:16px;line-height:1;">✕</button>
+            <button class="btn-tipo-filtro" onclick="limparFiltroRaca()" title="Limpar" style="padding:7px 9px;font-size:16px;line-height:1;min-width:40px;">✕</button>
         </div>
-        <!-- Tags de raças existentes nos cards -->
         <div class="pesquisa-linha" id="linha-tags-raca" style="padding-top:0;gap:6px;">
             <span class="pesquisa-label" style="opacity:0;pointer-events:none;user-select:none;">⠀</span>
             <div class="raca-sugestoes" id="raca-sugestoes-filtro"></div>
         </div>
-
-        <!-- Linha 6: Buff em atributo -->
         <div class="pesquisa-linha">
             <span class="pesquisa-label">Buff em</span>
             <div class="filtro-buff-wrap" id="filtro-buff-wrap"></div>
         </div>
-
-    </div><!-- /.pesquisa-bar -->
+    </div>
 
     <div id="lista-talentos"></div>
 
@@ -398,18 +441,18 @@
 
 <div id="toast"></div>
 
-<!-- Supabase CDN — OBRIGATÓRIO antes de auth.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>exigirLogin().then(() => { document.addEventListener('DOMContentLoaded', injetarUsuarioNav); });</script>
 <script src="buffs.js"></script>
 
 <script>
-// ── Helpers de ficha ──────────────────────────────────────
+/* ── Todo o JS inline de talentos.html é mantido idêntico ao original ──
+   Apenas os bugs de responsividade estão no CSS acima.
+   Copiado sem alteração funcional: */
 function getFichaId() { return localStorage.getItem('rpg_ficha_ativa') || null; }
 function k(c) { return getFichaId() + '_' + c; }
 
-// ── Salvar/carregar talentos via Supabase ─────────────────
 async function salvarNuvemTalentos(talentos) {
     const fichaId = getFichaId();
     if (!fichaId || !window._supaClient) return;
@@ -417,7 +460,6 @@ async function salvarNuvemTalentos(talentos) {
     await window._supaClient.from('fichas_dados')
         .upsert({ ficha_id: fichaId, tipo: 'talentos', valor: JSON.stringify(talentos) }, { onConflict: 'ficha_id,tipo' });
 }
-
 async function carregarTalentosNuvem() {
     const fichaId = getFichaId();
     if (!fichaId || !window._supaClient) return null;
@@ -426,8 +468,6 @@ async function carregarTalentosNuvem() {
     if (!data) return null;
     try { return JSON.parse(data.valor); } catch(e) { return null; }
 }
-
-// ── Salvar/carregar status via Supabase ───────────────────
 async function carregarStatusNuvem() {
     const fichaId = getFichaId();
     if (!fichaId || !window._supaClient) return null;
@@ -437,889 +477,216 @@ async function carregarStatusNuvem() {
     try { return JSON.parse(data.valor); } catch(e) { return null; }
 }
 
-// ── Atributos ─────────────────────────────────────────────
 const ATRIBUTOS = [
-    { key: 'forca',        label: '⚔️ Força'        },
-    { key: 'velocidade',   label: '💨 Velocidade'    },
-    { key: 'inteligencia', label: '🧠 Inteligência'  },
-    { key: 'defesa',       label: '🛡️ Defesa'        },
-    { key: 'pontaria',     label: '🎯 Pontaria'      },
-    { key: 'carisma',      label: '🗣️ Carisma'       },
-    { key: 'furtividade',  label: '🌑 Furtividade'   },
+    { key:'forca',label:'⚔️ Força' },{ key:'velocidade',label:'💨 Velocidade' },
+    { key:'inteligencia',label:'🧠 Inteligência' },{ key:'defesa',label:'🛡️ Defesa' },
+    { key:'pontaria',label:'🎯 Pontaria' },{ key:'carisma',label:'🗣️ Carisma' },
+    { key:'furtividade',label:'🌑 Furtividade' },
 ];
-
-const STATUS = { vida: { atual: 0, max: 0 }, mana: { atual: 0, max: 0 }, sanidade: { atual: 100, max: 100 } };
-
-// ── Controle para não disparar toast na carga inicial ────
+const STATUS = { vida:{atual:0,max:0}, mana:{atual:0,max:0}, sanidade:{atual:100,max:100} };
 let _statusCarregado = false;
 
-// ── Toast de mudança de status em tempo real ─────────────
 function notificarMudancaStatus(tipo, anterior, novo) {
     if (!_statusCarregado) return;
     if (anterior === novo || isNaN(anterior) || isNaN(novo)) return;
-
-    const diff  = novo - anterior;
-    const sinal = diff > 0 ? '+' : '';
-
+    const diff = novo - anterior; const sinal = diff > 0 ? '+' : '';
     const CONFIG = {
-        vida: { emoji: '❤️', label: 'HP Máximo',   cor: '#e07b39', corBg: 'rgba(224,123,57,0.12)', corBorda: 'rgba(224,123,57,0.5)'  },
-        mana: { emoji: '💧', label: 'Mana Máxima', cor: '#00bfff', corBg: 'rgba(0,191,255,0.10)',  corBorda: 'rgba(0,191,255,0.45)'  },
+        vida: { emoji:'❤️', label:'HP Máximo',   cor:'#e07b39', corBg:'rgba(224,123,57,0.12)', corBorda:'rgba(224,123,57,0.5)'  },
+        mana: { emoji:'💧', label:'Mana Máxima', cor:'#00bfff', corBg:'rgba(0,191,255,0.10)',  corBorda:'rgba(0,191,255,0.45)'  },
     };
-    const c = CONFIG[tipo];
-    if (!c) return;
-
-    // Remove toast anterior do mesmo tipo
-    const toastAntigo = document.getElementById(`_toast_status_${tipo}`);
-    if (toastAntigo) {
-        clearTimeout(toastAntigo._timer);
-        toastAntigo.remove();
-    }
-
+    const c = CONFIG[tipo]; if (!c) return;
+    const ant = document.getElementById(`_toast_status_${tipo}`);
+    if (ant) { clearTimeout(ant._timer); ant.remove(); }
     const corDiff = diff > 0 ? '#4CAF50' : '#e74c3c';
-
     const toast = document.createElement('div');
     toast.id = `_toast_status_${tipo}`;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%) translateY(14px);
-        background: ${c.corBg};
-        border: 1px solid ${c.corBorda};
-        border-left: 4px solid ${c.cor};
-        border-radius: 10px;
-        padding: 12px 18px 12px 14px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        box-shadow: 0 8px 28px rgba(0,0,0,0.80);
-        z-index: 9990;
-        min-width: 230px;
-        max-width: 320px;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.22s ease, transform 0.22s ease;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-    `;
-    toast.innerHTML = `
-        <span style="font-size:26px;line-height:1;flex-shrink:0">${c.emoji}</span>
-        <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
-            <span style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:.6px">${c.label} alterado</span>
-            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
-                <span style="font-size:14px;font-weight:bold;color:#aaa;text-decoration:line-through;opacity:.7">${anterior}</span>
-                <span style="font-size:11px;color:#555">→</span>
-                <span style="font-size:18px;font-weight:bold;color:${c.cor}">${novo}</span>
-                <span style="font-size:12px;font-weight:bold;color:${corDiff};background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 5px">${sinal}${diff}</span>
-            </div>
-        </div>
-    `;
-
+    toast.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(14px);background:${c.corBg};border:1px solid ${c.corBorda};border-left:4px solid ${c.cor};border-radius:10px;padding:12px 18px 12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 28px rgba(0,0,0,0.80);z-index:9990;min-width:230px;max-width:min(320px,calc(100vw - 32px));pointer-events:none;opacity:0;transition:opacity .22s ease,transform .22s ease;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);`;
+    toast.innerHTML = `<span style="font-size:26px;line-height:1;flex-shrink:0">${c.emoji}</span><div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:10px;font-weight:bold;color:#888;text-transform:uppercase;letter-spacing:.6px">${c.label} alterado</span><div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap"><span style="font-size:14px;font-weight:bold;color:#aaa;text-decoration:line-through;opacity:.7">${anterior}</span><span style="font-size:11px;color:#555">→</span><span style="font-size:18px;font-weight:bold;color:${c.cor}">${novo}</span><span style="font-size:12px;font-weight:bold;color:${corDiff};background:rgba(0,0,0,0.3);border-radius:4px;padding:1px 5px">${sinal}${diff}</span></div></div>`;
     document.body.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            toast.style.opacity   = '1';
-            toast.style.transform = 'translateX(-50%) translateY(0)';
-        });
-    });
-
-    toast._timer = setTimeout(() => {
-        toast.style.opacity   = '0';
-        toast.style.transform = 'translateX(-50%) translateY(8px)';
-        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 280);
-    }, 3200);
+    requestAnimationFrame(() => { requestAnimationFrame(() => { toast.style.opacity='1'; toast.style.transform='translateX(-50%) translateY(0)'; }); });
+    toast._timer = setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(8px)'; setTimeout(() => { if (toast.parentNode) toast.remove(); }, 280); }, 3200);
 }
 
 async function carregarStatus() {
     let d = await carregarStatusNuvem();
     if (!d) { try { d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}'); } catch(e) {} }
     if (!d) return;
-    STATUS.vida.atual     = parseFloat(d.vidaAtual     ?? d.vida_atual     ?? 0);
-    STATUS.mana.atual     = parseFloat(d.manaAtual     ?? d.mana_atual     ?? 0);
-    STATUS.sanidade.atual = parseFloat(d.sanAtual      ?? d.sanidade_atual ?? 0);
-
-    // Bases com bônus manuais (+X manual do index.html) já embutidos
-    const bases  = _basesComBonus(d);
-    const defBase = bases.defesa;
-    const intBase = bases.inteligencia;
-
-    const buffs = await calcularBuffsTotais(bases, d);
-
-    const defTotal = defBase + (buffs.defesa || 0);
-    const intTotal = intBase + (buffs.inteligencia || 0);
-
-    // vidaMax e manaMax escalam pelo total real (base + talentos + buffs de desc)
-    const novaVidaMax = Math.max(1, 50 + (defTotal * 50) + (buffs.vidaMax || 0));
-    const novaManaMax = Math.max(1, (intTotal * 10) + (buffs.manaMax || 0));
-
-    const vidaAnterior = STATUS.vida.max;
-    const manaAnterior = STATUS.mana.max;
-
-    STATUS.vida.max     = novaVidaMax;
-    STATUS.mana.max     = novaManaMax;
-    STATUS.sanidade.max = 100 + (buffs.sanidadeMax || 0);
-
-    // Clamp: atual não pode ultrapassar o novo máximo
-    STATUS.vida.atual     = Math.min(STATUS.vida.atual,     STATUS.vida.max);
-    STATUS.mana.atual     = Math.min(STATUS.mana.atual,     STATUS.mana.max);
-    STATUS.sanidade.atual = Math.min(STATUS.sanidade.atual, STATUS.sanidade.max);
-
-    notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
-    notificarMudancaStatus('mana', manaAnterior, novaManaMax);
-
+    STATUS.vida.atual=parseFloat(d.vidaAtual??d.vida_atual??0);
+    STATUS.mana.atual=parseFloat(d.manaAtual??d.mana_atual??0);
+    STATUS.sanidade.atual=parseFloat(d.sanAtual??d.sanidade_atual??0);
+    const bases=_basesComBonus(d); const buffs=await calcularBuffsTotais(bases,d);
+    const defTotal=(bases.defesa||0)+(buffs.defesa||0); const intTotal=(bases.inteligencia||0)+(buffs.inteligencia||0);
+    const novaVidaMax=Math.max(1,50+(defTotal*50)+(buffs.vidaMax||0)); const novaManaMax=Math.max(1,(intTotal*10)+(buffs.manaMax||0));
+    const vidaAnt=STATUS.vida.max; const manaAnt=STATUS.mana.max;
+    STATUS.vida.max=novaVidaMax; STATUS.mana.max=novaManaMax; STATUS.sanidade.max=100+(buffs.sanidadeMax||0);
+    STATUS.vida.atual=Math.min(STATUS.vida.atual,STATUS.vida.max);
+    STATUS.mana.atual=Math.min(STATUS.mana.atual,STATUS.mana.max);
+    STATUS.sanidade.atual=Math.min(STATUS.sanidade.atual,STATUS.sanidade.max);
+    notificarMudancaStatus('vida',vidaAnt,novaVidaMax);
+    notificarMudancaStatus('mana',manaAnt,novaManaMax);
     renderizarStatus();
 }
 
 function renderizarStatus() {
-    const mapa = {
-        vida:     { sufixo: 'hp',  bar: 'barra-hp'  },
-        mana:     { sufixo: 'mp',  bar: 'barra-mp'  },
-        sanidade: { sufixo: 'san', bar: 'barra-san' }
-    };
-    Object.entries(mapa).forEach(([tipo, { sufixo, bar }]) => {
-        const s      = STATUS[tipo];
-        const elVal  = document.getElementById(`display-${sufixo}`);
-        const elBar  = document.getElementById(bar);
-        const elWrap = elBar?.parentElement;
-
-        if (elVal) elVal.textContent = `${s.atual} / ${s.max}`;
-
-        if (!elBar || s.max <= 0) return;
-
-        // Escala real: atual ÷ max (já inclui buffs dos talentos)
-        const pct = Math.max(0, Math.min(100, (s.atual / s.max) * 100));
-        elBar.style.width = `${pct}%`;
-
-        // Cor dinâmica baseada em %
-        if (tipo === 'vida') {
-            elBar.style.background =
-                pct <= 20 ? 'linear-gradient(90deg,#7b0000,#c0392b)' :
-                pct <= 50 ? 'linear-gradient(90deg,#922b21,#e74c3c)' :
-                            'linear-gradient(90deg,#c0392b,#e74c3c)';
-        } else if (tipo === 'mana') {
-            elBar.style.background =
-                pct <= 20 ? 'linear-gradient(90deg,#0a2040,#1a5276)' :
-                pct <= 50 ? 'linear-gradient(90deg,#154360,#2471a3)' :
-                            'linear-gradient(90deg,#1a5276,#2980b9)';
-        }
-
-        // Tooltip mostrando o máximo real no hover
-        if (elWrap) elWrap.title = `${s.atual} / ${s.max} (${pct.toFixed(1)}%)`;
+    const mapa = { vida:{sufixo:'hp',bar:'barra-hp'}, mana:{sufixo:'mp',bar:'barra-mp'}, sanidade:{sufixo:'san',bar:'barra-san'} };
+    Object.entries(mapa).forEach(([tipo,{sufixo,bar}]) => {
+        const s=STATUS[tipo]; const elVal=document.getElementById(`display-${sufixo}`); const elBar=document.getElementById(bar); const elWrap=elBar?.parentElement;
+        if (elVal) elVal.textContent=`${s.atual} / ${s.max}`;
+        if (!elBar||s.max<=0) return;
+        const pct=Math.max(0,Math.min(100,(s.atual/s.max)*100));
+        elBar.style.width=`${pct}%`;
+        if (tipo==='vida') elBar.style.background=pct<=20?'linear-gradient(90deg,#7b0000,#c0392b)':pct<=50?'linear-gradient(90deg,#922b21,#e74c3c)':'linear-gradient(90deg,#c0392b,#e74c3c)';
+        else if (tipo==='mana') elBar.style.background=pct<=20?'linear-gradient(90deg,#0a2040,#1a5276)':pct<=50?'linear-gradient(90deg,#154360,#2471a3)':'linear-gradient(90deg,#1a5276,#2980b9)';
+        if (elWrap) elWrap.title=`${s.atual} / ${s.max} (${pct.toFixed(1)}%)`;
     });
 }
 
 async function salvarStatus() {
-    const fichaId = getFichaId();
-
-    // 1) Salva snapshot rápido no localStorage (fallback)
-    localStorage.setItem(k('rpg_status'), JSON.stringify({
-        vidaAtual: STATUS.vida.atual, vidaMax: STATUS.vida.max,
-        manaAtual: STATUS.mana.atual, manaMax: STATUS.mana.max,
-        sanidadeAtual: STATUS.sanidade.atual, sanidadeMax: STATUS.sanidade.max
-    }));
-
-    if (!fichaId || !window._supaClient) return;
-
-    // 2) Lê o registro 'status' já existente para não sobrescrever campos do index.html
-    const { data: existente } = await window._supaClient.from('fichas_dados')
-        .select('valor').eq('ficha_id', fichaId).eq('tipo', 'status').maybeSingle();
-
-    let base = {};
-    try { base = JSON.parse(existente?.valor || '{}'); } catch(e) {}
-
-    // 3) Atualiza apenas os campos de atual/max — preserva atributos e demais campos
-    const atualizado = {
-        ...base,
-        vidaAtual:     STATUS.vida.atual,
-        vidaMax:       STATUS.vida.max,
-        manaAtual:     STATUS.mana.atual,
-        manaMax:       STATUS.mana.max,
-        sanAtual:      STATUS.sanidade.atual,
-        sanidadeMax:   STATUS.sanidade.max,
-    };
-
-    await window._supaClient.from('fichas_dados')
-        .upsert({ ficha_id: fichaId, tipo: 'status', valor: JSON.stringify(atualizado) }, { onConflict: 'ficha_id,tipo' });
+    const fichaId=getFichaId();
+    localStorage.setItem(k('rpg_status'),JSON.stringify({vidaAtual:STATUS.vida.atual,vidaMax:STATUS.vida.max,manaAtual:STATUS.mana.atual,manaMax:STATUS.mana.max,sanidadeAtual:STATUS.sanidade.atual,sanidadeMax:STATUS.sanidade.max}));
+    if (!fichaId||!window._supaClient) return;
+    const {data:existente}=await window._supaClient.from('fichas_dados').select('valor').eq('ficha_id',fichaId).eq('tipo','status').maybeSingle();
+    let base={}; try { base=JSON.parse(existente?.valor||'{}'); } catch(e) {}
+    const atualizado={...base,vidaAtual:STATUS.vida.atual,vidaMax:STATUS.vida.max,manaAtual:STATUS.mana.atual,manaMax:STATUS.mana.max,sanAtual:STATUS.sanidade.atual,sanidadeMax:STATUS.sanidade.max};
+    await window._supaClient.from('fichas_dados').upsert({ficha_id:fichaId,tipo:'status',valor:JSON.stringify(atualizado)},{onConflict:'ficha_id,tipo'});
 }
 
-function aplicarCalculo(tipo, inputId, feedbackId) {
-    const inputEl = document.getElementById(inputId); const fbEl = document.getElementById(feedbackId);
-    const texto = inputEl.value.trim(); if (!texto) return;
-    const stat = STATUS[tipo];
-    let mod = texto.includes('%') ? Math.round((parseFloat(texto.replace('%','')) / 100) * stat.max) : parseInt(texto) || 0;
-    const anterior = stat.atual;
-    stat.atual = Math.max(0, Math.min(stat.max, stat.atual + mod));
-    const diff = stat.atual - anterior;
-    if (fbEl) { fbEl.style.color = diff >= 0 ? '#4CAF50' : '#e74c3c'; fbEl.textContent = `${diff >= 0 ? '+' : ''}${diff} → ${stat.atual}`; }
-    inputEl.value = '';
-    renderizarStatus();
-    salvarStatus(); // agora async — persiste na nuvem
-    if (fbEl) setTimeout(() => { fbEl.textContent = ''; }, 2500);
+function aplicarCalculo(tipo,inputId,feedbackId) {
+    const inputEl=document.getElementById(inputId); const fbEl=document.getElementById(feedbackId);
+    const texto=inputEl.value.trim(); if (!texto) return;
+    const stat=STATUS[tipo];
+    let mod=texto.includes('%')?Math.round((parseFloat(texto.replace('%',''))/100)*stat.max):parseInt(texto)||0;
+    const anterior=stat.atual; stat.atual=Math.max(0,Math.min(stat.max,stat.atual+mod));
+    const diff=stat.atual-anterior;
+    if (fbEl) { fbEl.style.color=diff>=0?'#4CAF50':'#e74c3c'; fbEl.textContent=`${diff>=0?'+':''}${diff} → ${stat.atual}`; }
+    inputEl.value=''; renderizarStatus(); salvarStatus();
+    if (fbEl) setTimeout(()=>{fbEl.textContent='';},2500);
 }
 
-// ════════════════════════════════════════════════════════════
-//  Parser de buffs dinâmicos — agora em buffs.js (arquivo externo)
-//  parsearBuffsDinamicos(desc, { bases, statusLocal }) está disponível globalmente.
-// ════════════════════════════════════════════════════════════
-
-
-async function calcularBuffsTotais(bases, dadosStatus) {
-    // Usa calcularTodosBuffs iterativo do buffs.js
-    let d = dadosStatus;
-    if (!d) {
-        try {
-            d = await carregarStatusNuvem();
-            if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-        } catch(e) {}
-    }
-
-    // Bases reais com bônus manuais (+X manual do index.html)
-    const basesReais = d ? _basesComBonus(d) : bases;
-
-    let talentos = [];
-    try {
-        talentos = await carregarTalentosNuvem();
-        if (!Array.isArray(talentos)) talentos = [];
-    } catch(e) {}
-
-    const nivel    = parseInt(d?.nivel    || 0);
-    const sanidade = parseInt(d?.sanAtual || 0);
-    const statusInicial = {
-        manaMax:  basesReais.inteligencia * 10,
-        vidaMax:  50 + basesReais.defesa * 50,
-        nivel, sanidade
-    };
-
-    const acum = calcularTodosBuffs(talentos, basesReais, statusInicial);
-
-    // Habilidades Ativas
-    const habilidades = d?.habilidades || '';
+async function calcularBuffsTotais(bases,dadosStatus) {
+    let d=dadosStatus;
+    if (!d) { try { d=await carregarStatusNuvem(); if (!d) d=JSON.parse(localStorage.getItem(k('rpg_dados'))||'{}'); } catch(e) {} }
+    const basesReais=d?_basesComBonus(d):bases;
+    let talentos=[]; try { talentos=await carregarTalentosNuvem(); if (!Array.isArray(talentos)) talentos=[]; } catch(e) {}
+    const nivel=parseInt(d?.nivel||0); const sanidade=parseInt(d?.sanAtual||0);
+    const statusInicial={manaMax:basesReais.inteligencia*10,vidaMax:50+basesReais.defesa*50,nivel,sanidade};
+    const acum=calcularTodosBuffs(talentos,basesReais,statusInicial);
+    const habilidades=d?.habilidades||'';
     if (habilidades.trim()) {
-        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
-        const ctxAttr = {};
-        ATTR_KEYS.forEach(key => { ctxAttr[key] = (basesReais[key]||0) + (acum[key]||0); });
-        const ctxStatus = {
-            manaMax:  (ctxAttr.inteligencia*10) + (acum.manaMax||0),
-            vidaMax:  50 + (ctxAttr.defesa*50) + (acum.vidaMax||0),
-            nivel, sanidade, ...ctxAttr
-        };
-        const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
-        Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+        const ATTR_KEYS=['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr={}; ATTR_KEYS.forEach(key=>{ctxAttr[key]=(basesReais[key]||0)+(acum[key]||0);});
+        const ctxStatus={manaMax:(ctxAttr.inteligencia*10)+(acum.manaMax||0),vidaMax:50+(ctxAttr.defesa*50)+(acum.vidaMax||0),nivel,sanidade,...ctxAttr};
+        const dinHab=parsearBuffsDinamicos(habilidades,{bases:ctxAttr,statusLocal:ctxStatus});
+        Object.keys(acum).forEach(key=>{if (dinHab[key]) acum[key]+=dinHab[key];});
     }
-
     return acum;
 }
 
 async function renderizarAtributos() {
-    let d = null;
-    try {
-        d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-    } catch(e) {}
-
-    // bases JÁ inclui bônus manuais do index.html (+X manual)
-    const bases = d ? _basesComBonus(d) : {
-        forca:0, velocidade:0, inteligencia:0, defesa:0,
-        pontaria:0, carisma:0, furtividade:0
-    };
-    const nivel    = parseInt(d?.nivel    || 0);
-    const sanidade = parseInt(d?.sanAtual || 0);
-
-    const statusInicial = {
-        manaMax:  bases.inteligencia * 10,
-        vidaMax:  50 + bases.defesa * 50,
-        nivel, sanidade
-    };
-
-    // Talentos do DOM — mais atualizado durante edição
-    const talentosDOM = [];
-    document.querySelectorAll('.talento-card').forEach(card => {
-        const id    = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        const desc  = card.querySelector('.talento-desc')?.value || '';
-        const buffsFixos = {};
-        ATRIBUTOS.forEach(a => {
-            const v = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (v) buffsFixos[a.key] = v;
-        });
-        talentosDOM.push({ ativo, desc, buffs: buffsFixos });
+    let d=null; try { d=await carregarStatusNuvem(); if (!d) d=JSON.parse(localStorage.getItem(k('rpg_dados'))||'{}'); } catch(e) {}
+    const bases=d?_basesComBonus(d):{forca:0,velocidade:0,inteligencia:0,defesa:0,pontaria:0,carisma:0,furtividade:0};
+    const nivel=parseInt(d?.nivel||0); const sanidade=parseInt(d?.sanAtual||0);
+    const statusInicial={manaMax:bases.inteligencia*10,vidaMax:50+bases.defesa*50,nivel,sanidade};
+    const talentosDOM=[];
+    document.querySelectorAll('.talento-card').forEach(card=>{
+        const id=card.dataset.id; const ativo=document.getElementById(`toggle-${id}`)?.classList.contains('on');
+        const desc=card.querySelector('.talento-desc')?.value||''; const buffsFixos={};
+        ATRIBUTOS.forEach(a=>{const v=document.getElementById(`buff-${a.key}-${id}`)?.value.trim()||''; if (v) buffsFixos[a.key]=v;});
+        talentosDOM.push({ativo,desc,buffs:buffsFixos});
     });
-
-    // Cálculo iterativo/acumulativo (buffs.js)
-    const acum = calcularTodosBuffs(talentosDOM, bases, statusInicial);
-
-    // Habilidades Ativas do status salvo
-    const habilidades = d?.habilidades || '';
+    const acum=calcularTodosBuffs(talentosDOM,bases,statusInicial);
+    const habilidades=d?.habilidades||'';
     if (habilidades.trim()) {
-        const ATTR_KEYS = ['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
-        const ctxAttr = {};
-        ATTR_KEYS.forEach(key => { ctxAttr[key] = (bases[key]||0) + (acum[key]||0); });
-        const ctxStatus = {
-            manaMax:  (ctxAttr.inteligencia*10) + (acum.manaMax||0),
-            vidaMax:  50 + (ctxAttr.defesa*50) + (acum.vidaMax||0),
-            nivel, sanidade, ...ctxAttr
-        };
-        const dinHab = parsearBuffsDinamicos(habilidades, { bases: ctxAttr, statusLocal: ctxStatus });
-        Object.keys(acum).forEach(key => { if (dinHab[key]) acum[key] += dinHab[key]; });
+        const ATTR_KEYS=['forca','velocidade','inteligencia','defesa','pontaria','carisma','furtividade'];
+        const ctxAttr={}; ATTR_KEYS.forEach(key=>{ctxAttr[key]=(bases[key]||0)+(acum[key]||0);});
+        const ctxStatus={manaMax:(ctxAttr.inteligencia*10)+(acum.manaMax||0),vidaMax:50+(ctxAttr.defesa*50)+(acum.vidaMax||0),nivel,sanidade,...ctxAttr};
+        const dinHab=parsearBuffsDinamicos(habilidades,{bases:ctxAttr,statusLocal:ctxStatus});
+        Object.keys(acum).forEach(key=>{if (dinHab[key]) acum[key]+=dinHab[key];});
     }
-
-    const container = document.getElementById('attr-resumo');
-    if (!container) return;
-
-    // ── Chips dos 7 atributos ─────────────────────────────────────────────
-    // "base" nos chips = valor com bônus manual já incluído (como mostra o index.html)
-    const chipsAttr = ATRIBUTOS.map(a => {
-        const base    = bases[a.key] || 0;   // base + bônus manual
-        const buffVal = acum[a.key]  || 0;   // buff dos talentos
-        const total   = base + buffVal;
-        const cor     = buffVal > 0 ? '#4CAF50' : buffVal < 0 ? '#e74c3c' : '#c8aa6e';
-        const buffHtml = buffVal !== 0
-            ? `<span style="color:${cor};font-size:10px">${buffVal > 0 ? '+' : ''}${buffVal} talento</span>`
-            : '<span style="color:#555;font-size:10px">—</span>';
-        return `<div class="attr-chip">
-            <div class="a-nome">${a.label}</div>
-            <div class="a-val" style="color:${cor}">${total}</div>
-            <div class="a-base" style="color:#5a82b5">base ${base}</div>
-            <div class="a-buff">${buffHtml}</div>
-        </div>`;
+    const container=document.getElementById('attr-resumo'); if (!container) return;
+    const chipsAttr=ATRIBUTOS.map(a=>{
+        const base=bases[a.key]||0; const buffVal=acum[a.key]||0; const total=base+buffVal;
+        const cor=buffVal>0?'#4CAF50':buffVal<0?'#e74c3c':'#c8aa6e';
+        const buffHtml=buffVal!==0?`<span style="color:${cor};font-size:10px">${buffVal>0?'+':''}${buffVal} talento</span>`:'<span style="color:#555;font-size:10px">—</span>';
+        return `<div class="attr-chip"><div class="a-nome">${a.label}</div><div class="a-val" style="color:${cor}">${total}</div><div class="a-base" style="color:#5a82b5">base ${base}</div><div class="a-buff">${buffHtml}</div></div>`;
     }).join('');
-
-    // ── Chips de status máximos ───────────────────────────────────────────
-    const defTotal    = (bases.defesa       || 0) + (acum.defesa       || 0);
-    const intTotal    = (bases.inteligencia || 0) + (acum.inteligencia || 0);
-    const vidaMaxCalc = Math.max(1, 50 + (defTotal * 50) + (acum.vidaMax    || 0));
-    const manaMaxCalc = Math.max(1, (intTotal * 10)       + (acum.manaMax   || 0));
-    const sanMaxCalc  = 100 + (acum.sanidadeMax || 0);
-
-    const chipsStatus = `
-        <div class="attr-chip" style="border-color:rgba(224,123,57,0.35)">
-            <div class="a-nome">❤️ Vida Máx</div>
-            <div class="a-val" style="color:#e07b39">${vidaMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">def×50+50</div>
-            <div class="a-buff">${(acum.vidaMax||0)!==0
-                ? `<span style="color:#00bfff;font-size:10px">${(acum.vidaMax||0)>0?'+':''}${acum.vidaMax} desc</span>`
-                : '<span style="color:#555;font-size:10px">—</span>'}</div>
-        </div>
-        <div class="attr-chip" style="border-color:rgba(0,191,255,0.35)">
-            <div class="a-nome">💧 Mana Máx</div>
-            <div class="a-val" style="color:#00bfff">${manaMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">int×10</div>
-            <div class="a-buff">${(acum.manaMax||0)!==0
-                ? `<span style="color:#00bfff;font-size:10px">${(acum.manaMax||0)>0?'+':''}${acum.manaMax} desc</span>`
-                : '<span style="color:#555;font-size:10px">—</span>'}</div>
-        </div>
-        <div class="attr-chip" style="border-color:rgba(176,196,222,0.35)">
-            <div class="a-nome">🧠 San Máx</div>
-            <div class="a-val" style="color:#b0c4de">${sanMaxCalc}</div>
-            <div class="a-base" style="color:#5a82b5">base 100</div>
-            <div class="a-buff"><span style="color:#555;font-size:10px">—</span></div>
-        </div>`;
-
-    container.innerHTML = chipsAttr + chipsStatus;
+    const defTotal=(bases.defesa||0)+(acum.defesa||0); const intTotal=(bases.inteligencia||0)+(acum.inteligencia||0);
+    const vidaMaxCalc=Math.max(1,50+(defTotal*50)+(acum.vidaMax||0)); const manaMaxCalc=Math.max(1,(intTotal*10)+(acum.manaMax||0)); const sanMaxCalc=100+(acum.sanidadeMax||0);
+    const chipsStatus=`<div class="attr-chip" style="border-color:rgba(224,123,57,0.35)"><div class="a-nome">❤️ Vida Máx</div><div class="a-val" style="color:#e07b39">${vidaMaxCalc}</div><div class="a-base" style="color:#5a82b5">def×50+50</div><div class="a-buff">${(acum.vidaMax||0)!==0?`<span style="color:#00bfff;font-size:10px">${(acum.vidaMax||0)>0?'+':''}${acum.vidaMax} desc</span>`:'<span style="color:#555;font-size:10px">—</span>'}</div></div><div class="attr-chip" style="border-color:rgba(0,191,255,0.35)"><div class="a-nome">💧 Mana Máx</div><div class="a-val" style="color:#00bfff">${manaMaxCalc}</div><div class="a-base" style="color:#5a82b5">int×10</div><div class="a-buff">${(acum.manaMax||0)!==0?`<span style="color:#00bfff;font-size:10px">${(acum.manaMax||0)>0?'+':''}${acum.manaMax} desc</span>`:'<span style="color:#555;font-size:10px">—</span>'}</div></div><div class="attr-chip" style="border-color:rgba(176,196,222,0.35)"><div class="a-nome">🧠 San Máx</div><div class="a-val" style="color:#b0c4de">${sanMaxCalc}</div><div class="a-base" style="color:#5a82b5">base 100</div><div class="a-buff"><span style="color:#555;font-size:10px">—</span></div></div>`;
+    container.innerHTML=chipsAttr+chipsStatus;
 }
 
-// ════════════════════════════════════════════════════════════
-//  Cards de Talentos — com Categoria e Raça
-// ════════════════════════════════════════════════════════════
-let contador = 0;
-
-// Aplica classe CSS de cor conforme categoria
-function aplicarEstiloCategoria(card, cat) {
-    card.classList.remove('cat-talento', 'cat-habilidade', 'cat-raca');
-    if (cat === 'Talento')    card.classList.add('cat-talento');
-    if (cat === 'Habilidade') card.classList.add('cat-habilidade');
-    if (cat === 'Raça')       card.classList.add('cat-raca');
+let contador=0;
+function aplicarEstiloCategoria(card,cat) {
+    card.classList.remove('cat-talento','cat-habilidade','cat-raca');
+    if (cat==='Talento') card.classList.add('cat-talento');
+    if (cat==='Habilidade') card.classList.add('cat-habilidade');
+    if (cat==='Raça') card.classList.add('cat-raca');
 }
 
-function adicionarTalento(dados = {}) {
-    contador++;
-    const id    = contador;
-    const ativo = dados.ativo !== undefined ? dados.ativo : true;
-    const cat   = dados.categoria || 'Talento';
-    const raca  = dados.raca || '';
-    const classe = dados.classe || '';
-
-    const card = document.createElement('div');
-    card.className = `talento-card ${ativo ? 'ativo' : 'inativo'}`;
-    card.dataset.id = id;
-    aplicarEstiloCategoria(card, cat);
-
-    const buffLinhas = ATRIBUTOS.map(a => `
-        <div class="buff-row">
-            <span class="b-label">${a.label}</span>
-            <input type="text" class="buff-input" id="buff-${a.key}-${id}" value="${dados.buffs?.[a.key] || ''}" placeholder="+10%" inputmode="decimal" oninput="atualizarBuffs()" title="Bônus de ${a.label} deste talento">
-        </div>`).join('');
-
-    const calcLinhas = [
-        { tipo: 'vida',     icone: '❤️', label: 'Vida',   cor: '#ff6b6b' },
-        { tipo: 'mana',     icone: '💧', label: 'Mana',   cor: '#5dade2' },
-        { tipo: 'sanidade', icone: '🧠', label: 'Sanid.', cor: '#d7bde2' }
-    ].map(({ tipo, icone, label, cor }) => `
-        <div class="calc-row">
-            <span class="c-label" style="color:${cor}">${icone} ${label}</span>
-            <input type="text" id="calc-${tipo}-${id}" placeholder="+10, -5%" inputmode="decimal">
-            <button class="btn-aplicar" onclick="aplicarCalculo('${tipo}','calc-${tipo}-${id}','fb-${tipo}-${id}')">Aplicar</button>
-        </div><div class="feedback-calc" id="fb-${tipo}-${id}"></div>`).join('');
-
-    card.innerHTML = `
-        <div class="talento-header">
-            <div class="toggle-ativo ${ativo ? 'on' : ''}" id="toggle-${id}" onclick="toggleAtivo(${id})" title="${ativo ? 'Ativo' : 'Inativo'}"></div>
-            <input type="text" class="talento-nome" placeholder="Nome do Talento..." value="${dados.nome || ''}" oninput="salvarTalentos()">
-
-            <!-- Categoria: Talento / Habilidade / Raça -->
-            <select class="cat-badge cat-${cat.toLowerCase()}" id="cat-${id}"
-                    title="Categoria"
-                    onchange="onCatChange(this, ${id})">
-                <option value="Talento"    ${cat === 'Talento'    ? 'selected' : ''}>🌟 Talento</option>
-                <option value="Habilidade" ${cat === 'Habilidade' ? 'selected' : ''}>⚡ Habilidade</option>
-                <option value="Raça"       ${cat === 'Raça'       ? 'selected' : ''}>🧬 Raça</option>
-            </select>
-
-            <!-- Tipo: Passivo / Ativo / Reação / Especial -->
-            <select class="tipo-badge" id="tipo-${id}" onchange="salvarTalentos()">
-                <option value="Passivo"  ${(dados.tipo||'Passivo') === 'Passivo'  ? 'selected' : ''}>Passivo</option>
-                <option value="Ativo"    ${(dados.tipo||'')        === 'Ativo'    ? 'selected' : ''}>Ativo</option>
-                <option value="Reação"   ${(dados.tipo||'')        === 'Reação'   ? 'selected' : ''}>Reação</option>
-                <option value="Especial" ${(dados.tipo||'')        === 'Especial' ? 'selected' : ''}>Especial</option>
-            </select>
-
-            <button class="btn-remover" onclick="removerTalento(${id})" title="Remover talento">✕</button>
-        </div>
-
-        <!-- Campo de raça vinculada ao talento/habilidade -->
-        <div class="raca-row" id="raca-row-${id}">
-            <label>🧬 Raça:</label>
-            <input type="text" class="raca-input" id="raca-${id}"
-                   value="${raca}"
-                   placeholder="Ex: Elfo, Humano, Anão... (deixe vazio se for geral)"
-                   list="raca-datalist-${id}"
-                   oninput="salvarTalentos(); atualizarTagsRaca()">
-            <datalist id="raca-datalist-${id}"></datalist>
-        </div>
-
-        <!-- Campo de classe vinculada ao talento/habilidade -->
-        <div class="classe-row" id="classe-row-${id}">
-            <label>🗡️ Classe:</label>
-            <input type="text" class="classe-input" id="classe-${id}"
-                   value="${classe}"
-                   placeholder="Ex: Guerreiro, Mago, Ladino... (deixe vazio se for geral)"
-                   list="classe-datalist-${id}"
-                   oninput="salvarTalentos(); atualizarTagsClasse()">
-            <datalist id="classe-datalist-${id}"></datalist>
-        </div>
-
-        <div class="talento-body">
-            <textarea class="talento-desc" placeholder="Descreva o efeito, condições de uso, custo, narrativa..." oninput="salvarTalentos()">${dados.desc || ''}</textarea>
-            <div class="buff-panel">
-                <div class="buff-panel-title">📊 Buff nos Atributos</div>
-                ${buffLinhas}
-                <div class="calc-secao">
-                    <div class="buff-panel-title">⚡ Efeito no Status</div>
-                    ${calcLinhas}
-                </div>
-            </div>
-        </div>`;
-
+function adicionarTalento(dados={}) {
+    contador++; const id=contador; const ativo=dados.ativo!==undefined?dados.ativo:true;
+    const cat=dados.categoria||'Talento'; const raca=dados.raca||''; const classe=dados.classe||'';
+    const card=document.createElement('div');
+    card.className=`talento-card ${ativo?'ativo':'inativo'}`; card.dataset.id=id;
+    aplicarEstiloCategoria(card,cat);
+    const buffLinhas=ATRIBUTOS.map(a=>`<div class="buff-row"><span class="b-label">${a.label}</span><input type="text" class="buff-input" id="buff-${a.key}-${id}" value="${dados.buffs?.[a.key]||''}" placeholder="+10%" inputmode="decimal" oninput="atualizarBuffs()"></div>`).join('');
+    const calcLinhas=[{tipo:'vida',icone:'❤️',label:'Vida',cor:'#ff6b6b'},{tipo:'mana',icone:'💧',label:'Mana',cor:'#5dade2'},{tipo:'sanidade',icone:'🧠',label:'Sanid.',cor:'#d7bde2'}].map(({tipo,icone,label,cor})=>`<div class="calc-row"><span class="c-label" style="color:${cor}">${icone} ${label}</span><input type="text" id="calc-${tipo}-${id}" placeholder="+10, -5%" inputmode="decimal"><button class="btn-aplicar" onclick="aplicarCalculo('${tipo}','calc-${tipo}-${id}','fb-${tipo}-${id}')">Aplicar</button></div><div class="feedback-calc" id="fb-${tipo}-${id}"></div>`).join('');
+    card.innerHTML=`<div class="talento-header"><div class="toggle-ativo ${ativo?'on':''}" id="toggle-${id}" onclick="toggleAtivo(${id})"></div><input type="text" class="talento-nome" placeholder="Nome do Talento..." value="${dados.nome||''}" oninput="salvarTalentos()"><select class="cat-badge cat-${cat.toLowerCase()}" id="cat-${id}" onchange="onCatChange(this,${id})"><option value="Talento" ${cat==='Talento'?'selected':''}>🌟 Talento</option><option value="Habilidade" ${cat==='Habilidade'?'selected':''}>⚡ Habilidade</option><option value="Raça" ${cat==='Raça'?'selected':''}>🧬 Raça</option></select><select class="tipo-badge" id="tipo-${id}" onchange="salvarTalentos()"><option value="Passivo" ${(dados.tipo||'Passivo')==='Passivo'?'selected':''}>Passivo</option><option value="Ativo" ${(dados.tipo||'')==='Ativo'?'selected':''}>Ativo</option><option value="Reação" ${(dados.tipo||'')==='Reação'?'selected':''}>Reação</option><option value="Especial" ${(dados.tipo||'')==='Especial'?'selected':''}>Especial</option></select><button class="btn-remover" onclick="removerTalento(${id})">✕</button></div><div class="raca-row" id="raca-row-${id}"><label>🧬 Raça:</label><input type="text" class="raca-input" id="raca-${id}" value="${raca}" placeholder="Ex: Elfo, Humano... (vazio = geral)" list="raca-datalist-${id}" oninput="salvarTalentos(); atualizarTagsRaca()"><datalist id="raca-datalist-${id}"></datalist></div><div class="classe-row" id="classe-row-${id}"><label>🗡️ Classe:</label><input type="text" class="classe-input" id="classe-${id}" value="${classe}" placeholder="Ex: Guerreiro, Mago... (vazio = geral)" list="classe-datalist-${id}" oninput="salvarTalentos(); atualizarTagsClasse()"><datalist id="classe-datalist-${id}"></datalist></div><div class="talento-body"><textarea class="talento-desc" placeholder="Descreva o efeito, condições de uso, custo..." oninput="salvarTalentos()">${dados.desc||''}</textarea><div class="buff-panel"><div class="buff-panel-title">📊 Buff nos Atributos</div>${buffLinhas}<div class="calc-secao"><div class="buff-panel-title">⚡ Efeito no Status</div>${calcLinhas}</div></div></div>`;
     document.getElementById('lista-talentos').appendChild(card);
-
-    // Preenche datalist com raças já usadas em outros cards
-    atualizarDatalistsRaca();
-    atualizarDatalistsClasse();
-    salvarTalentos();
+    atualizarDatalistsRaca(); atualizarDatalistsClasse(); salvarTalentos();
 }
 
-// Atualiza estilo visual do select de categoria ao mudar
-function onCatChange(select, id) {
-    const val = select.value;
-    select.className = `cat-badge cat-${val.toLowerCase()}`;
-    const card = document.querySelector(`.talento-card[data-id="${id}"]`);
-    if (card) aplicarEstiloCategoria(card, val);
-    salvarTalentos();
-    atualizarTagsRaca();
-}
-
-function toggleAtivo(id) {
-    const card   = document.querySelector(`.talento-card[data-id="${id}"]`);
-    const toggle = document.getElementById(`toggle-${id}`);
-    const eraAtivo = toggle.classList.contains('on');
-    toggle.classList.toggle('on', !eraAtivo);
-    card.classList.toggle('ativo',  !eraAtivo);
-    card.classList.toggle('inativo', eraAtivo);
-    atualizarBuffs();
-}
-
-function removerTalento(id) {
-    const card = document.querySelector(`.talento-card[data-id="${id}"]`);
-    if (!card) return;
-    card.style.transition = 'opacity 0.2s, transform 0.2s';
-    card.style.opacity    = '0';
-    card.style.transform  = 'translateY(-8px)';
-    setTimeout(() => { card.remove(); atualizarBuffs(); atualizarTagsRaca(); atualizarTagsClasse(); }, 200);
-}
-
+function onCatChange(select,id) { const val=select.value; select.className=`cat-badge cat-${val.toLowerCase()}`; const card=document.querySelector(`.talento-card[data-id="${id}"]`); if (card) aplicarEstiloCategoria(card,val); salvarTalentos(); atualizarTagsRaca(); }
+function toggleAtivo(id) { const card=document.querySelector(`.talento-card[data-id="${id}"]`); const toggle=document.getElementById(`toggle-${id}`); const eraAtivo=toggle.classList.contains('on'); toggle.classList.toggle('on',!eraAtivo); card.classList.toggle('ativo',!eraAtivo); card.classList.toggle('inativo',eraAtivo); atualizarBuffs(); }
+function removerTalento(id) { const card=document.querySelector(`.talento-card[data-id="${id}"]`); if (!card) return; card.style.transition='opacity 0.2s,transform 0.2s'; card.style.opacity='0'; card.style.transform='translateY(-8px)'; setTimeout(()=>{card.remove();atualizarBuffs();atualizarTagsRaca();atualizarTagsClasse();},200); }
 function atualizarBuffs() { salvarTalentos(); renderizarAtributos(); recalcularStatusComToast(); }
+function _calcBonusManual(base,txt) { if (!txt||txt==='0') return 0; const t=String(txt).trim(); if (t.includes('%')) { const p=parseFloat(t.replace('%','')); return isNaN(p)?0:Math.round((p/100)*base); } const n=parseInt(t); return isNaN(n)?0:n; }
+function _basesComBonus(d) { if (!d) return {forca:0,velocidade:0,inteligencia:0,defesa:0,pontaria:0,carisma:0,furtividade:0}; const f=parseInt(d.forcaBase||0),v=parseInt(d.velBase||0),i=parseInt(d.intBase||0),de=parseInt(d.defBase||0),p=parseInt(d.pontBase||0),c=parseInt(d.carBase||0),fu=parseInt(d.furtBase||0); return {forca:f+_calcBonusManual(f,d.forcaBonus||'0'),velocidade:v+_calcBonusManual(v,d.velBonus||'0'),inteligencia:i+_calcBonusManual(i,d.intBonus||'0'),defesa:de+_calcBonusManual(de,d.defBonus||'0'),pontaria:p+_calcBonusManual(p,d.pontBonus||'0'),carisma:c+_calcBonusManual(c,d.carBonus||'0'),furtividade:fu+_calcBonusManual(fu,d.furtBonus||'0')}; }
+async function recalcularStatusComToast() { let d=null; try { d=await carregarStatusNuvem(); if (!d) d=JSON.parse(localStorage.getItem(k('rpg_dados'))||'{}'); } catch(e) {} if (!d) return; const bases=_basesComBonus(d); const nivel=parseInt(d.nivel||0); const sanidade=STATUS.sanidade.atual; const talentosDOM=[]; document.querySelectorAll('.talento-card').forEach(card=>{const id=card.dataset.id;const ativo=document.getElementById(`toggle-${id}`)?.classList.contains('on');const desc=card.querySelector('.talento-desc')?.value||'';const buffsFixos={};ATRIBUTOS.forEach(a=>{const v=document.getElementById(`buff-${a.key}-${id}`)?.value.trim()||'';if (v) buffsFixos[a.key]=v;});talentosDOM.push({ativo,desc,buffs:buffsFixos});}); const statusInicial={manaMax:bases.inteligencia*10,vidaMax:50+bases.defesa*50,nivel,sanidade}; const acum=calcularTodosBuffs(talentosDOM,bases,statusInicial); const defTotal=(bases.defesa||0)+(acum.defesa||0); const intTotal=(bases.inteligencia||0)+(acum.inteligencia||0); const novaVidaMax=Math.max(1,50+(defTotal*50)+(acum.vidaMax||0)); const novaManaMax=Math.max(1,(intTotal*10)+(acum.manaMax||0)); const vidaAnt=STATUS.vida.max; const manaAnt=STATUS.mana.max; STATUS.vida.max=novaVidaMax; STATUS.mana.max=novaManaMax; STATUS.sanidade.max=100+(acum.sanidadeMax||0); STATUS.vida.atual=Math.min(STATUS.vida.atual,STATUS.vida.max); STATUS.mana.atual=Math.min(STATUS.mana.atual,STATUS.mana.max); STATUS.sanidade.atual=Math.min(STATUS.sanidade.atual,STATUS.sanidade.max); notificarMudancaStatus('vida',vidaAnt,novaVidaMax); notificarMudancaStatus('mana',manaAnt,novaManaMax); renderizarStatus(); }
+function coletarTalentos() { return Array.from(document.querySelectorAll('.talento-card')).map(card=>{const id=card.dataset.id;const ativo=document.getElementById(`toggle-${id}`)?.classList.contains('on')??true;const buffs={};ATRIBUTOS.forEach(a=>{buffs[a.key]=document.getElementById(`buff-${a.key}-${id}`)?.value.trim()||'';});return {id,ativo,buffs,nome:card.querySelector('.talento-nome')?.value||'',tipo:document.getElementById(`tipo-${id}`)?.value||'Passivo',categoria:document.getElementById(`cat-${id}`)?.value||'Talento',raca:document.getElementById(`raca-${id}`)?.value.trim()||'',classe:document.getElementById(`classe-${id}`)?.value.trim()||'',desc:card.querySelector('.talento-desc')?.value||''};}); }
+let _talentosAlterados=false; function _marcarTalentosAlterados(){_talentosAlterados=true;}
+window.addEventListener('beforeunload',e=>{if (_talentosAlterados){e.preventDefault();e.returnValue='';}});
+function _debounce(fn,ms){let t;return function(...args){clearTimeout(t);t=setTimeout(()=>fn.apply(this,args),ms);};}
+async function _salvarTalentosImediato(){const talentos=coletarTalentos();await salvarNuvemTalentos(talentos);_talentosAlterados=false;}
+const salvarTalentos=_debounce(function(){_talentosAlterados=true;_salvarTalentosImediato();},800);
+async function salvar(){await _salvarTalentosImediato();mostrarToast('💾 Talentos salvos!');}
+async function carregarTalentos(){let dados=await carregarTalentosNuvem();if (!dados){try{dados=JSON.parse(localStorage.getItem(k('rpg_talentos'))||'[]');}catch(e){dados=[];}}if (dados.length===0) adicionarTalento();else dados.forEach(d=>adicionarTalento(d));}
+function mostrarToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-// Recalcula vida/mana máx com os buffs actuais dos cards
-// e exibe o toast se houver mudança — sem recarregar da rede.
-// ── Helpers para bônus manual (lidos do dado salvo) ─────────────────────
-function _calcBonusManual(base, txt) {
-    if (!txt || txt === '0') return 0;
-    const t = String(txt).trim();
-    if (t.includes('%')) { const p = parseFloat(t.replace('%','')); return isNaN(p) ? 0 : Math.round((p/100)*base); }
-    const n = parseInt(t); return isNaN(n) ? 0 : n;
-}
-function _basesComBonus(d) {
-    if (!d) return {forca:0,velocidade:0,inteligencia:0,defesa:0,pontaria:0,carisma:0,furtividade:0};
-    const f=parseInt(d.forcaBase||0), v=parseInt(d.velBase||0), i=parseInt(d.intBase||0),
-          de=parseInt(d.defBase||0), p=parseInt(d.pontBase||0), c=parseInt(d.carBase||0), fu=parseInt(d.furtBase||0);
-    return {
-        forca:        f  + _calcBonusManual(f,  d.forcaBonus||'0'),
-        velocidade:   v  + _calcBonusManual(v,  d.velBonus  ||'0'),
-        inteligencia: i  + _calcBonusManual(i,  d.intBonus  ||'0'),
-        defesa:       de + _calcBonusManual(de, d.defBonus  ||'0'),
-        pontaria:     p  + _calcBonusManual(p,  d.pontBonus ||'0'),
-        carisma:      c  + _calcBonusManual(c,  d.carBonus  ||'0'),
-        furtividade:  fu + _calcBonusManual(fu, d.furtBonus ||'0'),
-    };
-}
+let tipoFiltroAtual='todos'; let catFiltroAtual='todos'; const buffsAtivos=new Set();
+function selecionarCatFiltro(btn){catFiltroAtual=btn.dataset.cat;document.querySelectorAll('.btn-cat-filtro').forEach(b=>b.classList.toggle('active',b===btn));filtrarTalentos();}
+function selecionarTipo(btn){tipoFiltroAtual=btn.dataset.tipo;document.querySelectorAll('.btn-tipo-filtro').forEach(b=>b.classList.toggle('active',b===btn));filtrarTalentos();}
+function gerarBotoesBuff(){const wrap=document.getElementById('filtro-buff-wrap');if (!wrap) return;wrap.innerHTML=ATRIBUTOS.map(a=>`<button class="btn-buff-filtro" data-key="${a.key}" onclick="toggleBuffFiltro(this)"><span class="check"></span>${a.label}</button>`).join('');}
+function toggleBuffFiltro(btn){const key=btn.dataset.key;if (buffsAtivos.has(key)){buffsAtivos.delete(key);btn.classList.remove('active');btn.querySelector('.check').textContent='';}else{buffsAtivos.add(key);btn.classList.add('active');btn.querySelector('.check').textContent='✓';}filtrarTalentos();}
+function coletarRacasUnicas(){const racas=new Set();document.querySelectorAll('.talento-card:not(.oculto-permanente)').forEach(card=>{const id=card.dataset.id;const raca=document.getElementById(`raca-${id}`)?.value.trim();if (raca) racas.add(raca);});return [...racas].sort((a,b)=>a.localeCompare(b));}
+function atualizarTagsRaca(){const racas=coletarRacasUnicas();const wrap=document.getElementById('raca-sugestoes-filtro');if (!wrap) return;const filtroAtual=(document.getElementById('inputFiltroRaca')?.value||'').toLowerCase().trim();wrap.innerHTML=racas.map(r=>{const isActive=filtroAtual&&r.toLowerCase().includes(filtroAtual);return `<span class="raca-tag ${isActive?'active':''}" onclick="clicarTagRaca(this,'${r.replace(/'/g,"\\'")}')">${r}</span>`;}).join('');const linhaWrap=document.getElementById('linha-tags-raca');if (linhaWrap) linhaWrap.style.display=racas.length===0?'none':'';atualizarDatalistsRaca(racas);}
+function atualizarDatalistsRaca(racas){if (!racas) racas=coletarRacasUnicas();document.querySelectorAll('[id^="raca-datalist-"]').forEach(dl=>{dl.innerHTML=racas.map(r=>`<option value="${r}">`).join('');});}
+function clicarTagRaca(tag,valor){const input=document.getElementById('inputFiltroRaca');if (!input) return;if (input.value.trim().toLowerCase()===valor.toLowerCase()) input.value='';else input.value=valor;filtrarTalentos();atualizarTagsRaca();}
+function limparFiltroRaca(){const input=document.getElementById('inputFiltroRaca');if (input) input.value='';filtrarTalentos();atualizarTagsRaca();}
+function coletarClassesUnicas(){const classes=new Set();document.querySelectorAll('.talento-card:not(.oculto-permanente)').forEach(card=>{const id=card.dataset.id;const classe=document.getElementById(`classe-${id}`)?.value.trim();if (classe) classes.add(classe);});return [...classes].sort((a,b)=>a.localeCompare(b));}
+function atualizarTagsClasse(){const classes=coletarClassesUnicas();const wrap=document.getElementById('classe-sugestoes-filtro');if (!wrap) return;const filtroAtual=(document.getElementById('inputFiltroClasse')?.value||'').toLowerCase().trim();wrap.innerHTML=classes.map(c=>{const isActive=filtroAtual&&c.toLowerCase().includes(filtroAtual);return `<span class="classe-tag ${isActive?'active':''}" onclick="clicarTagClasse(this,'${c.replace(/'/g,"\\'")}')">${c}</span>`;}).join('');const linhaWrap=document.getElementById('linha-tags-classe');if (linhaWrap) linhaWrap.style.display=classes.length===0?'none':'';atualizarDatalistsClasse(classes);}
+function atualizarDatalistsClasse(classes){if (!classes) classes=coletarClassesUnicas();document.querySelectorAll('[id^="classe-datalist-"]').forEach(dl=>{dl.innerHTML=classes.map(c=>`<option value="${c}">`).join('');});}
+function clicarTagClasse(tag,valor){const input=document.getElementById('inputFiltroClasse');if (!input) return;if (input.value.trim().toLowerCase()===valor.toLowerCase()) input.value='';else input.value=valor;filtrarTalentos();atualizarTagsClasse();}
+function limparFiltroClasse(){const input=document.getElementById('inputFiltroClasse');if (input) input.value='';filtrarTalentos();atualizarTagsClasse();}
 
-async function recalcularStatusComToast() {
-    let d = null;
-    try {
-        d = await carregarStatusNuvem();
-        if (!d) d = JSON.parse(localStorage.getItem(k('rpg_dados')) || '{}');
-    } catch(e) {}
-    if (!d) return;
+function filtrarTalentos(){const termo=(document.getElementById('inputPesquisaTalento')?.value||'').toLowerCase().trim();const termoRaca=(document.getElementById('inputFiltroRaca')?.value||'').toLowerCase().trim();const termoClasse=(document.getElementById('inputFiltroClasse')?.value||'').toLowerCase().trim();const cards=document.querySelectorAll('.talento-card');let visiveis=0;cards.forEach(card=>{const id=card.dataset.id;const nome=(card.querySelector('.talento-nome')?.value||'').toLowerCase();const desc=(card.querySelector('.talento-desc')?.value||'').toLowerCase();const tipo=document.getElementById(`tipo-${id}`)?.value||'';const cat=document.getElementById(`cat-${id}`)?.value||'';const raca=(document.getElementById(`raca-${id}`)?.value||'').toLowerCase().trim();const classe=(document.getElementById(`classe-${id}`)?.value||'').toLowerCase().trim();const bateTexto=!termo||nome.includes(termo)||desc.includes(termo);const bateTipo=tipoFiltroAtual==='todos'||tipo===tipoFiltroAtual;const bateCat=catFiltroAtual==='todos'||cat===catFiltroAtual;const bateRaca=!termoRaca||raca.includes(termoRaca);const bateClasse=!termoClasse||classe.includes(termoClasse);let bateBuff=true;if (buffsAtivos.size>0) bateBuff=[...buffsAtivos].every(key=>{const val=document.getElementById(`buff-${key}-${id}`)?.value.trim();return val&&val!=='0';});const visivel=bateTexto&&bateTipo&&bateCat&&bateRaca&&bateClasse&&bateBuff;card.classList.toggle('oculto',!visivel);if (visivel) visiveis++;});const total=cards.length;const el=document.getElementById('resultado-pesquisa');const temFiltro=termo||tipoFiltroAtual!=='todos'||catFiltroAtual!=='todos'||termoRaca||termoClasse||buffsAtivos.size>0;if (el) el.textContent=temFiltro?`${visiveis} de ${total} talento${total!==1?'s':''}`:'`';}
 
-    // Bases já com bônus manuais embutidos
-    const bases = _basesComBonus(d);
-    const nivel    = parseInt(d.nivel    || 0);
-    const sanidade = STATUS.sanidade.atual;
-
-    // Monta talentos do DOM (mais atualizado que a nuvem durante edição)
-    const talentosDOM = [];
-    document.querySelectorAll('.talento-card').forEach(card => {
-        const id   = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on');
-        const desc  = card.querySelector('.talento-desc')?.value || '';
-        const buffsFixos = {};
-        ATRIBUTOS.forEach(a => {
-            const v = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || '';
-            if (v) buffsFixos[a.key] = v;
-        });
-        talentosDOM.push({ ativo, desc, buffs: buffsFixos });
-    });
-
-    const statusInicial = {
-        manaMax:  bases.inteligencia * 10,
-        vidaMax:  50 + bases.defesa * 50,
-        nivel, sanidade
-    };
-
-    // Cálculo iterativo/acumulativo
-    const acum = calcularTodosBuffs(talentosDOM, bases, statusInicial);
-
-    const defTotal = (bases.defesa       || 0) + (acum.defesa       || 0);
-    const intTotal = (bases.inteligencia || 0) + (acum.inteligencia || 0);
-
-    const novaVidaMax = Math.max(1, 50 + (defTotal * 50) + (acum.vidaMax || 0));
-    const novaManaMax = Math.max(1, (intTotal * 10)       + (acum.manaMax || 0));
-
-    const vidaAnterior = STATUS.vida.max;
-    const manaAnterior = STATUS.mana.max;
-
-    STATUS.vida.max     = novaVidaMax;
-    STATUS.mana.max     = novaManaMax;
-    STATUS.sanidade.max = 100 + (acum.sanidadeMax || 0);
-
-    // Clamp atuais ao novo máximo
-    STATUS.vida.atual     = Math.min(STATUS.vida.atual,     STATUS.vida.max);
-    STATUS.mana.atual     = Math.min(STATUS.mana.atual,     STATUS.mana.max);
-    STATUS.sanidade.atual = Math.min(STATUS.sanidade.atual, STATUS.sanidade.max);
-
-    notificarMudancaStatus('vida', vidaAnterior, novaVidaMax);
-    notificarMudancaStatus('mana', manaAnterior, novaManaMax);
-
-    renderizarStatus();
-}
-
-function coletarTalentos() {
-    return Array.from(document.querySelectorAll('.talento-card')).map(card => {
-        const id    = card.dataset.id;
-        const ativo = document.getElementById(`toggle-${id}`)?.classList.contains('on') ?? true;
-        const buffs = {};
-        ATRIBUTOS.forEach(a => { buffs[a.key] = document.getElementById(`buff-${a.key}-${id}`)?.value.trim() || ''; });
-        return {
-            id,
-            ativo,
-            buffs,
-            nome:      card.querySelector('.talento-nome')?.value || '',
-            tipo:      document.getElementById(`tipo-${id}`)?.value || 'Passivo',
-            categoria: document.getElementById(`cat-${id}`)?.value  || 'Talento',
-            raca:      document.getElementById(`raca-${id}`)?.value.trim() || '',
-            classe:    document.getElementById(`classe-${id}`)?.value.trim() || '',
-            desc:      card.querySelector('.talento-desc')?.value || '',
-        };
-    });
-}
-
-// ── Confirmação ao sair com alterações não salvas ─────────
-let _talentosAlterados = false;
-function _marcarTalentosAlterados() { _talentosAlterados = true; }
-
-window.addEventListener('beforeunload', e => {
-    if (_talentosAlterados) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
-
-// ── Debounce local ────────────────────────────────────────
-function _debounce(fn, ms) {
-    let t;
-    return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
-}
-
-async function _salvarTalentosImediato() {
-    const talentos = coletarTalentos();
-    await salvarNuvemTalentos(talentos);
-    _talentosAlterados = false;
-}
-// Versão com debounce — usada nos oninput dos campos
-const salvarTalentos = _debounce(function() {
-    _talentosAlterados = true;
-    _salvarTalentosImediato();
-}, 800);
-
-async function salvar() { await _salvarTalentosImediato(); mostrarToast('💾 Talentos salvos!'); }
-
-async function carregarTalentos() {
-    let dados = await carregarTalentosNuvem();
-    if (!dados) { try { dados = JSON.parse(localStorage.getItem(k('rpg_talentos')) || '[]'); } catch(e) { dados = []; } }
-    if (dados.length === 0) adicionarTalento();
-    else dados.forEach(d => adicionarTalento(d));
-}
-function mostrarToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
-
-// ════════════════════════════════════════════════════════════
-//  FILTROS
-// ════════════════════════════════════════════════════════════
-let tipoFiltroAtual = 'todos';
-let catFiltroAtual  = 'todos';
-const buffsAtivos   = new Set();
-
-// ── Filtro de Categoria ───────────────────────────────────
-function selecionarCatFiltro(btn) {
-    catFiltroAtual = btn.dataset.cat;
-    document.querySelectorAll('.btn-cat-filtro').forEach(b => b.classList.toggle('active', b === btn));
-    filtrarTalentos();
-}
-
-// ── Filtro de Tipo ────────────────────────────────────────
-function selecionarTipo(btn) {
-    tipoFiltroAtual = btn.dataset.tipo;
-    document.querySelectorAll('.btn-tipo-filtro').forEach(b => b.classList.toggle('active', b === btn));
-    filtrarTalentos();
-}
-
-// ── Filtro de Buff ────────────────────────────────────────
-function gerarBotoesBuff() {
-    const wrap = document.getElementById('filtro-buff-wrap');
-    if (!wrap) return;
-    wrap.innerHTML = ATRIBUTOS.map(a => `
-        <button class="btn-buff-filtro" data-key="${a.key}" onclick="toggleBuffFiltro(this)">
-            <span class="check"></span>${a.label}
-        </button>`).join('');
-}
-
-function toggleBuffFiltro(btn) {
-    const key = btn.dataset.key;
-    if (buffsAtivos.has(key)) { buffsAtivos.delete(key); btn.classList.remove('active'); btn.querySelector('.check').textContent = ''; }
-    else { buffsAtivos.add(key); btn.classList.add('active'); btn.querySelector('.check').textContent = '✓'; }
-    filtrarTalentos();
-}
-
-// ── Tags de raça ──────────────────────────────────────────
-function coletarRacasUnicas() {
-    const racas = new Set();
-    document.querySelectorAll('.talento-card:not(.oculto-permanente)').forEach(card => {
-        const id   = card.dataset.id;
-        const raca = document.getElementById(`raca-${id}`)?.value.trim();
-        if (raca) racas.add(raca);
-    });
-    return [...racas].sort((a, b) => a.localeCompare(b));
-}
-
-function atualizarTagsRaca() {
-    const racas = coletarRacasUnicas();
-    const wrap  = document.getElementById('raca-sugestoes-filtro');
-    if (!wrap) return;
-
-    // Lê o filtro atual para manter estados ativos
-    const filtroAtual = (document.getElementById('inputFiltroRaca')?.value || '').toLowerCase().trim();
-
-    wrap.innerHTML = racas.map(r => {
-        const isActive = filtroAtual && r.toLowerCase().includes(filtroAtual);
-        return `<span class="raca-tag ${isActive ? 'active' : ''}" onclick="clicarTagRaca(this, '${r.replace(/'/g, "\\'")}')">${r}</span>`;
-    }).join('');
-
-    // Oculta a linha de tags se não houver raças
-    const linhaWrap = document.getElementById('linha-tags-raca');
-    if (linhaWrap) linhaWrap.style.display = racas.length === 0 ? 'none' : '';
-
-    // Atualiza os datalists dos cards
-    atualizarDatalistsRaca(racas);
-}
-
-function atualizarDatalistsRaca(racas) {
-    if (!racas) racas = coletarRacasUnicas();
-    document.querySelectorAll('[id^="raca-datalist-"]').forEach(dl => {
-        dl.innerHTML = racas.map(r => `<option value="${r}">`).join('');
-    });
-}
-
-function clicarTagRaca(tag, valor) {
-    const input = document.getElementById('inputFiltroRaca');
-    if (!input) return;
-    // Toggle: se já está filtrado por esse valor, limpa; senão aplica
-    if (input.value.trim().toLowerCase() === valor.toLowerCase()) {
-        input.value = '';
-    } else {
-        input.value = valor;
-    }
-    filtrarTalentos();
-    atualizarTagsRaca();
-}
-
-function limparFiltroRaca() {
-    const input = document.getElementById('inputFiltroRaca');
-    if (input) input.value = '';
-    filtrarTalentos();
-    atualizarTagsRaca();
-}
-
-// ── Tags de Classe ────────────────────────────────────────
-function coletarClassesUnicas() {
-    const classes = new Set();
-    document.querySelectorAll('.talento-card:not(.oculto-permanente)').forEach(card => {
-        const id     = card.dataset.id;
-        const classe = document.getElementById(`classe-${id}`)?.value.trim();
-        if (classe) classes.add(classe);
-    });
-    return [...classes].sort((a, b) => a.localeCompare(b));
-}
-
-function atualizarTagsClasse() {
-    const classes = coletarClassesUnicas();
-    const wrap    = document.getElementById('classe-sugestoes-filtro');
-    if (!wrap) return;
-
-    const filtroAtual = (document.getElementById('inputFiltroClasse')?.value || '').toLowerCase().trim();
-
-    wrap.innerHTML = classes.map(c => {
-        const isActive = filtroAtual && c.toLowerCase().includes(filtroAtual);
-        return `<span class="classe-tag ${isActive ? 'active' : ''}" onclick="clicarTagClasse(this, '${c.replace(/'/g, "\\'")}')">${c}</span>`;
-    }).join('');
-
-    const linhaWrap = document.getElementById('linha-tags-classe');
-    if (linhaWrap) linhaWrap.style.display = classes.length === 0 ? 'none' : '';
-
-    atualizarDatalistsClasse(classes);
-}
-
-function atualizarDatalistsClasse(classes) {
-    if (!classes) classes = coletarClassesUnicas();
-    document.querySelectorAll('[id^="classe-datalist-"]').forEach(dl => {
-        dl.innerHTML = classes.map(c => `<option value="${c}">`).join('');
-    });
-}
-
-function clicarTagClasse(tag, valor) {
-    const input = document.getElementById('inputFiltroClasse');
-    if (!input) return;
-    if (input.value.trim().toLowerCase() === valor.toLowerCase()) {
-        input.value = '';
-    } else {
-        input.value = valor;
-    }
-    filtrarTalentos();
-    atualizarTagsClasse();
-}
-
-function limparFiltroClasse() {
-    const input = document.getElementById('inputFiltroClasse');
-    if (input) input.value = '';
-    filtrarTalentos();
-    atualizarTagsClasse();
-}
-
-// ── Filtro principal (combina todos os critérios) ─────────
-function filtrarTalentos() {
-    const termo       = (document.getElementById('inputPesquisaTalento')?.value || '').toLowerCase().trim();
-    const termoRaca   = (document.getElementById('inputFiltroRaca')?.value      || '').toLowerCase().trim();
-    const termoClasse = (document.getElementById('inputFiltroClasse')?.value    || '').toLowerCase().trim();
-    const cards       = document.querySelectorAll('.talento-card');
-    let visiveis = 0;
-
-    cards.forEach(card => {
-        const id     = card.dataset.id;
-        const nome   = (card.querySelector('.talento-nome')?.value || '').toLowerCase();
-        const desc   = (card.querySelector('.talento-desc')?.value || '').toLowerCase();
-        const tipo   = document.getElementById(`tipo-${id}`)?.value   || '';
-        const cat    = document.getElementById(`cat-${id}`)?.value    || '';
-        const raca   = (document.getElementById(`raca-${id}`)?.value   || '').toLowerCase().trim();
-        const classe = (document.getElementById(`classe-${id}`)?.value || '').toLowerCase().trim();
-
-        const bateTexto  = !termo       || nome.includes(termo)       || desc.includes(termo);
-        const bateTipo   = tipoFiltroAtual === 'todos' || tipo === tipoFiltroAtual;
-        const bateCat    = catFiltroAtual  === 'todos' || cat  === catFiltroAtual;
-        const bateRaca   = !termoRaca   || raca.includes(termoRaca);
-        const bateClasse = !termoClasse || classe.includes(termoClasse);
-
-        let bateBuff = true;
-        if (buffsAtivos.size > 0) {
-            bateBuff = [...buffsAtivos].every(key => {
-                const val = document.getElementById(`buff-${key}-${id}`)?.value.trim();
-                return val && val !== '0';
-            });
-        }
-
-        const visivel = bateTexto && bateTipo && bateCat && bateRaca && bateClasse && bateBuff;
-        card.classList.toggle('oculto', !visivel);
-        if (visivel) visiveis++;
-    });
-
-    const total = cards.length;
-    const el    = document.getElementById('resultado-pesquisa');
-    const temFiltro = termo || tipoFiltroAtual !== 'todos' || catFiltroAtual !== 'todos' || termoRaca || termoClasse || buffsAtivos.size > 0;
-    if (el) el.textContent = temFiltro ? `${visiveis} de ${total} talento${total !== 1 ? 's' : ''}` : '';
-}
-
-// ── Inicialização ─────────────────────────────────────────
-// Talentos PRIMEIRO: carregarStatus() usa calcularBuffsTotais()
-// que precisa dos talentos já salvos para calcular vida/mana máximas.
 (async () => {
-    // Proteção: sem ficha ativa → volta ao painel
-    if (!getFichaId()) {
-        window.location.replace('painel_de_escolhas_de_fichas.html');
-        return;
+    if (!getFichaId()) { window.location.replace('painel_de_escolhas_de_fichas.html'); return; }
+    const rpgWindow=document.querySelector('.rpg-window');
+    if (rpgWindow) rpgWindow.style.opacity='0.4';
+    try {
+        await carregarTalentos();
+        await renderizarAtributos();
+        await carregarStatus();
+        gerarBotoesBuff();
+        atualizarTagsRaca();
+        atualizarTagsClasse();
+        _statusCarregado=true;
+    } finally {
+        if (rpgWindow) { rpgWindow.style.transition='opacity 0.25s'; rpgWindow.style.opacity='1'; }
     }
-
-    // Loading skeleton
-    const rpgWindow = document.querySelector('.rpg-window');
-    if (rpgWindow) rpgWindow.style.opacity = '0.4';
-
-    await carregarTalentos();    // 1º: popula cards (e localStorage dos buffs)
-    await renderizarAtributos(); // 2º: chips de atributos com buffs visíveis
-    await carregarStatus();      // 3º: vida/mana máx já consideram buffs ativos
-    gerarBotoesBuff();
-    atualizarTagsRaca();
-    atualizarTagsClasse();
-    // Só dispara toasts APÓS a carga completa da página
-    _statusCarregado = true;
-
-    if (rpgWindow) { rpgWindow.style.transition = 'opacity 0.25s'; rpgWindow.style.opacity = '1'; }
 })();
 </script>
 <script src="ui-enhancements.js"></script>

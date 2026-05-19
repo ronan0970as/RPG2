@@ -2,39 +2,29 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- [MOB-5] Removido maximum-scale=1.0: impede zoom de acessibilidade e causa
-         bugs com teclado virtual em alguns Androids. user-scalable=no substitui. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ficha RPG - Status</title>
-    <!-- [PERF] preconnect antes do CSS evita bloqueio de renderização -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Gótica Sombria ── */
+        /* ── Fundo temático ── */
         body {
             background-image:
-                linear-gradient(to bottom,
-                    rgba(4,3,2,0.45) 0%,
-                    rgba(6,4,2,0.38) 50%,
-                    rgba(4,3,2,0.50) 100%
-                ),
+                linear-gradient(to bottom,rgba(4,3,2,0.45) 0%,rgba(6,4,2,0.38) 50%,rgba(4,3,2,0.50) 100%),
                 url('torre_status.png');
             background-size: cover;
             background-position: center center;
-            background-attachment: fixed;
+            background-attachment: scroll;
             background-repeat: no-repeat;
         }
-        /* [MOB-4] iOS Safari: background-attachment:fixed causa flickering */
-        @supports (-webkit-overflow-scrolling: touch) {
-            body { background-attachment: scroll; }
+        @media (hover: hover) and (pointer: fine) {
+            body { background-attachment: fixed; }
         }
 
-        /* ── Ajustes específicos da página de status ── */
-
-        /* Info básica: cada campo ocupa linha inteira */
+        /* Info básica */
         .section > div {
             display: flex;
             align-items: center;
@@ -42,84 +32,63 @@
             gap: 6px;
             margin-bottom: 8px;
         }
-        .section > div label {
-            flex-shrink: 0;
-        }
-        .section > div input {
-            flex: 1;
-            min-width: 100px;
-        }
+        .section > div label { flex-shrink: 0; }
+        .section > div input { flex: 1; min-width: 100px; }
 
-        /* Barra de status: layout flexível — complementa style.css */
+        /* Barra de status */
         .status-bar {
             flex-wrap: wrap;
             gap: 6px;
             margin-bottom: 12px;
             padding: 8px 10px 8px 14px;
         }
-        .status-bar label {
-            min-width: 80px;
-            width: auto;
-        }
-        .status-bar .highlight {
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
+        .status-bar label { min-width: 80px; width: auto; }
+        .status-bar .highlight { flex-shrink: 0; white-space: nowrap; }
         .status-bar .mod-input { flex: 1; min-width: 50px; }
         .status-bar .calc-btn  { flex-shrink: 0; }
 
         /* Seletor de gênero */
         .genero-selector {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            flex: 1;
-            min-width: 0;
+            display: flex; gap: 6px; flex-wrap: wrap;
+            flex: 1; min-width: 0;
         }
         .genero-btn {
             background: rgba(14,11,7,0.80);
-            border: 1px solid #333;
-            color: #666;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
+            border: 1px solid #333; color: #666;
+            padding: 8px 12px; border-radius: 5px;
+            cursor: pointer; font-size: 13px; font-weight: bold;
             font-family: inherit;
             transition: background 0.2s, border-color 0.2s, color 0.2s;
-            min-height: 40px;
-            white-space: nowrap;
-            flex: 1;
-            min-width: 80px;
+            min-height: 44px; white-space: nowrap;
+            flex: 1; min-width: 80px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .genero-btn:hover {
-            border-color: var(--gold);
-            color: var(--gold);
-            background: rgba(200,170,110,0.07);
+        @media (hover: hover) and (pointer: fine) {
+            .genero-btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,170,110,0.07); }
         }
+        .genero-btn:active { border-color: var(--gold); color: var(--gold); }
         .genero-btn.ativo {
             background: rgba(200,170,110,0.15);
-            border-color: var(--gold);
-            color: var(--gold);
+            border-color: var(--gold); color: var(--gold);
             box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
         }
 
-        /* Linha de atributo — complementa style.css */
+        /* Linha de atributo */
         .attr-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 8px; flex-wrap: wrap;
         }
-        .attr-row label { min-width: 90px; width: auto; flex-shrink: 0; }
+        .attr-row label { min-width: 110px; width: auto; flex-shrink: 0; }
         .attr-row > span { color: var(--gold-dark); flex-shrink: 0; }
         .attr-row input[type="number"] { width: 56px; flex-shrink: 0; }
         .attr-row .mod-input { flex: 1; min-width: 50px; }
         .attr-row .total-stat { flex-shrink: 0; font-size: 14px; }
 
-        @media (max-width: 400px) {
+        /* Mobile: label em linha inteira nos atributos */
+        @media (max-width: 480px) {
             .attr-row label { width: 100%; margin-bottom: 2px; }
+            .status-bar label { width: 100%; }
+            .genero-btn { font-size: 11px; padding: 8px 6px; min-width: 70px; }
         }
     </style>
 </head>
@@ -135,7 +104,7 @@
 <div class="rpg-window">
     <div class="grid-container">
 
-        <!-- Card de foto do personagem -->
+        <!-- Card de foto -->
         <div class="char-card-col">
             <div class="char-foto-card">
                 <div class="char-foto-wrap" id="char-foto-wrap">
@@ -162,9 +131,9 @@
                 <div style="align-items:flex-start;">
                     <label style="padding-top:4px;">Gênero:</label>
                     <div class="genero-selector">
-                        <button type="button" class="genero-btn" data-genero="Masculino" onclick="selecionarGenero(this)" title="Masculino">♂ Masculino</button>
-                        <button type="button" class="genero-btn" data-genero="Feminino"  onclick="selecionarGenero(this)" title="Feminino">♀ Feminino</button>
-                        <button type="button" class="genero-btn" data-genero="Outro"     onclick="selecionarGenero(this)" title="Outro">⚧ Outro</button>
+                        <button type="button" class="genero-btn" data-genero="Masculino" onclick="selecionarGenero(this)">♂ Masculino</button>
+                        <button type="button" class="genero-btn" data-genero="Feminino"  onclick="selecionarGenero(this)">♀ Feminino</button>
+                        <button type="button" class="genero-btn" data-genero="Outro"     onclick="selecionarGenero(this)">⚧ Outro</button>
                     </div>
                 </div>
                 <div><label>Classe:</label> <input type="text" id="classe" placeholder="Ex: Guerreiro, Mago..." autocomplete="off" oninput="atualizarNomeCard()"></div>
@@ -252,9 +221,7 @@
 
             <h2>Efeitos de Habilidades Ativos</h2>
             <div class="section">
-                <textarea id="habilidades-ativas"
-                    placeholder="Ex: Força Extra (+1 Força a cada 50 Mana)."
-                    style="height:60px;"></textarea>
+                <textarea id="habilidades-ativas" placeholder="Ex: Força Extra (+1 Força a cada 50 Mana)." style="height:60px;"></textarea>
             </div>
 
             <button class="save-btn" onclick="salvarFicha()">💾 Salvar Ficha</button>
@@ -268,25 +235,19 @@
 <script src="buffs.js"></script>
 <script src="java.js"></script>
 <script>
-    // ── Flag de alterações não salvas ──────────────────────
     let _fichaAlterada = false;
     function marcarAlterada() { _fichaAlterada = true; }
 
     window.addEventListener('beforeunload', e => {
-        if (_fichaAlterada) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
+        if (_fichaAlterada) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    // Marca como salva após salvarFicha()
     const _salvarFichaOriginal = salvarFicha;
     salvarFicha = async function() {
         await _salvarFichaOriginal();
         _fichaAlterada = false;
     };
 
-    // Monitora inputs para marcar alteração
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input, textarea, select').forEach(el => {
             el.addEventListener('input', marcarAlterada);

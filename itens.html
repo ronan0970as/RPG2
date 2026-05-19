@@ -10,72 +10,87 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático: Torre Medieval Clássica ── */
+        /* ── Fundo temático ── */
         body {
             background-image:
-                linear-gradient(to bottom,
-                    rgba(4,4,2,0.40) 0%,
-                    rgba(5,5,3,0.32) 50%,
-                    rgba(4,4,2,0.48) 100%
-                ),
+                linear-gradient(to bottom,rgba(4,4,2,0.40) 0%,rgba(5,5,3,0.32) 50%,rgba(4,4,2,0.48) 100%),
                 url('torre_itens.png');
             background-size: cover;
             background-position: center center;
-            background-attachment: fixed;
+            background-attachment: scroll;
             background-repeat: no-repeat;
         }
-        /* [MOB-4] iOS Safari: background-attachment:fixed causa flickering */
-        @supports (-webkit-overflow-scrolling: touch) {
-            body { background-attachment: scroll; }
+        @media (hover: hover) and (pointer: fine) {
+            body { background-attachment: fixed; }
         }
 
-        .crop-controls input[type="range"] { height:36px; accent-color:#c8aa6e; cursor:pointer; }
-        .file-input { display:block; width:100%; padding:10px 0; font-size:15px; }
+        /* Slider de crop */
+        .crop-controls input[type="range"] { height: 36px; accent-color: #c8aa6e; cursor: pointer; }
+        /* file-input sem min-height global */
+        .file-input { display: block; width: 100%; padding: 10px 0; font-size: 15px; min-height: 0; }
 
         /* Toolbar busca + contador */
-        .inv-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
-        .inv-busca-wrap { flex:1; min-width:160px; position:relative; }
-        .inv-busca-wrap input { padding-left:36px; font-size:14px; }
+        .inv-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+        .inv-busca-wrap { flex: 1; min-width: 160px; position: relative; }
+        .inv-busca-wrap input {
+            padding-left: 36px;
+            /* CORREÇÃO: ≥ 16px evita zoom automático iOS */
+            font-size: 16px;
+        }
         .inv-busca-icone {
-            position:absolute; left:10px; top:50%; transform:translateY(-50%);
-            font-size:14px; pointer-events:none; z-index:1; line-height:1;
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            font-size: 14px; pointer-events: none; z-index: 1; line-height: 1;
             color: var(--ink-dim, #9a8e6e);
         }
-        .inv-count { font-size:12px; color:#555; white-space:nowrap; align-self:center; }
+        .inv-count { font-size: 12px; color: #555; white-space: nowrap; align-self: center; }
 
         /* Filtros de categoria */
-        .inv-cats { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:14px; }
+        .inv-cats { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
         .inv-cat-btn {
-            background:#111; border:1px solid #2a2a2a; color:#666;
-            padding:6px 11px; border-radius:20px; cursor:pointer;
-            font-size:12px; font-weight:bold; font-family:inherit;
-            transition:0.2s; white-space:nowrap;
+            background: #111; border: 1px solid #2a2a2a; color: #666;
+            padding: 8px 11px; border-radius: 20px; cursor: pointer;
+            font-size: 12px; font-weight: bold; font-family: inherit;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            white-space: nowrap;
+            /* touch target adequado */
+            min-height: 38px; display: inline-flex; align-items: center;
+            -webkit-tap-highlight-color: transparent;
         }
-        .inv-cat-btn:hover { border-color:#c8aa6e; color:#c8aa6e; }
-        .inv-cat-btn.ativo { background:rgba(200,170,110,.15); border-color:#c8aa6e; color:#c8aa6e; }
-        .inv-cat-btn.ativo[data-cat="arma"]      { background:rgba(231,76,60,.15); border-color:#e74c3c; color:#e74c3c; }
-        .inv-cat-btn.ativo[data-cat="armadura"]  { background:rgba(52,152,219,.15); border-color:#3498db; color:#3498db; }
-        .inv-cat-btn.ativo[data-cat="consumivel"]{ background:rgba(46,204,113,.15); border-color:#2ecc71; color:#2ecc71; }
-        .inv-cat-btn.ativo[data-cat="anotacao"]  { background:rgba(243,156,18,.15); border-color:#f39c12; color:#f39c12; }
-        .inv-cat-btn.ativo[data-cat="tesouro"]   { background:rgba(241,196,15,.15); border-color:#f1c40f; color:#f1c40f; }
-        .inv-cat-btn.ativo[data-cat="magico"]    { background:rgba(155,89,182,.15); border-color:#9b59b6; color:#9b59b6; }
-        .inv-cat-btn.ativo[data-cat="montaria"]  { background:rgba(26,188,156,.15); border-color:#1abc9c; color:#1abc9c; }
+        @media (hover: hover) and (pointer: fine) {
+            .inv-cat-btn:hover { border-color: #c8aa6e; color: #c8aa6e; }
+        }
+        .inv-cat-btn:active { border-color: #c8aa6e; color: #c8aa6e; }
+        .inv-cat-btn.ativo { background: rgba(200,170,110,.15); border-color: #c8aa6e; color: #c8aa6e; }
+        .inv-cat-btn.ativo[data-cat="arma"]      { background: rgba(231,76,60,.15);  border-color: #e74c3c; color: #e74c3c; }
+        .inv-cat-btn.ativo[data-cat="armadura"]  { background: rgba(52,152,219,.15); border-color: #3498db; color: #3498db; }
+        .inv-cat-btn.ativo[data-cat="consumivel"]{ background: rgba(46,204,113,.15); border-color: #2ecc71; color: #2ecc71; }
+        .inv-cat-btn.ativo[data-cat="anotacao"]  { background: rgba(243,156,18,.15); border-color: #f39c12; color: #f39c12; }
+        .inv-cat-btn.ativo[data-cat="tesouro"]   { background: rgba(241,196,15,.15); border-color: #f1c40f; color: #f1c40f; }
+        .inv-cat-btn.ativo[data-cat="magico"]    { background: rgba(155,89,182,.15); border-color: #9b59b6; color: #9b59b6; }
+        .inv-cat-btn.ativo[data-cat="montaria"]  { background: rgba(26,188,156,.15); border-color: #1abc9c; color: #1abc9c; }
 
         /* Campos extras categoria + quantidade */
-        .campos-extras { display:flex; gap:10px; flex-wrap:wrap; }
-        .campos-extras > div { flex:1; min-width:120px; }
-        .campos-extras label { width:auto; display:block; margin-bottom:4px; font-size:12px; color:#888; }
-        .campos-extras select, .campos-extras input[type="number"] { font-size:14px; }
+        .campos-extras { display: flex; gap: 10px; flex-wrap: wrap; }
+        .campos-extras > div { flex: 1; min-width: 120px; }
+        .campos-extras label { width: auto; display: block; margin-bottom: 4px; font-size: 12px; color: #888; }
+        /* CORREÇÃO: ≥ 16px nos selects/inputs de categoria para evitar zoom iOS */
+        .campos-extras select { font-size: 16px; }
+        .campos-extras input[type="number"] { font-size: 16px; }
 
         /* Formulário colapsável */
         .form-toggle-btn {
-            background:rgba(200,170,110,.08); border:1px solid #c8aa6e; color:#c8aa6e;
-            padding:10px 18px; border-radius:5px; cursor:pointer; font-size:14px;
-            font-weight:bold; font-family:inherit; width:100%; text-align:left;
-            display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;
-            transition: background 0.2s;
+            background: rgba(200,170,110,.08); border: 1px solid #c8aa6e; color: #c8aa6e;
+            padding: 12px 18px; border-radius: 5px; cursor: pointer; font-size: 14px;
+            font-weight: bold; font-family: inherit; width: 100%; text-align: left;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; transition: background 0.2s;
+            min-height: 48px;
+            -webkit-tap-highlight-color: transparent;
         }
-        .form-toggle-btn:hover { background:rgba(200,170,110,.15); }
+        @media (hover: hover) and (pointer: fine) {
+            .form-toggle-btn:hover { background: rgba(200,170,110,.15); }
+        }
+        .form-toggle-btn:active { background: rgba(200,170,110,.15); }
         .form-collapse {
             overflow: hidden;
             transition: max-height 0.35s ease, opacity 0.25s ease;
@@ -84,14 +99,25 @@
         .form-collapse.aberto  { max-height: 1200px; opacity: 1; }
 
         /* Skeleton loader */
-        .skeleton-card { display:flex; gap:14px; padding:14px; background:rgba(14,10,5,0.78); border:1px solid rgba(160,120,40,0.3); border-radius:4px; margin-bottom:12px; }
-        .skeleton-line { background:rgba(255,255,255,0.07); border-radius:4px; animation:skel 1.6s ease-in-out infinite; }
-        .skeleton-img  { width:110px; height:110px; background:rgba(255,255,255,0.07); border-radius:4px; flex-shrink:0; animation:skel 1.6s ease-in-out infinite; }
-        .skeleton-body { flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center; }
+        .skeleton-card {
+            display: flex; gap: 14px; padding: 14px;
+            background: rgba(14,10,5,0.78); border: 1px solid rgba(160,120,40,0.3);
+            border-radius: 4px; margin-bottom: 12px;
+        }
+        .skeleton-line { background: rgba(255,255,255,0.07); border-radius: 4px; animation: skel 1.6s ease-in-out infinite; }
+        .skeleton-img  { width: 110px; height: 110px; background: rgba(255,255,255,0.07); border-radius: 4px; flex-shrink: 0; animation: skel 1.6s ease-in-out infinite; }
+        .skeleton-body { flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
         @keyframes skel { 0%,100%{opacity:0.6} 50%{opacity:0.25} }
 
-        @media (max-width:750px) {
-            .inv-cat-btn { padding:5px 8px; font-size:11px; }
+        /* ── Mobile ── */
+        @media (max-width: 750px) {
+            .inv-cat-btn { padding: 6px 8px; font-size: 11px; }
+            /* Skeleton image menor em mobile */
+            .skeleton-img { width: 70px; height: 70px; }
+        }
+        @media (max-width: 400px) {
+            .inv-cat-btn { padding: 5px 7px; font-size: 10px; }
+            .campos-extras { flex-direction: column; }
         }
     </style>
 </head>
@@ -123,13 +149,13 @@
 
                 <textarea id="item-descricao" rows="4"
                     placeholder="Descrição (máximo recomendado 6 linhas)..."
-                    oninput="atualizarPreview()" style="font-size:15px;"></textarea>
+                    oninput="atualizarPreview()" style="font-size:16px;"></textarea>
 
                 <!-- Categoria + Quantidade -->
                 <div class="campos-extras">
                     <div>
                         <label>📂 Categoria:</label>
-                        <select id="item-categoria" style="-webkit-appearance:auto;appearance:auto;">
+                        <select id="item-categoria">
                             <option value="geral">📦 Geral</option>
                             <option value="arma">⚔️ Arma</option>
                             <option value="armadura">🛡️ Armadura</option>
@@ -244,7 +270,6 @@
 <script src="buffs.js"></script>
 <script src="java.js"></script>
 <script>
-    // ── Toggle do formulário ────────────────────────────────
     function toggleFormItem() {
         const wrap  = document.getElementById('form-item-wrap');
         const icon  = document.getElementById('toggle-icon');
@@ -253,7 +278,6 @@
         icon.textContent = aberto ? '▼' : '▶';
     }
 
-    // ── Filtro por categoria ────────────────────────────────
     function filtrarCategoria(btn) {
         document.querySelectorAll('.inv-cat-btn').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
@@ -261,7 +285,6 @@
         _atualizarCount();
     }
 
-    // ── Contagem visível ────────────────────────────────────
     function _atualizarCount() {
         const total   = (_inventarioCache || []).length;
         const visivel = document.querySelectorAll('#lista-itens .item-card').length;
@@ -272,14 +295,12 @@
             : `${visivel} de ${total}`;
     }
 
-    // Avisa antes de sair se formulário estiver preenchido
     window.addEventListener('beforeunload', e => {
         const nome = document.getElementById('item-nome')?.value.trim();
         const desc = document.getElementById('item-descricao')?.value.trim();
         if (nome || desc) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    // Atualiza contagem após carregar inventário
     const _origRenderizarInventario = renderizarInventario;
     renderizarInventario = async function() {
         await _origRenderizarInventario();
