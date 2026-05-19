@@ -10,25 +10,30 @@
     <link rel="stylesheet" href="painel_de_escolhas_de_fichas.css">
     <link rel="stylesheet" href="ui-enhancements.css">
     <style>
-        /* ── Fundo temático ── */
+        /* ── Fundo temático: Torre Sombria de Cristais ── */
         body {
             background-image:
-                linear-gradient(to bottom,rgba(4,2,8,0.42) 0%,rgba(5,3,10,0.34) 50%,rgba(3,2,6,0.50) 100%),
+                linear-gradient(to bottom,
+                    rgba(4,2,8,0.42) 0%,
+                    rgba(5,3,10,0.34) 50%,
+                    rgba(3,2,6,0.50) 100%
+                ),
                 url('torre_painel.png');
             background-size: cover;
             background-position: center center;
-            /* scroll por padrão: sem flickering iOS */
-            background-attachment: scroll;
+            background-attachment: fixed;
             background-repeat: no-repeat;
         }
-        /* fixed apenas em desktop com mouse */
-        @media (hover: hover) and (pointer: fine) {
-            body { background-attachment: fixed; }
+        /* [MOB-4] iOS Safari: background-attachment:fixed causa flickering */
+        @supports (-webkit-overflow-scrolling: touch) {
+            body { background-attachment: scroll; }
         }
 
         /* Campo "Outro" — animação de entrada */
         #outro-classe-wrap {
-            display: none; flex-direction: column; gap: 4px;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
             animation: slideDown 0.2s ease;
         }
         #outro-classe-wrap.visivel { display: flex; }
@@ -37,88 +42,92 @@
             to   { opacity: 1; transform: translateY(0); }
         }
         #outro-classe-wrap label {
-            font-size: 11px; color: #c8aa6e;
-            text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;
+            font-size: 11px;
+            color: #c8aa6e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
         }
         #outro-classe-input {
-            background: #111; border: 1px solid #c8aa6e; color: #fff;
-            padding: 10px 12px; border-radius: 6px;
-            /* ≥ 16px evita zoom iOS */
+            background: #111;
+            border: 1px solid #c8aa6e;
+            color: #fff;
+            padding: 10px 12px;
+            border-radius: 6px;
             font-size: 16px;
-            font-family: inherit; width: 100%; outline: none;
+            font-family: inherit;
+            width: 100%;
+            outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
             -webkit-appearance: none;
         }
-        #outro-classe-input:focus { border-color: #e8c97e; box-shadow: 0 0 0 2px rgba(200,170,110,0.15); }
+        #outro-classe-input:focus {
+            border-color: #e8c97e;
+            box-shadow: 0 0 0 2px rgba(200,170,110,0.15);
+        }
         #outro-classe-input::placeholder { color: #555; }
 
         /* Seletor de gênero no modal */
         .genero-btn-modal {
-            flex: 1; min-width: 90px;
-            background: #111; border: 1px solid #333; color: #666;
-            padding: 10px 8px; border-radius: 6px; cursor: pointer;
-            font-size: 13px; font-weight: bold; font-family: inherit;
+            flex: 1;
+            min-width: 90px;
+            background: #111;
+            border: 1px solid #333;
+            color: #666;
+            padding: 10px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            font-family: inherit;
             transition: background 0.2s, border-color 0.2s, color 0.2s;
-            /* touch target */
-            min-height: 44px; white-space: nowrap; text-align: center;
-            -webkit-tap-highlight-color: transparent;
+            min-height: 44px;
+            white-space: nowrap;
+            text-align: center;
         }
-        @media (hover: hover) and (pointer: fine) {
-            .genero-btn-modal:hover { border-color: #c8aa6e; color: #c8aa6e; background: rgba(200,170,110,0.07); }
+        .genero-btn-modal:hover {
+            border-color: #c8aa6e;
+            color: #c8aa6e;
+            background: rgba(200,170,110,0.07);
         }
-        .genero-btn-modal:active { border-color: #c8aa6e; color: #c8aa6e; }
         .genero-btn-modal.ativo {
             background: rgba(200,170,110,0.15);
-            border-color: #c8aa6e; color: #c8aa6e;
+            border-color: #c8aa6e;
+            color: #c8aa6e;
             box-shadow: 0 0 0 1px rgba(200,170,110,0.3);
         }
 
-        .card-genero { font-size: 11px; opacity: 0.75; margin-left: 2px; }
+        .card-genero {
+            font-size: 11px;
+            opacity: 0.75;
+            margin-left: 2px;
+        }
 
-        /* ── MODAL: logout ── */
-        #modal-logout {
-            position: fixed; inset: 0; z-index: 9000;
-            background: rgba(0,0,0,0.72);
-            display: none; align-items: center; justify-content: center;
-            padding: 16px; box-sizing: border-box;
-            backdrop-filter: blur(4px);
-        }
-        #modal-logout.visivel { display: flex; }
-        .modal-logout-box {
-            background: rgba(16,12,7,0.97);
-            border: 1px solid rgba(200,170,110,0.45);
-            border-radius: 12px;
-            padding: 28px 24px;
-            max-width: 360px; width: 100%;
-            display: flex; flex-direction: column; gap: 14px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-        }
-        .modal-logout-box h3 {
-            font-family: var(--font-heading, 'Cinzel', serif);
-            color: #f5d06e; font-size: 15px;
-            text-transform: uppercase; letter-spacing: 1.5px;
-            margin: 0;
-        }
-        .modal-logout-box p { color: #9a8e6e; font-size: 14px; margin: 0; line-height: 1.5; }
-        .modal-logout-btns { display: flex; gap: 10px; }
-        .modal-logout-btns .btn-acao { flex: 1; justify-content: center; min-height: 48px; }
+        /* templates: botões diretos na barra */
     </style>
 </head>
 <body>
 
-<!-- Overlay da Sidebar -->
+<!-- ════════════════════════════════════════════════════════
+     OVERLAY DA SIDEBAR
+════════════════════════════════════════════════════════ -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="fecharSidebar()"></div>
 
-<!-- Sidebar lateral -->
+<!-- ════════════════════════════════════════════════════════
+     SIDEBAR LATERAL
+════════════════════════════════════════════════════════ -->
 <aside class="sidebar" id="sidebar">
+
+    <!-- Cabeçalho da sidebar -->
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <span class="sidebar-logo-icone">⚔️</span>
             <span class="sidebar-logo-titulo">Ficha RPG</span>
         </div>
-        <button class="sidebar-fechar" onclick="fecharSidebar()" title="Fechar menu" aria-label="Fechar menu">✕</button>
+        <button class="sidebar-fechar" onclick="fecharSidebar()" title="Fechar menu">✕</button>
     </div>
 
+    <!-- Usuário logado -->
     <div class="sidebar-usuario" id="sidebar-usuario-area">
         <div class="sidebar-avatar">👤</div>
         <div class="sidebar-user-info">
@@ -127,29 +136,38 @@
         </div>
     </div>
 
+    <!-- Navegação -->
     <nav class="sidebar-nav">
         <div class="sidebar-secao-titulo">Navegação</div>
+
         <a class="sidebar-link ativo" href="painel_de_escolhas_de_fichas.html">
-            <span class="sidebar-link-icone">🗂️</span>Minhas Fichas
+            <span class="sidebar-link-icone">🗂️</span>
+            Minhas Fichas
         </a>
+
         <div class="sidebar-separador"></div>
         <div class="sidebar-secao-titulo">Ficha Atual</div>
+
         <a class="sidebar-link" href="index.html">
-            <span class="sidebar-link-icone">📊</span>Status do Personagem
+            <span class="sidebar-link-icone">📊</span>
+            Status do Personagem
         </a>
         <a class="sidebar-link" href="talentos.html">
-            <span class="sidebar-link-icone">✨</span>Talentos
+            <span class="sidebar-link-icone">✨</span>
+            Talentos
         </a>
         <a class="sidebar-link" href="itens.html">
-            <span class="sidebar-link-icone">🎒</span>Inventário
+            <span class="sidebar-link-icone">🎒</span>
+            Inventário
         </a>
     </nav>
 
+    <!-- Rodapé com botão de logout -->
     <div class="sidebar-footer">
         <button class="sidebar-btn-logout" onclick="fecharSidebar(); abrirModalLogout();">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" stroke-width="2.2"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
@@ -159,14 +177,24 @@
     </div>
 </aside>
 
-<!-- Topo -->
+<!-- ════════════════════════════════════════════════════════
+     TOPO — BARRA PRINCIPAL
+════════════════════════════════════════════════════════ -->
 <header class="painel-topo">
-    <button class="btn-menu-hamburguer" id="btnHamburguer"
-            onclick="abrirSidebar()" title="Menu" aria-label="Abrir menu">
-        <span></span><span></span><span></span>
+
+    <!-- Hambúrguer -->
+    <button class="btn-menu-hamburguer" id="btnHamburguer" onclick="abrirSidebar()" title="Menu" aria-label="Abrir menu">
+        <span></span>
+        <span></span>
+        <span></span>
     </button>
+
+    <!-- Título -->
     <span class="painel-topo-titulo">⚔️ Fichas RPG</span>
+
     <div class="painel-topo-spacer"></div>
+
+    <!-- Ações à direita -->
     <div class="painel-acoes">
         <button class="btn-acao" onclick="abrirModalCriar()">
             ＋ <span class="btn-acao-label">Criar Ficha</span>
@@ -174,21 +202,24 @@
         <button class="btn-acao secundario" onclick="importarFicha()" title="Importar ficha (JSON, CSV ou TXT)">
             ⬆ <span class="btn-acao-label">Importar</span>
         </button>
-        <button class="btn-acao secundario" onclick="baixarTemplateTXT()" title="Baixar template .TXT">
+        <button class="btn-acao secundario" onclick="baixarTemplateTXT()" title="Baixar template .TXT para preencher e importar">
             📄 <span class="btn-acao-label">Template .TXT</span>
         </button>
-        <button class="btn-acao secundario" onclick="baixarTemplateCSV()" title="Baixar template .CSV">
+        <button class="btn-acao secundario" onclick="baixarTemplateCSV()" title="Baixar template .CSV para preencher e importar">
             📊 <span class="btn-acao-label">Template .CSV</span>
         </button>
-        <button class="btn-usuario-topo" id="btnUsuarioTopo"
-                onclick="abrirSidebar()" title="Menu do usuário">
+
+        <!-- Botão de usuário (visível em desktop, clica para abrir sidebar) -->
+        <button class="btn-usuario-topo" id="btnUsuarioTopo" onclick="abrirSidebar()" title="Menu do usuário">
             <div class="avatar-mini">👤</div>
             <span id="topo-user-nome">...</span>
         </button>
     </div>
 </header>
 
-<!-- Busca e filtros -->
+<!-- ════════════════════════════════════════════════════════
+     BUSCA E FILTROS (linha separada)
+════════════════════════════════════════════════════════ -->
 <div class="painel-filtros-busca">
     <input type="text" id="inputBusca" placeholder="🔍  Pesquisar ficha..." oninput="filtrar()">
     <div class="filtros">
@@ -200,7 +231,9 @@
     </div>
 </div>
 
-<!-- Grid de personagens -->
+<!-- ════════════════════════════════════════════════════════
+     GRID DE PERSONAGENS
+════════════════════════════════════════════════════════ -->
 <main class="grid-personagens" id="gridPersonagens">
     <div class="estado-vazio">
         <div class="icone-vazio">⏳</div>
@@ -208,7 +241,9 @@
     </div>
 </main>
 
-<!-- Modal — Criar nova ficha -->
+<!-- ════════════════════════════════════════════════════════
+     MODAL — CRIAR NOVA FICHA
+════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modalCriar" onclick="fecharModalSeFora(event)">
     <div class="modal-box">
         <h2>Nova Ficha</h2>
@@ -232,6 +267,7 @@
             <option value="__outro__">✏️ Outro...</option>
         </select>
 
+        <!-- Campo que aparece ao escolher "Outro" -->
         <div id="outro-classe-wrap">
             <label>Digite o nome da classe</label>
             <input type="text" id="outro-classe-input" placeholder="Ex: Paladino, Druida, Necromante...">
@@ -250,32 +286,21 @@
     </div>
 </div>
 
-<!-- Modal de logout -->
-<div id="modal-logout">
-    <div class="modal-logout-box">
-        <h3>Sair da conta</h3>
-        <p>Tem certeza que deseja encerrar a sessão?</p>
-        <div class="modal-logout-btns">
-            <button class="btn-acao danger" onclick="confirmarLogout()" style="background:rgba(192,57,43,0.2);border-color:#c0392b;color:#e74c3c;">Sair</button>
-            <button class="btn-acao secundario" onclick="fecharModalLogout()">Cancelar</button>
-        </div>
-    </div>
-</div>
-
 <!-- Menu de contexto -->
-<div class="ctx-menu" id="ctxMenu" style="position:fixed;">
+<div class="ctx-menu" id="ctxMenu">
     <button onclick="abrirFichaAtual()">📂 Abrir Ficha</button>
     <button onclick="editarFichaAtual()">✏️ Renomear</button>
     <button onclick="exportarFichaAtual()">📦 Exportar JSON</button>
     <button class="danger" onclick="excluirFichaAtual()">🗑 Excluir</button>
 </div>
 
-<!-- Scripts -->
+<!-- ════════════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
-
 <script>
-    /* ── Sidebar ── */
+    // ── Sidebar ───────────────────────────────────────────────
     function abrirSidebar() {
         document.getElementById('sidebar').classList.add('aberta');
         document.getElementById('sidebarOverlay').classList.add('visivel');
@@ -286,27 +311,36 @@
         document.getElementById('sidebarOverlay').classList.remove('visivel');
         document.body.style.overflow = '';
     }
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { fecharSidebar(); fecharModalLogout(); }
+    // Fecha com ESC
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') fecharSidebar(); });
+
+    // ── Fix: ctx-menu overflow — reposiciona se sair da tela ──
+    const _abrirCtxMenuOriginal = window.abrirCtxMenu;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Sobrescreve após painel_de_escolhas_de_fichas.js carregar
+        setTimeout(() => {
+            const origAbrirCtxMenu = window.abrirCtxMenu;
+            window.abrirCtxMenu = function(event, id) {
+                origAbrirCtxMenu(event, id);
+                // Corrige overflow depois do display
+                requestAnimationFrame(() => {
+                    const menu = document.getElementById('ctxMenu');
+                    if (!menu) return;
+                    const rect = menu.getBoundingClientRect();
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    let left = event.clientX;
+                    let top  = event.clientY;
+                    if (left + rect.width  > vw - 8) left = vw - rect.width - 8;
+                    if (top  + rect.height > vh - 8) top  = vh - rect.height - 8;
+                    menu.style.left = `${Math.max(8, left)}px`;
+                    menu.style.top  = `${Math.max(8, top)}px`;
+                });
+            };
+        }, 100);
     });
 
-    /* ── Modal de logout ── */
-    function abrirModalLogout() {
-        document.getElementById('modal-logout').classList.add('visivel');
-    }
-    function fecharModalLogout() {
-        document.getElementById('modal-logout').classList.remove('visivel');
-    }
-    async function confirmarLogout() {
-        fecharModalLogout();
-        try {
-            if (window._supaClient) await window._supaClient.auth.signOut();
-        } catch(e) {}
-        localStorage.removeItem('rpg_sessao_cache');
-        window.location.href = 'auth.html';
-    }
-
-    /* ── Preenche nome do usuário na sidebar e no topo ── */
+    // ── Preenche nome do usuário na sidebar e no topo ─────────
     function preencherUsuarioUI() {
         const sessao = typeof getSessao === 'function' ? getSessao() : null;
         if (!sessao) return;
@@ -317,27 +351,29 @@
         if (elTopo)    elTopo.textContent    = primeiroNome;
     }
 
-    /* Não injeta o widget flutuante nesta página (usa a sidebar) */
-    window.injetarUsuarioNav = function() { preencherUsuarioUI(); };
+    // ── Garante que o widget fixo do auth.js NÃO seja injetado ─
+    // (Substituímos pela sidebar — sobrescreve a função do auth.js)
+    window.injetarUsuarioNav = function() {
+        preencherUsuarioUI();
+        // Não injeta o widget flutuante nesta página
+    };
 
-    /* ── [BUG-PANEL-1] Inicialização correta: aguarda auth resolver ── */
+    // ── Inicialização ─────────────────────────────────────────
     exigirLogin().then(() => {
         preencherUsuarioUI();
-        if (typeof _iniciarPainel === 'function') _iniciarPainel();
     });
 </script>
 
 <script src="painel_de_escolhas_de_fichas.js"></script>
 
 <script>
-    /* ── Gênero no modal ── */
+    // ── Gênero no modal ───────────────────────────────────────
     function selecionarGeneroModal(btn) {
-        document.querySelectorAll('#modal-genero-selector .genero-btn-modal')
-            .forEach(b => b.classList.remove('ativo'));
+        document.querySelectorAll('#modal-genero-selector .genero-btn-modal').forEach(b => b.classList.remove('ativo'));
         btn.classList.add('ativo');
     }
 
-    /* ── Campo "Outro" na classe ── */
+    // ── Campo "Outro" na classe ───────────────────────────────
     function toggleOutroClasse() {
         const sel   = document.getElementById('nova-classe');
         const wrap  = document.getElementById('outro-classe-wrap');
@@ -348,9 +384,10 @@
         else input.value = '';
     }
 
-    /* ── Intercepta criarFicha para tratar "Outro" ── */
+
+    // ── Intercepta criarFicha para tratar "Outro" ─────────────
     const _criarFichaOriginal = criarFicha;
-    criarFicha = async function() {
+    criarFicha = async function () {
         const sel   = document.getElementById('nova-classe');
         const outro = document.getElementById('outro-classe-input');
         if (sel.value === '__outro__') {
@@ -364,7 +401,9 @@
             sel.value = nomeClasse;
             if (!sel.querySelector(`option[value="${nomeClasse}"]`)) {
                 const opt = document.createElement('option');
-                opt.value = nomeClasse; opt.textContent = nomeClasse; opt.selected = true;
+                opt.value = nomeClasse;
+                opt.textContent = nomeClasse;
+                opt.selected = true;
                 sel.appendChild(opt);
             }
         }
